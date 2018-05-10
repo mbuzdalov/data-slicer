@@ -8,32 +8,33 @@ import com.google.gson.stream.{JsonReader, JsonToken}
 import ru.ifmo.ds.RawDatabase
 
 object JsonDatabaseLoader {
-  def load(contents: String): RawDatabase = {
+  def loadFromString(contents: String, moreKeys: Map[String, String] = Map.empty): RawDatabase = {
     val reader = new StringReader(contents)
-    val result = load(reader)
+    val result = loadFromReader(reader, moreKeys)
     reader.close()
     result
   }
 
-  def load(file: File): RawDatabase = {
+  def loadFromFile(file: File, moreKeys: Map[String, String] = Map.empty): RawDatabase = {
     val reader = new FileReader(file)
-    val result = load(reader)
+    val result = loadFromReader(reader, moreKeys)
     reader.close()
     result
   }
 
-  def load(reader: Reader): RawDatabase = {
+  def loadFromReader(reader: Reader, moreKeys: Map[String, String] = Map.empty): RawDatabase = {
     try {
       val jsonReader = new JsonReader(reader)
       val context = new LoadContext(jsonReader)
-      context.load(None)
+      val globalParent = new HierarchyLookup(None)
+      for ((k, v) <- moreKeys) {
+        globalParent.put(k, v)
+      }
+      context.load(globalParent)
 
       val leaves = context.leaves
-      val nodes = context.nodes
-      val roots = nodes.filter(_.isRoot)
-
       val keysBuilder = Set.newBuilder[String]
-      roots.foreach(_.collectKeys(keysBuilder += _))
+      globalParent.collectKeys(keysBuilder += _)
 
       new RawDatabase {
         override val possibleKeys: Set[String] = keysBuilder.result()
@@ -41,7 +42,7 @@ object JsonDatabaseLoader {
 
         override def valuesUnderKey(key: String): Set[String] = {
           val builder = Set.newBuilder[String]
-          roots.foreach(_.collectValuesFor(key, builder += _))
+          globalParent.collectValuesFor(key, builder += _)
           builder.result()
         }
       }
@@ -52,10 +53,8 @@ object JsonDatabaseLoader {
 
   private class LoadContext(reader: JsonReader) {
     private[this] val leavesBuilder = IndexedSeq.newBuilder[HierarchyLookup]
-    private[this] val nodesBuilder = IndexedSeq.newBuilder[HierarchyLookup]
 
     def leaves: IndexedSeq[HierarchyLookup] = leavesBuilder.result()
-    def nodes:  IndexedSeq[HierarchyLookup] = nodesBuilder.result()
 
     def loadSideObject(lookup: HierarchyLookup, prefix: String): Unit = {
       reader.beginObject()
@@ -72,7 +71,8 @@ object JsonDatabaseLoader {
       reader.endObject()
     }
 
-    def load(parent: Option[HierarchyLookup]): Unit = {
+    def load(parent: HierarchyLookup): Unit = {
+      val someParent = Some(parent)
       reader.peek() match {
         case JsonToken.BEGIN_ARRAY =>
           reader.beginArray()
@@ -82,9 +82,7 @@ object JsonDatabaseLoader {
           reader.endArray()
         case JsonToken.BEGIN_OBJECT =>
           reader.beginObject()
-          val currentLookup = new HierarchyLookup(parent)
-          nodesBuilder += currentLookup
-          val someCurrentLookup = Some(currentLookup)
+          val currentLookup = new HierarchyLookup(someParent)
           var isLeaf = true
           while (reader.hasNext) {
             val key = reader.nextName()
@@ -92,7 +90,7 @@ object JsonDatabaseLoader {
               throw new ParseException(s"The key '$key' is used in an enclosing object")
             }
             reader.peek() match {
-              case JsonToken.BEGIN_ARRAY  => isLeaf = false; load(someCurrentLookup)
+              case JsonToken.BEGIN_ARRAY  => isLeaf = false; load(currentLookup)
               case JsonToken.BEGIN_OBJECT => loadSideObject(currentLookup, key)
               case JsonToken.NULL         => reader.nextNull(); currentLookup.put(key, null)
               case JsonToken.BOOLEAN      => currentLookup.put(key, String.valueOf(reader.nextBoolean()))

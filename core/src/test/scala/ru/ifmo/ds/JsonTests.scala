@@ -6,31 +6,31 @@ import ru.ifmo.ds.io.JsonDatabaseLoader
 class JsonTests extends FlatSpec with Matchers {
   "an empty JSON" should "fail to be read" in {
     a [JsonDatabaseLoader.ParseException] should be thrownBy {
-      JsonDatabaseLoader.load("")
+      JsonDatabaseLoader.loadFromString("")
     }
   }
 
   "an empty JSON array" should "transform into an empty database" in {
-    val db = JsonDatabaseLoader.load("[]")
+    val db = JsonDatabaseLoader.loadFromString("[]")
     db.possibleKeys shouldBe empty
     db.entries shouldBe empty
   }
 
   "an empty JSON object" should "transform into a database with an empty object" in {
-    val db = JsonDatabaseLoader.load("{}")
+    val db = JsonDatabaseLoader.loadFromString("{}")
     db.possibleKeys shouldBe empty
     db.entries.size shouldEqual 1
   }
 
   "a JSON object with a single key-value pair without the array key" should "be parsed OK with one record and some keys" in {
-    val db = JsonDatabaseLoader.load("""{"key":"value"}""")
+    val db = JsonDatabaseLoader.loadFromString("""{"key":"value"}""")
     db.possibleKeys shouldEqual Set("key")
     db.entries.size shouldEqual 1
     db.entries.head("key") shouldEqual "value"
   }
 
   "a JSON object with multiple single key-value pairs without the array key" should "be parsed OK with one record and some keys" in {
-    val db = JsonDatabaseLoader.load("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
+    val db = JsonDatabaseLoader.loadFromString("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
     db.possibleKeys shouldEqual Set("key1", "key2", "key3", "key4", "key5", "key6")
     db.entries.size shouldEqual 1
     val entry = db.entries.head
@@ -43,7 +43,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a typical JSON input" should "be parsed OK" in {
-    val db = JsonDatabaseLoader.load(
+    val db = JsonDatabaseLoader.loadFromString(
       """{
          |  "author":"John Smith",
          |  "date":"2018.10.05",
