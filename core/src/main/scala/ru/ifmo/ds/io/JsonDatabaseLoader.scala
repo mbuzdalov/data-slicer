@@ -8,31 +8,29 @@ import com.google.gson.stream.{JsonReader, JsonToken}
 import ru.ifmo.ds.RawDatabase
 
 object JsonDatabaseLoader {
-  def load(contents: String, arrayKey: String): RawDatabase = {
+  def load(contents: String): RawDatabase = {
     val reader = new StringReader(contents)
-    val result = load(reader, arrayKey)
+    val result = load(reader)
     reader.close()
     result
   }
 
-  def load(file: File, arrayKey: String): RawDatabase = {
+  def load(file: File): RawDatabase = {
     val reader = new FileReader(file)
-    val result = load(reader, arrayKey)
+    val result = load(reader)
     reader.close()
     result
   }
 
-  def load(reader: Reader, arrayKey: String): RawDatabase = {
+  def load(reader: Reader): RawDatabase = {
     try {
       val jsonReader = new JsonReader(reader)
-      val context = new LoadContext(jsonReader, arrayKey)
+      val context = new LoadContext(jsonReader)
       context.load(None)
 
       val leaves = context.leaves
       val nodes = context.nodes
-      val roots = nodes.filter(_.parent.isEmpty)
-
-      nodes.foreach(_.attributeParent())
+      val roots = nodes.filter(_.isRoot)
 
       val keysBuilder = Set.newBuilder[String]
       roots.foreach(_.collectKeys(keysBuilder += _))
@@ -52,7 +50,7 @@ object JsonDatabaseLoader {
     }
   }
 
-  private class LoadContext(reader: JsonReader, arrayKey: String) {
+  private class LoadContext(reader: JsonReader) {
     private[this] val leavesBuilder = IndexedSeq.newBuilder[HierarchyLookup]
     private[this] val nodesBuilder = IndexedSeq.newBuilder[HierarchyLookup]
 
@@ -93,15 +91,8 @@ object JsonDatabaseLoader {
             if (currentLookup.get(key).isDefined) {
               throw new ParseException(s"The key '$key' is used in an enclosing object")
             }
-            val token = reader.peek()
-            if (key == arrayKey) {
-              if (token != JsonToken.BEGIN_ARRAY) {
-                throw new ParseException(s"The array key '$arrayKey' is not followed by an array, but by $token instead")
-              }
-              isLeaf = false
-              load(someCurrentLookup)
-            } else token match {
-              case JsonToken.BEGIN_ARRAY  => throw new ParseException(s"The non-array key '$key' is followed by an array")
+            reader.peek() match {
+              case JsonToken.BEGIN_ARRAY  => isLeaf = false; load(someCurrentLookup)
               case JsonToken.BEGIN_OBJECT => loadSideObject(currentLookup, key)
               case JsonToken.NULL         => reader.nextNull(); currentLookup.put(key, null)
               case JsonToken.BOOLEAN      => currentLookup.put(key, String.valueOf(reader.nextBoolean()))
@@ -118,19 +109,22 @@ object JsonDatabaseLoader {
     }
   }
 
-  private class HierarchyLookup(val parent: Option[HierarchyLookup]) {
+  private class HierarchyLookup(parent: Option[HierarchyLookup]) {
+    parent.foreach(_.myChildren += this)
+
     private[this] val myKeys = new MuHashMap[String, String]()
 
     private val myChildren = new ArrayBuffer[HierarchyLookup]
 
+    def isRoot: Boolean = parent.isEmpty
     def put(key: String, value: String): Unit = myKeys.update(key, value)
     def get(key: String): Option[String] = myKeys.get(key).orElse(parent.flatMap(_.get(key)))
 
-    def attributeParent(): Unit = parent.foreach(_.myChildren += this)
     def collectKeys(collector: String => Unit): Unit = {
       myKeys.keySet.foreach(collector)
       myChildren.foreach(_.collectKeys(collector))
     }
+
     def collectValuesFor(key: String, collector: String => Unit): Unit = {
       if (myKeys.contains(key)) {
         collector(myKeys(key))
