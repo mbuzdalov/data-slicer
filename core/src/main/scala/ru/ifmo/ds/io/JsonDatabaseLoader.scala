@@ -30,7 +30,7 @@ object JsonDatabaseLoader {
       for ((k, v) <- moreKeys) {
         globalParent.put(k, v)
       }
-      context.load(globalParent)
+      context.load(globalParent, None)
 
       val leaves = context.leaves
       val keysBuilder = Set.newBuilder[String]
@@ -71,13 +71,13 @@ object JsonDatabaseLoader {
       reader.endObject()
     }
 
-    def load(parent: HierarchyLookup): Unit = {
+    def load(parent: HierarchyLookup, key: Option[String]): Unit = {
       val someParent = Some(parent)
       reader.peek() match {
         case JsonToken.BEGIN_ARRAY =>
           reader.beginArray()
           while (reader.hasNext) {
-            load(parent)
+            load(parent, key)
           }
           reader.endArray()
         case JsonToken.BEGIN_OBJECT =>
@@ -90,7 +90,7 @@ object JsonDatabaseLoader {
               throw new ParseException(s"The key '$key' is used in an enclosing object")
             }
             reader.peek() match {
-              case JsonToken.BEGIN_ARRAY  => isLeaf = false; load(currentLookup)
+              case JsonToken.BEGIN_ARRAY  => isLeaf = false; load(currentLookup, Some(key))
               case JsonToken.BEGIN_OBJECT => loadSideObject(currentLookup, key)
               case JsonToken.NULL         => reader.nextNull(); currentLookup.put(key, null)
               case JsonToken.BOOLEAN      => currentLookup.put(key, String.valueOf(reader.nextBoolean()))
@@ -101,8 +101,18 @@ object JsonDatabaseLoader {
             leavesBuilder += currentLookup
           }
           reader.endObject()
-        case _ =>
-          throw new ParseException(s"The root element should be either an object or an array")
+        case otherToken => key match {
+          case None => throw new ParseException(s"The root element should be either an object or an array, found '$otherToken'")
+          case Some(k) =>
+            // A scheme to support { "measurements": [1.42345, 1.345346, 1.435346] }
+            val currentLookup = new HierarchyLookup(someParent)
+            otherToken match {
+              case JsonToken.NULL    => reader.nextNull(); currentLookup.put(k, null)
+              case JsonToken.BOOLEAN => currentLookup.put(k, String.valueOf(reader.nextBoolean()))
+              case _                 => currentLookup.put(k, reader.nextString())
+            }
+            leavesBuilder += currentLookup
+        }
       }
     }
   }

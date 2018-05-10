@@ -45,69 +45,76 @@ class JsonTests extends FlatSpec with Matchers {
   "a typical JSON input" should "be parsed OK" in {
     val db = JsonDatabaseLoader.loadFromString(
       """{
-         |  "author":"John Smith",
-         |  "date":"2018.10.05",
-         |  "os":"Linux",
-         |  "jvm":"1.8.0_172",
-         |  "measurements":[
-         |    {
-         |      "generator":{
-         |         "type":"uniform.hypercube"
-         |      },
-         |      "runsForGenerator":[
-         |        {
-         |          "nPoints":100,
-         |          "dimension":4,
-         |          "runsForDataset":[
-         |            {
-         |              "algorithm":"jfb.rbtree",
-         |              "runsForAlgorithm":[
-         |                { "fork":0, "time":1.534436e-6 },
-         |                { "fork":1, "time":1.567734e-6 },
-         |                { "fork":2, "time":1.548824e-6 }
-         |              ]
-         |            }, {
-         |              "algorithm":"ens.ndt",
-         |              "thisCanBeAnything":[
-         |                { "fork":0, "time":1.134325e-6 },
-         |                { "fork":1, "time":1.122452e-6 },
-         |                { "fork":2, "time":1.114536e-6 }
-         |              ]
-         |            }
-         |          ]
-         |        }, {
-         |          "nPoints":200,
-         |          "dimension":4,
-         |          "doNotCareForNames":[
-         |            {
-         |              "algorithm":"jfb.rbtree",
-         |              "foo":[
-         |                { "fork":0, "time":3.125346e-6 },
-         |                { "fork":1, "time":3.145246e-6 },
-         |                { "fork":2, "time":3.136284e-6 }
-         |              ]
-         |            }, {
-         |              "algorithm":"ens.ndt",
-         |              "bar":[
-         |                { "fork":0, "time":2.372635e-6 },
-         |                { "fork":1, "time":2.418476e-6 },
-         |                { "fork":2, "time":2.387264e-6 }
-         |              ]
-         |            }
-         |          ]
-         |        }
-         |      ]
-         |    }
-         |  ]
-         |}
+        |  "author":"John Smith",
+        |  "date":"2018.05.10",
+        |  "os":"Linux",
+        |  "jvm":"1.8.0_172",
+        |  "measurements":[
+        |    {
+        |      "generator":{
+        |         "type":"uniform.hypercube"
+        |      },
+        |      "runsForGenerator":[
+        |        {
+        |          "nPoints":100,
+        |          "dimension":4,
+        |          "runsForDataset":[
+        |            {
+        |              "algorithm":"jfb.rbtree",
+        |              "runsForAlgorithm":[
+        |                { "fork":0, "time":1.534436e-6 },
+        |                { "fork":1, "time":1.567734e-6 },
+        |                { "fork":2, "time":1.548824e-6 }
+        |              ]
+        |            }, {
+        |              "algorithm":"ens.ndt",
+        |              "thisCanBeAnything":[
+        |                { "fork":0, "time":1.134325e-6 },
+        |                { "fork":1, "time":1.122452e-6 },
+        |                { "fork":2, "time":1.114536e-6 }
+        |              ]
+        |            }
+        |          ]
+        |        }, {
+        |          "nPoints":200,
+        |          "dimension":4,
+        |          "doNotCareForNames":[
+        |            {
+        |              "algorithm":"jfb.rbtree",
+        |              "foo":[
+        |                { "fork":0, "time":3.125346e-6 },
+        |                { "fork":1, "time":3.145246e-6 },
+        |                { "fork":2, "time":3.136284e-6 }
+        |              ]
+        |            }, {
+        |              "algorithm":"ens.ndt",
+        |              "bar":[
+        |                { "fork":0, "time":2.372635e-6 },
+        |                { "fork":1, "time":2.418476e-6 },
+        |                { "fork":2, "time":2.387264e-6 }
+        |              ]
+        |            }
+        |          ]
+        |        }
+        |      ]
+        |    }
+        |  ]
+        |}
       """.stripMargin)
     db.possibleKeys shouldEqual Set("author", "date", "os", "jvm", "generator.type",
                                     "nPoints", "dimension", "algorithm", "fork", "time")
     val entries = db.entries
     entries.size shouldEqual 12
 
-    entries.foreach(_("dimension") shouldEqual "4")
-    entries.foreach(_("generator.type") shouldEqual "uniform.hypercube")
+    entries foreach { e =>
+      e("os") shouldEqual "Linux"
+      e("jvm") shouldEqual "1.8.0_172"
+      e("date") shouldEqual "2018.05.10"
+      e("author") shouldEqual "John Smith"
+      e("dimension") shouldEqual "4"
+      e("generator.type") shouldEqual "uniform.hypercube"
+    }
+
     entries.slice(0, 6).foreach(_("nPoints") shouldEqual "100")
     entries.slice(6,12).foreach(_("nPoints") shouldEqual "200")
     entries.slice(0, 3).foreach(_("algorithm") shouldEqual "jfb.rbtree")
@@ -120,10 +127,33 @@ class JsonTests extends FlatSpec with Matchers {
                             "3.125346e-6", "3.145246e-6", "3.136284e-6",
                             "2.372635e-6", "2.418476e-6", "2.387264e-6")
 
-    entries.zipWithIndex foreach {
-      case (e, i) =>
-        e("fork") shouldEqual String.valueOf(i % 3)
-        e("time") shouldEqual expectedTimes(i)
+    entries.zipWithIndex foreach { case (e, i) =>
+      e("fork") shouldEqual String.valueOf(i % 3)
+      e("time") shouldEqual expectedTimes(i)
+    }
+  }
+
+  "a JSON input with an array with non-objects" should "be parsed OK" in {
+    val db = JsonDatabaseLoader.loadFromString("""{"author":"me","measurements":[1,2,3,4,5]}""")
+    db.possibleKeys shouldEqual Set("author", "measurements")
+    db.entries.size shouldEqual 5
+    db.entries.zipWithIndex foreach { case (e, i) =>
+      e("author") shouldEqual "me"
+      e("measurements") shouldEqual String.valueOf(i + 1)
+    }
+  }
+
+  "a JSON input with extra keys" should "be loaded and parsed OK" in {
+    val db = JsonDatabaseLoader.loadFromString(
+      contents = """{"author":"me","measurements":[1,2,3,4,5]}""",
+      moreKeys = Map("tag" -> "42")
+    )
+    db.possibleKeys shouldEqual Set("author", "measurements", "tag")
+    db.entries.size shouldEqual 5
+    db.entries.zipWithIndex foreach { case (e, i) =>
+      e("tag") shouldEqual "42"
+      e("author") shouldEqual "me"
+      e("measurements") shouldEqual String.valueOf(i + 1)
     }
   }
 }
