@@ -1,36 +1,36 @@
 package ru.ifmo.ds
 
 import org.scalatest.{FlatSpec, Matchers}
-import ru.ifmo.ds.io.JsonDatabaseLoader
+import ru.ifmo.ds.io.Json
 
 class JsonTests extends FlatSpec with Matchers {
   "an empty JSON" should "fail to be read" in {
-    a [JsonDatabaseLoader.ParseException] should be thrownBy {
-      JsonDatabaseLoader.loadFromString("")
+    a [Json.ParseException] should be thrownBy {
+      Json.loadFromString("")
     }
   }
 
   "an empty JSON array" should "transform into a database with an empty object" in {
-    val db = JsonDatabaseLoader.loadFromString("[]")
+    val db = Json.loadFromString("[]")
     db.possibleKeys shouldBe empty
     db.entries.size shouldEqual 1
   }
 
   "an empty JSON object" should "transform into a database with an empty object" in {
-    val db = JsonDatabaseLoader.loadFromString("{}")
+    val db = Json.loadFromString("{}")
     db.possibleKeys shouldBe empty
     db.entries.size shouldEqual 1
   }
 
   "a JSON object with a single key-value pair without the array key" should "be parsed OK with one record and some keys" in {
-    val db = JsonDatabaseLoader.loadFromString("""{"key":"value"}""")
+    val db = Json.loadFromString("""{"key":"value"}""")
     db.possibleKeys shouldEqual Set("key")
     db.entries.size shouldEqual 1
     db.entries.head("key") shouldEqual "value"
   }
 
   "a JSON object with multiple single key-value pairs without the array key" should "be parsed OK with one record and some keys" in {
-    val db = JsonDatabaseLoader.loadFromString("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
+    val db = Json.loadFromString("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
     db.possibleKeys shouldEqual Set("key1", "key2", "key3", "key4", "key5", "key6")
     db.entries.size shouldEqual 1
     val entry = db.entries.head
@@ -43,7 +43,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a typical JSON input" should "be parsed OK" in {
-    val db = JsonDatabaseLoader.loadFromString(
+    val db = Json.loadFromString(
       """{
         |  "author":"John Smith",
         |  "date":"2018.05.10",
@@ -134,7 +134,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a JSON input with an array with non-objects" should "be parsed OK" in {
-    val db = JsonDatabaseLoader.loadFromString("""{"author":"me","measurements":[1,2,3,4,5]}""")
+    val db = Json.loadFromString("""{"author":"me","measurements":[1,2,3,4,5]}""")
     db.possibleKeys shouldEqual Set("author", "measurements")
     db.entries.size shouldEqual 5
     db.entries.zipWithIndex foreach { case (e, i) =>
@@ -144,7 +144,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a JSON input with extra keys" should "be loaded and parsed OK" in {
-    val db = JsonDatabaseLoader.loadFromString(
+    val db = Json.loadFromString(
       contents = """{"author":"me","measurements":[1,2,3,4,5]}""",
       moreKeys = Map("tag" -> "42")
     )

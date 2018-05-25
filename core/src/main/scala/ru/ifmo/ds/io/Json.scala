@@ -5,7 +5,7 @@ import java.io._
 import com.google.gson.stream.{JsonReader, JsonToken}
 import ru.ifmo.ds.{Database, HierarchicDatabase}
 
-object JsonDatabaseLoader {
+object Json {
   def loadFromString(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
     val reader = new StringReader(contents)
     val result = loadFromReader(reader, moreKeys)
