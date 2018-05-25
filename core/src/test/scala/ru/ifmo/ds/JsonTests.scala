@@ -10,10 +10,10 @@ class JsonTests extends FlatSpec with Matchers {
     }
   }
 
-  "an empty JSON array" should "transform into an empty database" in {
+  "an empty JSON array" should "transform into a database with an empty object" in {
     val db = JsonDatabaseLoader.loadFromString("[]")
     db.possibleKeys shouldBe empty
-    db.entries shouldBe empty
+    db.entries.size shouldEqual 1
   }
 
   "an empty JSON object" should "transform into a database with an empty object" in {
