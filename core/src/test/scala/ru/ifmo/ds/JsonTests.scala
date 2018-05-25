@@ -10,26 +10,32 @@ class JsonTests extends FlatSpec with Matchers {
     }
   }
 
-  "an empty JSON array" should "transform into a database with an empty object" in {
+  "an empty JSON array" should "transform into an empty database" in {
     val db = Json.loadFromString("[]")
     db.possibleKeys shouldBe empty
-    db.entries.size shouldEqual 1
+    db.entries shouldBe empty
   }
 
-  "an empty JSON object" should "transform into a database with an empty object" in {
+  "an empty JSON object" should "transform into an empty database" in {
     val db = Json.loadFromString("{}")
     db.possibleKeys shouldBe empty
-    db.entries.size shouldEqual 1
+    db.entries shouldBe empty
   }
 
-  "a JSON object with a single key-value pair without the array key" should "be parsed OK with one record and some keys" in {
+  "a JSON object with a single key-value pair without the array key" should "be parsed OK with no records a key" in {
     val db = Json.loadFromString("""{"key":"value"}""")
+    db.possibleKeys shouldEqual Set("key")
+    db.entries shouldBe empty
+  }
+
+  "a JSON array with an object of single key-value pair without the array key" should "be parsed OK with one record and some keys" in {
+    val db = Json.loadFromString("""[{"key":"value"}]""")
     db.possibleKeys shouldEqual Set("key")
     db.entries.size shouldEqual 1
     db.entries.head("key") shouldEqual "value"
   }
 
-  "a JSON object with multiple single key-value pairs without the array key" should "be parsed OK with one record and some keys" in {
+  "a JSON object with multiple single key-value pairs without the array key" should "be parsed OK with no records and some keys" in {
     val db = Json.loadFromString("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
     db.possibleKeys shouldEqual Set("key1", "key2", "key3", "key4", "key5", "key6")
     db.entries.size shouldEqual 1
@@ -154,6 +160,30 @@ class JsonTests extends FlatSpec with Matchers {
       e("tag") shouldEqual "42"
       e("author") shouldEqual "me"
       e("measurements") shouldEqual String.valueOf(i + 1)
+    }
+  }
+
+  "a JSON with repeated keys on one level" should "fail to be read" in {
+    a [Json.ParseException] should be thrownBy {
+      Json.loadFromString("""{"key":"value1","key":"value2"}""")
+    }
+  }
+
+  "a JSON with repeated keys on different levels" should "fail when the inner key goes after the outer" in {
+    a[Json.ParseException] should be thrownBy {
+      Json.loadFromString("""{"key":"value1","inner":[{"key":"value2"}]}""")
+    }
+  }
+
+  it should "succeed when the inner key duplicate key is not in an array" in {
+    val db = Json.loadFromString("""{"key":"value1","inner":{"key":"value2"}}""")
+    db.possibleKeys.size shouldEqual 2
+    db.entries shouldBe empty
+  }
+
+  it should "also fail when the inner key goes before the outer" in {
+    a [Json.ParseException] should be thrownBy {
+      Json.loadFromString("""{"inner":[{"key":"value2"}],"key":"value1"}""")
     }
   }
 }

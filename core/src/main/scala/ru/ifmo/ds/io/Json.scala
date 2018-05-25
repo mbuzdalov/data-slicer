@@ -62,8 +62,8 @@ object Json {
           val currentLookup = new HierarchicDatabase.MutableEntry(someParent)
           while (reader.hasNext) {
             val key = reader.nextName()
-            if (currentLookup.get(key).isDefined) {
-              throw new ParseException(s"The key '$key' is used in an enclosing object")
+            if (currentLookup.contains(key)) {
+              throw new ParseException(s"The key '$key' is already used in the same or in an enclosing object")
             }
             reader.peek() match {
               case JsonToken.BEGIN_ARRAY  => load(currentLookup, Some(key))
