@@ -189,4 +189,35 @@ class JsonTests extends FlatSpec with Matchers {
       Json.loadFromString("""{"inner":[{"key":"value2"}],"key":"value1"}""")
     }
   }
+
+  "a JSON input with multiple children objects with arrays" should "parse as expected" in {
+    val db = Json.loadFromString(
+      """{
+        |  "a":{
+        |    "b":5,
+        |    "c":[6, 7]
+        |  },
+        |  "b":{
+        |    "a":8,
+        |    "c":[9, 10]
+        |  }
+        |}
+      """.stripMargin)
+    db.possibleKeys shouldEqual Set("a.b", "a.c", "b.a", "b.c")
+    db.entries.size shouldBe 4
+    db.entries foreach { e =>
+      e("a.b") shouldEqual "5"
+      e("b.a") shouldEqual "8"
+    }
+
+    val Seq(db0, db1, db2, db3) = db.entries
+    db0("a.c") shouldEqual "6"
+    db0.contains("b.c") shouldBe false
+    db1("a.c") shouldEqual "7"
+    db1.contains("b.c") shouldBe false
+    db2("b.c") shouldEqual "9"
+    db2.contains("a.c") shouldBe false
+    db3("b.c") shouldEqual "10"
+    db3.contains("a.c") shouldBe false
+  }
 }

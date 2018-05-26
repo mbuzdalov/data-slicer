@@ -5,7 +5,7 @@ import java.io._
 import com.google.gson.stream.{JsonReader, JsonToken}
 import ru.ifmo.ds.{Database, HierarchicDatabase}
 
-import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap}
+import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap, HashSet => MuHashSet}
 
 object Json {
   def loadFromString(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
@@ -101,8 +101,8 @@ object Json {
     def this(cause: Throwable) = this(null, cause)
   }
 
-  private implicit class MuHashMapEx[V](val map: MuHashMap[String, V]) extends AnyVal {
-    def updateUnique(k: String, v: V): Unit = {
+  private implicit class MuHashMapEx(val map: MuHashMap[String, String]) extends AnyVal {
+    def updateUnique(k: String, v: String): Unit = {
       if (map.contains(k)) {
         throw new ParseException(s"Key $k already exists")
       } else map.update(k, v)
@@ -111,19 +111,27 @@ object Json {
 
   private class RawEntryBuilder {
     private val myArrayChildren = new ArrayBuffer[RawEntry]()
-    private val myDirectChildren = new MuHashMap[String, RawEntry]()
+    private val myDirectChildren = new ArrayBuffer[(String, RawEntry)]()
+    private val myDirectChildrenKeys = new MuHashSet[String]
     private val myKeyValuePairs = new MuHashMap[String, String]()
     private var hasDeclaredArrays = false
 
     def setHasDeclaredArrays(): RawEntryBuilder = { hasDeclaredArrays = true; this }
     def addArrayElement(entry: RawEntry): RawEntryBuilder = { myArrayChildren += entry; this }
-    def addDirect(key: String, entry: RawEntry): RawEntryBuilder = { myDirectChildren.updateUnique(key, entry); this }
     def addPair(key: String, value: String): RawEntryBuilder = { myKeyValuePairs.updateUnique(key, value); this }
+    def addDirect(key: String, entry: RawEntry): RawEntryBuilder = {
+      if (myDirectChildrenKeys.contains(key)) {
+        throw new ParseException(s"Key $key already exists")
+      }
+      myDirectChildrenKeys += key
+      myDirectChildren += key -> entry
+      this
+    }
 
     def result() = RawEntry(
       hasDeclaredArrays,
       myArrayChildren.toIndexedSeq,
-      myDirectChildren.toMap,
+      myDirectChildren.toIndexedSeq,
       myKeyValuePairs.toMap
     )
   }
@@ -131,7 +139,7 @@ object Json {
   private case class RawEntry(
     hasDeclaredArrays: Boolean,
     arrayChildren: IndexedSeq[RawEntry],
-    directChildren: Map[String, RawEntry],
+    directChildren: IndexedSeq[(String, RawEntry)],
     keyValuePairs: Map[String, String]
   )
 
