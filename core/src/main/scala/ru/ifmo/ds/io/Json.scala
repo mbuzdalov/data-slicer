@@ -5,6 +5,8 @@ import java.io._
 import com.google.gson.stream.{JsonReader, JsonToken}
 import ru.ifmo.ds.{Database, HierarchicDatabase}
 
+import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap}
+
 object Json {
   def loadFromString(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
     val reader = new StringReader(contents)
@@ -23,74 +25,159 @@ object Json {
   def loadFromReader(reader: Reader, moreKeys: Map[String, String] = Map.empty): Database = {
     try {
       val jsonReader = new JsonReader(reader)
-      val context = new LoadContext(jsonReader)
-      val globalParent = new HierarchicDatabase.ImmutableEntry(None, moreKeys)
-      context.load(globalParent, None)
-      new HierarchicDatabase(globalParent)
+      val rawRoot = jsonReader.peek() match {
+        case JsonToken.BEGIN_ARRAY =>
+          val entry = new RawEntryBuilder
+          entry.setHasDeclaredArrays()
+          for ((k, v) <- moreKeys) {
+            entry.addPair(k, v)
+          }
+          readArrayElementsInto("$_root_$", jsonReader, entry)
+          entry.result()
+        case JsonToken.BEGIN_OBJECT =>
+          val builder = readObjectOpen(jsonReader)
+          for ((k, v) <- moreKeys) {
+            builder.addPair(k, v)
+          }
+          builder.result()
+        case _ =>
+          throw new ParseException("Root element can be either an object or an array, not " + jsonReader.peek())
+      }
+      val compressedRoot = compress(rawRoot, "")
+      new HierarchicDatabase(compressedRoot.toEntry(None))
     } catch {
       case e: IOException => throw new ParseException(e)
     }
   }
 
-  private class LoadContext(reader: JsonReader) {
-    def loadSideObject(lookup: HierarchicDatabase.MutableEntry, prefix: String): Unit = {
-      reader.beginObject()
-      while (reader.hasNext) {
-        val key = prefix + "." + reader.nextName()
-        reader.peek() match {
-          case JsonToken.BEGIN_ARRAY  => throw new ParseException("Array is not allowed in side objects")
-          case JsonToken.BEGIN_OBJECT => loadSideObject(lookup, key)
-          case JsonToken.NULL         => reader.nextNull(); lookup.put(key, null)
-          case JsonToken.BOOLEAN      => lookup.put(key, String.valueOf(reader.nextBoolean()))
-          case _                      => lookup.put(key, reader.nextString())
-        }
-      }
-      reader.endObject()
-    }
-
-    def load(parent: HierarchicDatabase.Entry, key: Option[String]): Unit = {
-      val someParent = Some(parent)
+  private def readArrayElementsInto(arrayKey: String, reader: JsonReader, target: RawEntryBuilder): Unit = {
+    reader.beginArray()
+    while (reader.hasNext) {
       reader.peek() match {
         case JsonToken.BEGIN_ARRAY =>
-          reader.beginArray()
-          while (reader.hasNext) {
-            load(parent, key)
-          }
-          reader.endArray()
+          readArrayElementsInto(arrayKey, reader, target)
         case JsonToken.BEGIN_OBJECT =>
-          reader.beginObject()
-          val currentLookup = new HierarchicDatabase.MutableEntry(someParent)
-          while (reader.hasNext) {
-            val key = reader.nextName()
-            if (currentLookup.contains(key)) {
-              throw new ParseException(s"The key '$key' is already used in the same or in an enclosing object")
-            }
-            reader.peek() match {
-              case JsonToken.BEGIN_ARRAY  => load(currentLookup, Some(key))
-              case JsonToken.BEGIN_OBJECT => loadSideObject(currentLookup, key)
-              case JsonToken.NULL         => reader.nextNull(); currentLookup.put(key, null)
-              case JsonToken.BOOLEAN      => currentLookup.put(key, String.valueOf(reader.nextBoolean()))
-              case _                      => currentLookup.put(key, reader.nextString())
-            }
-          }
-          reader.endObject()
-        case otherToken => key match {
-          case None => throw new ParseException(s"The root element should be either an object or an array, found '$otherToken'")
-          case Some(k) =>
-            // A scheme to support { "measurements": [1.42345, 1.345346, 1.435346] }
-            val currentLookup = new HierarchicDatabase.MutableEntry(someParent)
-            otherToken match {
-              case JsonToken.NULL    => reader.nextNull(); currentLookup.put(k, null)
-              case JsonToken.BOOLEAN => currentLookup.put(k, String.valueOf(reader.nextBoolean()))
-              case _                 => currentLookup.put(k, reader.nextString())
-            }
-        }
+          target.addArrayElement(readObject(reader))
+        case JsonToken.NULL =>
+          reader.nextNull()
+          target.addArrayElement(new RawEntryBuilder().addPair(arrayKey, null).result())
+        case JsonToken.BOOLEAN =>
+          target.addArrayElement(new RawEntryBuilder().addPair(arrayKey, String.valueOf(reader.nextBoolean())).result())
+        case _ =>
+          target.addArrayElement(new RawEntryBuilder().addPair(arrayKey, reader.nextString()).result())
       }
     }
+    reader.endArray()
   }
+
+  private def readObjectOpen(reader: JsonReader): RawEntryBuilder = {
+    reader.beginObject()
+    val builder = new RawEntryBuilder
+    while (reader.hasNext) {
+      val key = reader.nextName()
+      reader.peek() match {
+        case JsonToken.BEGIN_ARRAY =>
+          builder.setHasDeclaredArrays()
+          readArrayElementsInto(key, reader, builder)
+        case JsonToken.BEGIN_OBJECT =>
+          builder.addDirect(key, readObject(reader))
+        case JsonToken.NULL =>
+          reader.nextNull()
+          builder.addPair(key, null)
+        case JsonToken.BOOLEAN =>
+          builder.addPair(key, String.valueOf(reader.nextBoolean()))
+        case _ =>
+          builder.addPair(key, reader.nextString())
+      }
+    }
+    reader.endObject()
+    builder
+  }
+
+  private def readObject(reader: JsonReader): RawEntry = readObjectOpen(reader).result()
 
   class ParseException(message: String, cause: Throwable) extends RuntimeException {
     def this(message: String) = this(message, null)
     def this(cause: Throwable) = this(null, cause)
+  }
+
+  private implicit class MuHashMapEx[V](val map: MuHashMap[String, V]) extends AnyVal {
+    def updateUnique(k: String, v: V): Unit = {
+      if (map.contains(k)) {
+        throw new ParseException(s"Key $k already exists")
+      } else map.update(k, v)
+    }
+  }
+
+  private class RawEntryBuilder {
+    private val myArrayChildren = new ArrayBuffer[RawEntry]()
+    private val myDirectChildren = new MuHashMap[String, RawEntry]()
+    private val myKeyValuePairs = new MuHashMap[String, String]()
+    private var hasDeclaredArrays = false
+
+    def setHasDeclaredArrays(): RawEntryBuilder = { hasDeclaredArrays = true; this }
+    def addArrayElement(entry: RawEntry): RawEntryBuilder = { myArrayChildren += entry; this }
+    def addDirect(key: String, entry: RawEntry): RawEntryBuilder = { myDirectChildren.updateUnique(key, entry); this }
+    def addPair(key: String, value: String): RawEntryBuilder = { myKeyValuePairs.updateUnique(key, value); this }
+
+    def result() = RawEntry(
+      hasDeclaredArrays,
+      myArrayChildren.toIndexedSeq,
+      myDirectChildren.toMap,
+      myKeyValuePairs.toMap
+    )
+  }
+
+  private case class RawEntry(
+    hasDeclaredArrays: Boolean,
+    arrayChildren: IndexedSeq[RawEntry],
+    directChildren: Map[String, RawEntry],
+    keyValuePairs: Map[String, String]
+  )
+
+  private class CompressedEntryBuilder {
+    private val myArrayChildren = new ArrayBuffer[CompressedEntry]()
+    private val myKeyValuePairs = new MuHashMap[String, String]()
+    private var hasDeclaredArrays = false
+
+    def setHasDeclaredArrays(): CompressedEntryBuilder = { hasDeclaredArrays = true; this }
+    def addArrayElement(entry: CompressedEntry): CompressedEntryBuilder = { myArrayChildren += entry; this }
+    def addPair(key: String, value: String): CompressedEntryBuilder = { myKeyValuePairs.updateUnique(key, value); this }
+
+    def result() = CompressedEntry(hasDeclaredArrays, myArrayChildren.toIndexedSeq, myKeyValuePairs.toMap)
+  }
+
+  private case class CompressedEntry(
+    hasDeclaredArrays: Boolean,
+    arrayChildren: IndexedSeq[CompressedEntry],
+    keyValuePairs: Map[String, String]
+  ) {
+    def toEntry(parent: Option[HierarchicDatabase.Entry]): HierarchicDatabase.Entry = {
+      val result = new HierarchicDatabase.Entry(parent, keyValuePairs, !hasDeclaredArrays)
+      val someResult = Some(result)
+      arrayChildren.foreach(_.toEntry(someResult))
+      result
+    }
+  }
+
+  private def populate(e: RawEntry, prefix: String, builder: CompressedEntryBuilder): Unit = {
+    if (e.hasDeclaredArrays) {
+      builder.setHasDeclaredArrays()
+    }
+    for ((k, v) <- e.keyValuePairs) {
+      builder.addPair(prefix + k, v)
+    }
+    for ((k, e) <- e.directChildren) {
+      populate(e, prefix + k + ".", builder)
+    }
+    for (e <- e.arrayChildren) {
+      builder.addArrayElement(compress(e, prefix))
+    }
+  }
+
+  private def compress(e: RawEntry, prefix: String): CompressedEntry = {
+    val builder = new CompressedEntryBuilder
+    populate(e, prefix, builder)
+    builder.result()
   }
 }
