@@ -33,7 +33,7 @@ object HierarchicDatabase {
     }
 
     def collectLeaves(consumer: Entry => Unit): Unit = {
-      if (!myChildren.isEmpty) {
+      if (myChildren.nonEmpty) {
         myChildren.foreach(_.collectLeaves(consumer))
       } else if (canBeLeaf) {
         consumer(this)
