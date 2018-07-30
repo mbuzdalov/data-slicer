@@ -18,9 +18,11 @@ class HierarchicDatabase(root: HierarchicDatabase.Entry) extends Database {
 
   override val entries: Seq[Database.Entry] = {
     val builder = IndexedSeq.newBuilder[Database.Entry]
-    root.collectLeaves(builder += _)
+    root.foreach(builder += _)
     builder.result()
   }
+
+  override def foreach[T](fun: Database.Entry => T): Unit = root.foreach(fun)
 }
 
 object HierarchicDatabase {
@@ -32,9 +34,9 @@ object HierarchicDatabase {
       p.myChildren += this
     }
 
-    def collectLeaves(consumer: Entry => Unit): Unit = {
+    def foreach[U](consumer: Entry => U): Unit = {
       if (myChildren.nonEmpty) {
-        myChildren.foreach(_.collectLeaves(consumer))
+        myChildren.foreach(_.foreach(consumer))
       } else if (canBeLeaf) {
         consumer(this)
       }

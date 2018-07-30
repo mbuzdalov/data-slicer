@@ -4,6 +4,7 @@ abstract class Database {
   def possibleKeys: Set[String]
   def valuesUnderKey(key: String): Set[String]
   def entries: Seq[Database.Entry]
+  def foreach[T](fun: Database.Entry => T): Unit
 }
 
 object Database {
@@ -23,6 +24,7 @@ object Database {
     new Database {
       override val possibleKeys: Set[String] = keysBuilder.result()
       override val entries: Seq[Entry] = entriesBuilder.result()
+      override def foreach[T](fun: Entry => T): Unit = entries.foreach(fun)
       override def valuesUnderKey(key: String): Set[String] = {
         val valuesBuilder = Set.newBuilder[String]
         for (db <- databases) {
