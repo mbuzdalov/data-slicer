@@ -15,12 +15,21 @@ lazy val root = project
   .settings(commonSettings :_*)
   .settings(name    := "data-slicer",
             version := "0.0.0")
-  .dependsOn(core)
-  .aggregate(core)
+  .dependsOn(core, cli)
+  .aggregate(core, cli)
 
 lazy val core = project
   .in(file("core"))
   .settings(commonSettings :_*)
-  .settings(name    := "data-slicer-core",
-            version := "0.0.0",
-            libraryDependencies ++= Seq(gson, apacheMath))
+  .settings(
+    name    := "data-slicer-core",
+    version := "0.0.0",
+    libraryDependencies ++= Seq(gson, apacheMath))
+
+lazy val cli = project
+  .in(file("cli"))
+  .dependsOn(core)
+  .settings(commonSettings :_*)
+  .settings(
+    name    := "data-slicer-cli",
+    version := "0.0.0")
