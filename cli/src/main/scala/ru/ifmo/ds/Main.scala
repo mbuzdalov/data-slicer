@@ -12,7 +12,7 @@ object Main {
     final def usageWrap[T](arg: T): T = Main.usageWrap(arg)
   }
 
-  private val modules = IndexedSeq(cli.Info)
+  private val modules = IndexedSeq(cli.Info, cli.Repl)
 
   private def usage(message: String): Nothing = {
     val err = Console.err
