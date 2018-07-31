@@ -13,5 +13,8 @@ bin/
 
 /target/
 /project/target
+
+/cli/target/
+/cli/project/
 /core/target/
 /core/project/
