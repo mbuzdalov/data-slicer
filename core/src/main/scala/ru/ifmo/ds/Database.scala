@@ -12,6 +12,7 @@ object Database {
     def contains(key: String): Boolean
     def apply(key: String): String
     def get(key: String): Option[String]
+    def foreach[T](fun: ((String, String)) => T): Unit
   }
 
   def join(databases: Database*): Database = {

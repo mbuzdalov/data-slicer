@@ -18,11 +18,11 @@ class HierarchicDatabase(root: HierarchicDatabase.Entry) extends Database {
 
   override val entries: Seq[Database.Entry] = {
     val builder = IndexedSeq.newBuilder[Database.Entry]
-    root.foreach(builder += _)
+    root.foreachHierarchy(builder += _)
     builder.result()
   }
 
-  override def foreach[T](fun: Database.Entry => T): Unit = root.foreach(fun)
+  override def foreach[T](fun: Database.Entry => T): Unit = root.foreachHierarchy(fun)
 }
 
 object HierarchicDatabase {
@@ -31,23 +31,33 @@ object HierarchicDatabase {
 
     parent foreach { p =>
       myKeys.keys.foreach(k => if (p.contains(k)) throw new IllegalArgumentException("The parent already contains key " + k))
-      p.myChildren += this
+      p.addChild(this)
     }
 
-    def foreach[U](consumer: Entry => U): Unit = {
+    private def addChild(child: Entry): Unit = myChildren += child
+
+    override def foreach[T](fun: ((String, String)) => T): Unit = {
+      myKeys.foreach(fun)
+      parent.foreach(_.foreach(fun))
+    }
+
+    private[HierarchicDatabase] def childAt(index: Int): Entry = myChildren(index)
+    private[HierarchicDatabase] def nChildren: Int = myChildren.size
+
+    private[HierarchicDatabase] def foreachHierarchy[U](consumer: Entry => U): Unit = {
       if (myChildren.nonEmpty) {
-        myChildren.foreach(_.foreach(consumer))
+        myChildren.foreach(_.foreachHierarchy(consumer))
       } else if (canBeLeaf) {
         consumer(this)
       }
     }
 
-    def collectKeys(consumer: String => Unit): Unit = {
+    private[HierarchicDatabase] def collectKeys(consumer: String => Unit): Unit = {
       myKeys.foreach(p => consumer(p._1))
       myChildren.foreach(_.collectKeys(consumer))
     }
 
-    def collectValuesFor(key: String, consumer: String => Unit): Unit = {
+    private[HierarchicDatabase] def collectValuesFor(key: String, consumer: String => Unit): Unit = {
       if (myKeys.contains(key)) {
         consumer(myKeys(key))
       } else {
