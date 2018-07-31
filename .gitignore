@@ -2,7 +2,6 @@
 *.log
 
 /.idea/
-*.iml
 /out/
 
 .project
@@ -18,3 +17,5 @@ bin/
 /cli/project/
 /core/target/
 /core/project/
+/gui/target/
+/gui/project/
