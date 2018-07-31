@@ -18,8 +18,8 @@ lazy val root = project
   .in(file("."))
   .settings(commonSettings :_*)
   .settings(name := "data-slicer")
-  .dependsOn(core, cli)
-  .aggregate(core, cli)
+  .dependsOn(core, cli, gui)
+  .aggregate(core, cli, gui)
 
 lazy val core = project
   .in(file("core"))
@@ -33,5 +33,12 @@ lazy val cli = project
   .dependsOn(core)
   .settings(commonSettings :_*)
   .settings(
-    name    := "data-slicer-cli",
-    libraryDependencies += scalaCompiler)
+    name    := "data-slicer-cli")
+
+lazy val gui = project
+  .in(file("gui"))
+  .dependsOn(core)
+  .settings(commonSettings :_*)
+  .settings(
+    name    := "data-slicer-gui",
+    libraryDependencies ++= Seq(scalaCompiler, xChart))

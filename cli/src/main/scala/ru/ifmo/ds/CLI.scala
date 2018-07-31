@@ -2,22 +2,22 @@ package ru.ifmo.ds
 
 import java.io.PrintStream
 
-object Main {
+object CLI {
   trait Module {
     def name: String
     def apply(args: Array[String]): Unit
     def printUsage(out: PrintStream): Unit
 
-    final def usage(message: String): Nothing = Main.usage(message)
-    final def usageWrap[T](arg: T): T = Main.usageWrap(arg)
+    final def usage(message: String): Nothing = CLI.usage(message)
+    final def usageWrap[T](arg: T): T = CLI.usageWrap(arg)
   }
 
-  private val modules = IndexedSeq(cli.Info, cli.Repl)
+  private val modules = IndexedSeq(cli.Info)
 
   private def usage(message: String): Nothing = {
     val err = Console.err
     err.println("Error: " + message)
-    err.println(s"Usage: scala ru.ifmo.ds.Main <${modules.map(_.name).mkString("|")}> [args...] where")
+    err.println(s"Usage: scala ${CLI.getClass.getName} <${modules.map(_.name).mkString("|")}> [args...] where")
     modules.foreach(_.printUsage(err))
     sys.exit(1)
   }

@@ -3,9 +3,9 @@ package ru.ifmo.ds.cli
 import java.io.{File, PrintStream}
 
 import ru.ifmo.ds.io.Json
-import ru.ifmo.ds.{Database, Main}
+import ru.ifmo.ds.{Database, CLI}
 
-object Info extends Main.Module {
+object Info extends CLI.Module {
   override def name: String = "info"
 
   override def apply(args: Array[String]): Unit = {
