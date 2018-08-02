@@ -98,6 +98,7 @@ class ConsolePane private (
 
       mumly {
         intp.directBind("$$gui", new ConsolePane.Access(cp))
+        intp.directBind("intp", intp)
         intp.interpret("import $$gui._")
       }
 
@@ -188,6 +189,7 @@ object ConsolePane {
 
     helpFields += "console: JTextPane -- the text pane for this console"
     helpFields += "doc: AbstractDocument with StyledDocument -- this console's contents"
+    helpFields += "intp: IMain -- the interpreter"
 
     helpFunctions += "help(): Unit -- print this help message"
     helpFunctions += "colorPrint(Color)(Any): Unit   -- print a colored message"
