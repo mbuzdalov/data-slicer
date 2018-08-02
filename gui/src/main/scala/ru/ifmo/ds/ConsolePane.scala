@@ -17,7 +17,8 @@ class ConsolePane private (
   bindings: Seq[NamedParam],
   private val helpFields: Seq[String],
   private val helpFunctions: Seq[String],
-  private val helpUtils: Seq[String]
+  private val helpUtils: Seq[String],
+  private val quitHooks: Seq[Runnable]
 ) extends JTextPane { cp =>
   private val doc = new DefaultStyledDocument()
   private[this] val filter = new ConsoleFilter
@@ -28,6 +29,15 @@ class ConsolePane private (
   setForeground(Color.LIGHT_GRAY)
   setCaretColor(Color.GREEN)
   setFont(new Font(Font.MONOSPACED, Font.BOLD, 12))
+
+  private[this] val plainAttributes = getCharacterAttributes
+  private[this] val errorTextAttributes = new SimpleAttributeSet()
+  errorTextAttributes.addAttributes(plainAttributes)
+  StyleConstants.setForeground(errorTextAttributes, Color.RED)
+
+  private[this] val infoTextAttributes = new SimpleAttributeSet()
+  infoTextAttributes.addAttributes(plainAttributes)
+  StyleConstants.setForeground(infoTextAttributes, Color.BLUE)
 
   addKeyListener(new KeyAdapter {
     override def keyPressed(e: KeyEvent): Unit = {
@@ -41,76 +51,70 @@ class ConsolePane private (
     }
   })
 
-  bindInterpreter(doc, filter)
+  System.setOut(makeSwingOutputStream(plainAttributes, "system-out-to-swing"))
+  System.setErr(makeSwingOutputStream(errorTextAttributes, "system-err-to-swing"))
 
-  private[this] def bindInterpreter(doc: AbstractDocument with StyledDocument, filter: ConsoleFilter): Unit = {
-    val plainAttributes = getCharacterAttributes
-    val errorTextAttributes = new SimpleAttributeSet()
-    errorTextAttributes.addAttributes(plainAttributes)
-    StyleConstants.setForeground(errorTextAttributes, Color.RED)
+  private[this] val scalaRunner = new Thread(() => {
+    val settings = new Settings()
+    settings.embeddedDefaults[ConsolePane]
+    settings.usejavacp.value = true
 
-    val infoTextAttributes = new SimpleAttributeSet()
-    infoTextAttributes.addAttributes(plainAttributes)
-    StyleConstants.setForeground(infoTextAttributes, Color.BLUE)
+    val loop = new MyLoop(filter.getScalaInput, new PrintWriter(System.out))
+    loop.process(settings)
+    loop.loop()
+    ()
+  }, "scala-repl-runner")
+  scalaRunner.setDaemon(true)
+  scalaRunner.start()
 
-    class PipeDrainer(reader: Reader, attr: AttributeSet) extends Runnable {
-      override def run(): Unit = readOut(Array.ofDim(8192))
-      private[this] final def readOut(buffer: Array[Char]): Unit = {
-        val howMuch = reader.read(buffer)
-        if (howMuch.>(0)) {
-          doc.insertString(doc.getLength, String.valueOf(buffer, 0, howMuch), attr)
-          readOut(buffer)
-        }
+  private[this] class PipeDrainer(reader: Reader, attr: AttributeSet) extends Runnable {
+    override def run(): Unit = readOut(Array.ofDim(8192))
+    private[this] final def readOut(buffer: Array[Char]): Unit = {
+      val howMuch = reader.read(buffer)
+      if (howMuch.>(0)) {
+        doc.insertString(doc.getLength, String.valueOf(buffer, 0, howMuch), attr)
+        readOut(buffer)
       }
     }
+  }
 
-    def makeSwingOutputStream(attributeSet: AttributeSet, threadName: String): PrintStream = {
-      val sysOutPipeIn = new PipedInputStream()
-      val sysOutPipeOut = new PipedOutputStream(sysOutPipeIn)
-      val sysOutPipeReader = new InputStreamReader(sysOutPipeIn, "utf-8")
-      new Thread(new PipeDrainer(sysOutPipeReader, attributeSet), threadName).start()
-      new PrintStream(sysOutPipeOut, true, "utf-8")
-    }
+  private[this] def makeSwingOutputStream(attributeSet: AttributeSet, threadName: String): PrintStream = {
+    val sysOutPipeIn = new PipedInputStream()
+    val sysOutPipeOut = new PipedOutputStream(sysOutPipeIn)
+    val sysOutPipeReader = new InputStreamReader(sysOutPipeIn, "utf-8")
+    val thread = new Thread(new PipeDrainer(sysOutPipeReader, attributeSet), threadName)
+    thread.setDaemon(true)
+    thread.start()
+    new PrintStream(sysOutPipeOut, true, "utf-8")
+  }
 
-    System.setOut(makeSwingOutputStream(plainAttributes, "system-out-to-swing"))
-    System.setErr(makeSwingOutputStream(errorTextAttributes, "system-err-to-swing"))
+  private[this] class MyLoop(reader: BufferedReader, writer: PrintWriter) extends ILoop(reader, writer) {
+    override def createInterpreter(): Unit = {
+      super.createInterpreter()
+      doc.insertString(doc.getLength, "// initializing...\n", infoTextAttributes)
+      intp.interpret("import java.awt._")
+      intp.interpret("import java.awt.event._")
+      intp.interpret("import javax.swing._")
 
-    new Thread(() => {
-      val settings = new Settings()
-      settings.embeddedDefaults[ConsolePane]
-      settings.usejavacp.value = true
-
-      val loop = new ILoop(new BufferedReader(filter.getScalaInput), new PrintWriter(System.out)) {
-        override def createInterpreter(): Unit = {
-          super.createInterpreter()
-          doc.insertString(doc.getLength, "// initializing...\n", infoTextAttributes)
-          intp.interpret("import java.awt._")
-          intp.interpret("import java.awt.event._")
-          intp.interpret("import javax.swing._")
-
-          mumly {
-            intp.directBind("$$gui", new ConsolePane.Access(cp))
-            intp.interpret("import $$gui._")
-          }
-
-          bindings.foreach(intp.directBind)
-          prelude.foreach(intp.interpret)
-
-          intp.interpret("$$gui.help()")
-
-          SwingUtilities.invokeLater(() => doc.insertString(doc.getLength, "\n", plainAttributes))
-        }
-
-        override def closeInterpreter(): Unit = {
-          super.closeInterpreter()
-          System.exit(0)
-        }
+      mumly {
+        intp.directBind("$$gui", new ConsolePane.Access(cp))
+        intp.interpret("import $$gui._")
       }
 
-      loop.process(settings)
-      loop.loop()
-      ()
-    }, "scala-repl-runner").start()
+      bindings.foreach(intp.directBind)
+      prelude.foreach(intp.interpret)
+
+      intp.interpret("$$gui.help()")
+
+      SwingUtilities.invokeLater(() => doc.insertString(doc.getLength, "\n", plainAttributes))
+    }
+
+    override def closeInterpreter(): Unit = {
+      super.closeInterpreter()
+      SwingUtilities.invokeLater(() => {
+        quitHooks.foreach(_.run())
+      })
+    }
   }
 
   private[this] class ConsoleFilter extends DocumentFilter {
@@ -180,6 +184,7 @@ object ConsolePane {
     private[this] val helpFields = IndexedSeq.newBuilder[String]
     private[this] val helpFunctions = IndexedSeq.newBuilder[String]
     private[this] val helpUtils = IndexedSeq.newBuilder[String]
+    private[this] val quitHooks = IndexedSeq.newBuilder[Runnable]
 
     helpFields += "console: JTextPane -- the text pane for this console"
     helpFields += "doc: AbstractDocument with StyledDocument -- this console's contents"
@@ -201,16 +206,19 @@ object ConsolePane {
       this
     }
 
+    def addQuitHook(fun: Runnable): Builder = { quitHooks += fun; this }
+
     def result(): ConsolePane = new ConsolePane(
       prelude = prelude.result(),
       bindings = bindings.result(),
       helpFields = helpFields.result(),
       helpFunctions = helpFunctions.result(),
-      helpUtils = helpUtils.result()
+      helpUtils = helpUtils.result(),
+      quitHooks = quitHooks.result()
     )
   }
 
-  class Access(cp: ConsolePane) {
+  final class Access private[ConsolePane] (cp: ConsolePane) {
     val console: JTextPane = cp
     val doc: AbstractDocument with StyledDocument = cp.doc
 

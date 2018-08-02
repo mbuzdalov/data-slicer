@@ -15,6 +15,7 @@ object MainGUI {
       editablePane.setMinimumSize(new Dimension(400, 300))
       val consolePane = new ConsolePane.Builder()
         .addBinding("pane", editablePane).addFieldHelp("pane: JPanel -- the panel above")
+        .addQuitHook(() => System.exit(0))
         .result()
 
       val consoleScroll = new JScrollPane(
