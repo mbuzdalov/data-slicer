@@ -185,10 +185,10 @@ object ConsolePane {
     helpFields += "doc: AbstractDocument with StyledDocument -- this console's contents"
 
     helpFunctions += "help(): Unit -- print this help message"
-    helpFunctions += "colorPrint(java.awt.Color)(Any): Unit   -- print a colored message"
-    helpFunctions += "colorPrintln(java.awt.Color)(Any): Unit -- print a colored message with a newline"
+    helpFunctions += "colorPrint(Color)(Any): Unit   -- print a colored message"
+    helpFunctions += "colorPrintln(Color)(Any): Unit -- print a colored message with a newline"
 
-    helpUtils += "inSwing(fun: => T): Unit -- runs something in the Swing thread"
+    helpUtils += "inSwing(fun: => T): Unit         -- runs something in the Swing thread"
     helpUtils += "notInSwing(fun: => T): Future[T] -- runs something in a dedicated non-Swing thread"
 
     def addPrelude(line: String):      Builder = { prelude       += line; this }
@@ -254,7 +254,7 @@ object ConsolePane {
     }\n${
       cp.helpFunctions.mkString("  ", "\n  ", "\n")
     }\n${
-      cp.helpUtils.mkString("  ", "\n  ", "\n")
+      cp.helpUtils.mkString("  ", "\n  ", "")
     }"
   }
 }

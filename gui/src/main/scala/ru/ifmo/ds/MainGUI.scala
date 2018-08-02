@@ -1,6 +1,6 @@
 package ru.ifmo.ds
 
-import java.awt.{BorderLayout, Frame}
+import java.awt.{BorderLayout, Dimension, Frame}
 
 import javax.swing._
 
@@ -12,6 +12,7 @@ object MainGUI {
     SwingUtilities.invokeLater(() => {
       val frame = new JFrame("DataSlicer Graphical Console")
       val editablePane = new JPanel(true)
+      editablePane.setMinimumSize(new Dimension(400, 300))
       val consolePane = new ConsolePane.Builder()
         .addBinding("pane", editablePane).addFieldHelp("pane: JPanel -- the panel above")
         .result()
