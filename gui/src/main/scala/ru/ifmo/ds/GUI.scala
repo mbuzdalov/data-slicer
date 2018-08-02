@@ -23,10 +23,14 @@ class GUI(val pane: JPanel, val console: JTextPane, val doc: AbstractDocument wi
   def submit[T](fun: => T): Future[T] = {
     if (SwingUtilities.isEventDispatchThread) {
       GUI.nonGUIThreads.submit(() => fun)
-    } else new FutureTask[T](() => fun)
+    } else {
+      val rv = new FutureTask[T](() => fun)
+      rv.run()
+      rv
+    }
   }
 
-  def colorPrint(color: Color)(data: Any): Unit = {
+  def colorPrint(color: Color)(data: Any): Unit = submit {
     val plainAttributes = console.getCharacterAttributes
     val currAttributes = new SimpleAttributeSet()
     currAttributes.addAttributes(plainAttributes)
@@ -73,7 +77,10 @@ object GUI {
         // First of all, we know it must append only.
         assert(offset == documentLengthBeforeUpdate)
         // Everything from firstEditablePosition to the end is the current portion of the user input - flush it.
-        scalaInputWriter.append(fb.getDocument.getText(firstEditablePosition, documentLengthBeforeUpdate - firstEditablePosition))
+        if (documentLengthBeforeUpdate != firstEditablePosition) {
+          scalaInputWriter.append(fb.getDocument.getText(firstEditablePosition,
+            documentLengthBeforeUpdate - firstEditablePosition))
+        }
         // The user shall not be able to erase - ensuring it.
         firstEditablePosition = documentLength
         putCaretAction(firstEditablePosition)
@@ -85,6 +92,7 @@ object GUI {
           val oldFirst = firstEditablePosition
           firstEditablePosition = lastNewline + offset + 1
           scalaInputWriter.append(fb.getDocument.getText(oldFirst, firstEditablePosition - oldFirst))
+          scalaInputWriter.flush()
           putCaretAction(fb.getDocument.getLength)
         }
       }
@@ -168,6 +176,10 @@ object GUI {
     errorTextAttributes.addAttributes(plainAttributes)
     StyleConstants.setForeground(errorTextAttributes, Color.RED)
 
+    val infoTextAttributes = new SimpleAttributeSet()
+    infoTextAttributes.addAttributes(plainAttributes)
+    StyleConstants.setForeground(infoTextAttributes, Color.BLUE)
+
     class PipeDrainer(reader: Reader, attr: AttributeSet) extends Runnable {
       override def run(): Unit = readOut(Array.ofDim(8192))
       private[this] final def readOut(buffer: Array[Char]): Unit = {
@@ -192,7 +204,7 @@ object GUI {
 
     val gui = new GUI(editablePane, consolePane, doc)
 
-    nonGUIThreads.submit(() => {
+    new Thread(() => {
       val settings = new Settings()
       settings.embeddedDefaults[GUI.type]
       settings.usejavacp.value = true
@@ -200,12 +212,14 @@ object GUI {
       val loop = new ILoop(new BufferedReader(filter.getScalaInput), new PrintWriter(System.out)) {
         override def createInterpreter(): Unit = {
           super.createInterpreter()
+          doc.insertString(doc.getLength, "// initializing...\n", infoTextAttributes)
           intp.directBind("gui", gui)
           intp.interpret("import java.awt._")
           intp.interpret("import java.awt.event._")
           intp.interpret("import javax.swing._")
           intp.interpret("import gui._")
           intp.interpret("gui.help()")
+          SwingUtilities.invokeLater(() => doc.insertString(doc.getLength, "\n", plainAttributes))
         }
 
         override def closeInterpreter(): Unit = {
@@ -216,6 +230,7 @@ object GUI {
 
       loop.process(settings)
       loop.loop()
-    })
+      ()
+    }, "scala-repl-runner").start()
   }
 }
