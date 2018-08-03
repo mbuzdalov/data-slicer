@@ -5,14 +5,78 @@ abstract class Database {
   def valuesUnderKey(key: String): Set[String]
   def entries: Seq[Database.Entry]
   def foreach[T](fun: Database.Entry => T): Unit
+
+  def withMoreKeys(map: Map[String, String]): Database = {
+    require(map.keySet.diff(possibleKeys).isEmpty, "New keys should be different from existing ones")
+    new Database.SimpleKeyAddingWrapper(this, map)
+  }
+
+  def filter(predicate: Database.Predicate): Database = Database(entries.filter(predicate) :_*)
+
+  def key(k: String): Key = {
+    require(possibleKeys.contains(k))
+    new Key(k)
+  }
+
+  class Key private[Database] (val key: String) {
+    override def toString: String = "Key(" + key + ")"
+
+    def apply(fun: String => Boolean): Database.Predicate = e => e.contains(key) && fun(e(key))
+    def exists: Database.Predicate = e => e.contains(key)
+  }
 }
 
 object Database {
+  type Predicate = Entry => Boolean
+
   abstract class Entry {
     def contains(key: String): Boolean
     def apply(key: String): String
     def get(key: String): Option[String]
     def foreach[T](fun: ((String, String)) => T): Unit
+  }
+
+  implicit class LogicOps(val predicate: Predicate) extends AnyVal {
+    def === (that: Predicate): Predicate = e => predicate(e) == that(e)
+    def !== (that: Predicate): Predicate = e => predicate(e) != that(e)
+    def && (that: Predicate): Predicate = e => predicate(e) && that(e)
+    def || (that: Predicate): Predicate = e => predicate(e) || that(e)
+    def unary_! : Predicate = e => !predicate(e)
+  }
+
+  def apply(myEntries: Database.Entry*): Database = new Database {
+    override val possibleKeys: Set[String] = {
+      val builder = Set.newBuilder[String]
+      myEntries.foreach(_.foreach(p => builder += p._1))
+      builder.result()
+    }
+
+    override def valuesUnderKey(key: String): Set[String] = {
+      val builder = Set.newBuilder[String]
+      myEntries.foreach(e => builder ++= e.get(key))
+      builder.result()
+    }
+
+    override def entries: Seq[Entry] = myEntries
+    override def foreach[T](fun: Entry => T): Unit = myEntries.foreach(fun)
+  }
+
+  private class SimpleKeyAddingWrapper(base: Database, map: Map[String, String]) extends Database {
+    private class WrapperEntry(orig: Entry) extends Entry {
+      override def contains(key: String): Boolean = map.contains(key) || orig.contains(key)
+      override def apply(key: String): String = map.getOrElse(key, orig(key))
+      override def get(key: String): Option[String] = map.get(key).orElse(orig.get(key))
+      override def foreach[T](fun: ((String, String)) => T): Unit = {
+        map.foreach(fun)
+        orig.foreach(fun)
+      }
+    }
+    private val wrap: Entry => Entry = e => new WrapperEntry(e)
+
+    override def possibleKeys: Set[String] = base.possibleKeys ++ map.keySet
+    override def valuesUnderKey(key: String): Set[String] = if (map.contains(key)) Set(map(key)) else base.valuesUnderKey(key)
+    override def entries: Seq[Entry] = base.entries.map(wrap)
+    override def foreach[T](fun: Entry => T): Unit = base.foreach(wrap.andThen(fun))
   }
 
   def join(databases: Database*): Database = {
