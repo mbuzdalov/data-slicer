@@ -4,6 +4,8 @@ import java.awt.{BorderLayout, Dimension, Frame}
 
 import javax.swing._
 
+import ru.ifmo.ds.gui._
+
 object MainGUI {
   def main(args: Array[String]): Unit = {
     System.setProperty("awt.useSystemAAFontSettings", "on")
@@ -15,6 +17,7 @@ object MainGUI {
       editablePane.setMinimumSize(new Dimension(400, 300))
       val consolePane = new ConsolePane.Builder()
         .addBinding("pane", editablePane).addFieldHelp("pane: JPanel -- the panel above")
+        .addPrelude(s"import ${JComponentExtensions.getClass.getCanonicalName.init}._")
         .addQuitHook(() => System.exit(0))
         .result()
 

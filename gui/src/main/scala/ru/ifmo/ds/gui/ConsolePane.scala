@@ -1,9 +1,8 @@
-package ru.ifmo.ds
+package ru.ifmo.ds.gui
 
 import java.awt.event.{KeyAdapter, KeyEvent}
 import java.awt.{Color, Font}
 import java.io._
-import java.util.concurrent.{Executors, Future, FutureTask}
 
 import javax.swing._
 import javax.swing.text._
@@ -95,11 +94,13 @@ class ConsolePane private (
       intp.interpret("import java.awt._")
       intp.interpret("import java.awt.event._")
       intp.interpret("import javax.swing._")
+      intp.interpret("import ru.ifmo.ds._")
 
       mumly {
         intp.directBind("$$gui", new ConsolePane.Access(cp))
         intp.directBind("intp", intp)
         intp.interpret("import $$gui._")
+        intp.interpret(s"import ${util.getClass.getCanonicalName.init}._")
       }
 
       bindings.foreach(intp.directBind)
@@ -224,27 +225,7 @@ object ConsolePane {
     val console: JTextPane = cp
     val doc: AbstractDocument with StyledDocument = cp.doc
 
-    private[this] val nonGUIThread = Executors.newSingleThreadExecutor()
-
-    def inSwing[T](fun: => T): Unit = {
-      if (SwingUtilities.isEventDispatchThread) {
-        fun
-      } else {
-        SwingUtilities.invokeLater(() => fun)
-      }
-    }
-
-    def notInSwing[T](fun: => T): Future[T] = {
-      if (SwingUtilities.isEventDispatchThread) {
-        nonGUIThread.submit(() => fun)
-      } else {
-        val rv = new FutureTask[T](() => fun)
-        rv.run()
-        rv
-      }
-    }
-
-    def colorPrint(color: Color)(data: Any): Unit = notInSwing {
+    def colorPrint(color: Color)(data: Any): Unit = util.notInSwing {
       val plainAttributes = console.getCharacterAttributes
       val currAttributes = new SimpleAttributeSet()
       currAttributes.addAttributes(plainAttributes)
