@@ -17,7 +17,7 @@ object CLI {
   private def usage(message: String): Nothing = {
     val err = Console.err
     err.println("Error: " + message)
-    err.println(s"Usage: scala ${CLI.getClass.getName} <${modules.map(_.name).mkString("|")}> [args...] where")
+    err.println(s"Usage: scala ${CLI.getClass.getName.init} <${modules.map(_.name).mkString("|")}> [args...] where")
     modules.foreach(_.printUsage(err))
     sys.exit(1)
   }

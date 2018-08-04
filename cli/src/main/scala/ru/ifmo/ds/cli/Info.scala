@@ -26,32 +26,40 @@ object Info extends CLI.Module {
     val keys = base.possibleKeys
     val entries = base.entries
     println(s"${keys.size} keys, ${entries.size} entries")
-    for (key <- keys.toIndexedSeq.sorted) {
-      val values = base.valuesUnderKey(key)
-      if (values.isEmpty) {
-        println(s"  $key => no values (which is strange)")
-      } else {
-        val builder = new StringBuilder("  ").append(key).append(" => ")
-        val iterator = values.toIndexedSeq.sorted.iterator
 
-        def composeString(addedCount: Int): Unit = {
-          if (iterator.hasNext) {
-            val next = iterator.next()
-            if (builder.length + 2 + next.length <= 80) {
-              if (addedCount > 0) {
-                builder.append(", ")
-              }
-              builder.append('"').append(next).append('"')
-              composeString(addedCount + 1)
-            } else {
-              builder.append("... (").append(values.size).append(" value(s))")
+    val keysWithValues = keys.toIndexedSeq.sorted.map(k => k -> base.valuesUnderKey(k))
+
+    keysWithValues.foreach(p => assert(p._2.nonEmpty))
+
+    println("Single-valued keys:")
+    for ((key, values) <- keysWithValues if values.size == 1) {
+      println(s"  $key => '${values.head}'")
+    }
+
+    println()
+    println("Multiple-valued keys:")
+    for ((key, values) <- keysWithValues if values.size > 1) {
+      val builder = new StringBuilder("  ").append(key).append(" => ")
+      val iterator = values.toIndexedSeq.sorted.iterator
+
+      def composeString(addedCount: Int): Unit = {
+        if (iterator.hasNext) {
+          val next = iterator.next()
+          if (builder.length + 2 + next.length <= 80) {
+            if (addedCount > 0) {
+              builder.append(", ")
             }
+            builder.append('"').append(next).append('"')
+            composeString(addedCount + 1)
+          } else {
+            builder.append("... (").append(values.size).append(" value(s))")
           }
         }
-        composeString(0)
-        println(builder.result())
       }
+      composeString(0)
+      println(builder.result())
     }
+    println()
 
     val keyProfile = entries.groupBy(e => keys.filter(e.contains))
     println(s"${keyProfile.size} key profile(s)")
