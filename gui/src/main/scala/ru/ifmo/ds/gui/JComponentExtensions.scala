@@ -3,6 +3,7 @@ package ru.ifmo.ds.gui
 import java.awt.BorderLayout
 
 import javax.swing.{JComponent, JLabel, JTabbedPane, SwingConstants}
+import ru.ifmo.ds.Database
 
 object JComponentExtensions {
   implicit class DirectHierarchy(val comp: JComponent) extends AnyVal {
@@ -40,6 +41,31 @@ object JComponentExtensions {
       ensureInnerComponentSupportsKeyValueInterface()
       getInnerComponent.add(key, value)
       getInnerComponent.validate()
+    }
+
+    def addPlots(db: Database, titlePrefix: String, groupKeys: Seq[String],
+      xKey: String, xName: String,
+      yKey: String, yName: String,
+      seriesKey: String
+    ): Unit = {
+      import scala.collection.mutable
+      val map = new mutable.HashMap[Seq[String], mutable.ArrayBuffer[Database.Entry]]()
+      db foreach { e =>
+        map.getOrElseUpdate(groupKeys.map(e.apply), new mutable.ArrayBuffer()) += e
+      }
+      def extractTitle(key: Seq[String]): String = groupKeys.size match {
+        case 0 => titlePrefix
+        case 1 => titlePrefix + ": " + key.head
+        case _ => (groupKeys, key).zipped.map((k, v) => k + "=" + v).mkString(titlePrefix + ": ", ", ", "")
+      }
+      val titledData = map.toIndexedSeq.map(p => (extractTitle(p._1), Database(p._2 :_*))).sortBy(_._1)
+      util.inSwing {
+        for ((title, db) <- titledData) {
+          val wrapper = new SimpleXChartWrapper(comp.getWidth, comp.getHeight, xName, xKey, yName, yKey)
+          wrapper.addDatabase(db, seriesKey)
+          this += (title, wrapper.gui)
+        }
+      }
     }
 
     def apply(title: String): JComponent = {
