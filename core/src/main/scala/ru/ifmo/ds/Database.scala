@@ -12,18 +12,6 @@ abstract class Database {
   }
 
   def filter(predicate: Database.Predicate): Database = Database(entries.filter(predicate) :_*)
-
-  def key(k: String): Key = {
-    require(possibleKeys.contains(k))
-    new Key(k)
-  }
-
-  class Key private[Database] (val key: String) {
-    override def toString: String = "Key(" + key + ")"
-
-    def apply(fun: String => Boolean): Database.Predicate = e => e.contains(key) && fun(e(key))
-    def exists: Database.Predicate = e => e.contains(key)
-  }
 }
 
 object Database {
@@ -34,14 +22,6 @@ object Database {
     def apply(key: String): String
     def get(key: String): Option[String]
     def foreach[T](fun: ((String, String)) => T): Unit
-  }
-
-  implicit class LogicOps(val predicate: Predicate) extends AnyVal {
-    def === (that: Predicate): Predicate = e => predicate(e) == that(e)
-    def !== (that: Predicate): Predicate = e => predicate(e) != that(e)
-    def && (that: Predicate): Predicate = e => predicate(e) && that(e)
-    def || (that: Predicate): Predicate = e => predicate(e) || that(e)
-    def unary_! : Predicate = e => !predicate(e)
   }
 
   def apply(myEntries: Database.Entry*): Database = new Database {
