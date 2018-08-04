@@ -95,6 +95,7 @@ class ConsolePane private (
       intp.interpret("import java.awt.event._")
       intp.interpret("import javax.swing._")
       intp.interpret("import ru.ifmo.ds._")
+      intp.interpret("import ru.ifmo.ds.gui._")
 
       mumly {
         intp.directBind("$$gui", new ConsolePane.Access(cp))

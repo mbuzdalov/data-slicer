@@ -1,31 +1,30 @@
 package ru.ifmo.ds.gui
 
+import org.knowm.xchart.style.Styler.ToolTipType
 import org.knowm.xchart.{XChartPanel, XYChart}
 import ru.ifmo.ds.Database
 
 import scala.collection.mutable
 
-class SimpleXChartWrapper(
-  width: Int, height: Int,
-  xName: String, xKey: String,
-  yName: String, yKey: String
-) {
+class SimpleXChartWrapper(width: Int, height: Int, xAxis: Axis, yAxis: Axis) {
   private val chart = new XYChart(width, height)
-  chart.setXAxisTitle(xName)
-  chart.setYAxisTitle(yName)
+  chart.setXAxisTitle(xAxis.name)
+  chart.setYAxisTitle(yAxis.name)
   private val style = chart.getStyler
-  style.setXAxisLogarithmic(true)
-  style.setYAxisLogarithmic(true)
+  style.setXAxisLogarithmic(xAxis.isLogarithmic)
+  style.setYAxisLogarithmic(yAxis.isLogarithmic)
+  style.setToolTipType(ToolTipType.xAndYLabels)
+  style.setToolTipsEnabled(true)
 
   val gui = new XChartPanel(chart)
 
   def addDatabase(db: Database, graphKey: String): Unit = {
     val contents = new mutable.HashMap[String, mutable.HashMap[Double, mutable.ArrayBuffer[Double]]]()
     db foreach { e =>
-      if (e.contains(xKey) && e.contains(yKey) && e.contains(graphKey)) {
+      if (e.contains(xAxis.key) && e.contains(yAxis.key) && e.contains(graphKey)) {
         val mapForGraphKey = contents.getOrElseUpdate(e(graphKey), new mutable.HashMap())
-        val mapForXKey = mapForGraphKey.getOrElseUpdate(e(xKey).toDouble, new mutable.ArrayBuffer())
-        mapForXKey += e(yKey).toDouble
+        val mapForXKey = mapForGraphKey.getOrElseUpdate(e(xAxis.key).toDouble, new mutable.ArrayBuffer())
+        mapForXKey += e(yAxis.key).toDouble
       }
     }
 

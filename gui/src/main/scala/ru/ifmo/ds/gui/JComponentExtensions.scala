@@ -19,7 +19,7 @@ object JComponentExtensions {
       comp.remove(that)
       comp.validate()
     }
-    def apply(index: Int): JComponent = comp.getComponent(index).asInstanceOf[JComponent]
+    def byIndex(index: Int): JComponent = comp.getComponent(index).asInstanceOf[JComponent]
   }
 
   implicit class AsGroupWrapper(val comp: JComponent) extends AnyVal {
@@ -44,9 +44,7 @@ object JComponentExtensions {
     }
 
     def addPlots(db: Database, titlePrefix: String, groupKeys: Seq[String],
-      xKey: String, xName: String,
-      yKey: String, yName: String,
-      seriesKey: String
+      xAxis: Axis, yAxis: Axis, seriesKey: String
     ): Unit = {
       import scala.collection.mutable
       val map = new mutable.HashMap[Seq[String], mutable.ArrayBuffer[Database.Entry]]()
@@ -55,31 +53,26 @@ object JComponentExtensions {
       }
       def extractTitle(key: Seq[String]): String = groupKeys.size match {
         case 0 => titlePrefix
-        case 1 => titlePrefix + ": " + key.head
+        case 1 => (if (titlePrefix.isEmpty) "" else titlePrefix + ": ") + key.head
         case _ => (groupKeys, key).zipped.map((k, v) => k + "=" + v).mkString(titlePrefix + ": ", ", ", "")
       }
       val titledData = map.toIndexedSeq.map(p => (extractTitle(p._1), Database(p._2 :_*))).sortBy(_._1)
       util.inSwing {
         for ((title, db) <- titledData) {
-          val wrapper = new SimpleXChartWrapper(comp.getWidth, comp.getHeight, xName, xKey, yName, yKey)
+          val wrapper = new SimpleXChartWrapper(comp.getWidth, comp.getHeight, xAxis, yAxis)
           wrapper.addDatabase(db, seriesKey)
           this += (title, wrapper.gui)
         }
       }
     }
 
-    def apply(title: String): JComponent = {
+    def byTitle(title: String): JComponent = {
       val comp = getInnerComponent
-      var i = 0
-      val compCount = comp.getTabCount
-      var good = -1
-      while (i < compCount) {
-        if (comp.getTitleAt(i) == title) {
-          good = i
-        }
-        i += 1
+      val index = comp.indexOfTab(title)
+      if (index == -1) null else {
+        val tab = comp.getComponentAt(index)
+        tab.asInstanceOf[JComponent]
       }
-      if (good == -1) null else comp.getTabComponentAt(i).asInstanceOf[JComponent]
     }
   }
 }
