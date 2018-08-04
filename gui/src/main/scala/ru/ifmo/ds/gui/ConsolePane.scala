@@ -9,7 +9,7 @@ import javax.swing.text._
 
 import scala.reflect.ClassTag
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interpreter.{ILoop, NamedParam}
+import scala.tools.nsc.interpreter.{ILoop, NamedParam, NamedParamClass}
 
 class ConsolePane private (
   prelude: Seq[String],
@@ -206,6 +206,10 @@ object ConsolePane {
 
     def addBinding[T: scala.reflect.runtime.universe.TypeTag : ClassTag](name: String, value: T): Builder = {
       bindings += ((name, value))
+      this
+    }
+    def addBinding[T](name: String, tpe: String, value: T): Builder = {
+      bindings += NamedParamClass(name, tpe, value)
       this
     }
 
