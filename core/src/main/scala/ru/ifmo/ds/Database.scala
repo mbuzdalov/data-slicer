@@ -12,6 +12,11 @@ abstract class Database {
   }
 
   def filter(predicate: Database.Predicate): Database = Database(entries.filter(predicate) :_*)
+
+  def flatten: Seq[Map[String, String]] = {
+    val keys = possibleKeys
+    entries.map(e => keys.flatMap(k => e.get(k).map(v => k -> v)).toMap)
+  }
 }
 
 object Database {

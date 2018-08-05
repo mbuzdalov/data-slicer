@@ -69,4 +69,46 @@ object HierarchicDatabase {
     override def apply(key: String): String = get(key).getOrElse(throw new IllegalArgumentException(s"No such key $key"))
     override def contains(key: String): Boolean = myKeys.contains(key) || parent.exists(_.contains(key))
   }
+
+  def compact(db: Database): HierarchicDatabase = {
+    import scala.collection.mutable
+
+    def wrapSingle(keys: Set[String], entry: Database.Entry, parent: Option[Entry]): Entry = {
+      new Entry(parent, keys.flatMap(k => entry.get(k).map(v => k -> v)).toMap, true)
+    }
+
+    def create(keys: Set[String], entries: Seq[Database.Entry], parent: Option[Entry]): Entry = {
+      require(entries.nonEmpty)
+      if (entries.size == 1) wrapSingle(keys, entries.head, parent) else {
+        val possibleValues = keys.map(k => (k, new mutable.HashSet[Option[String]]())).toMap
+        entries.foreach(e => possibleValues.foreach(p => p._2 += e.get(p._1)))
+        val (singleValued, multipleValued) = possibleValues.partition(_._2.size == 1)
+        if (multipleValued.isEmpty) wrapSingle(keys, entries.head, parent) else {
+          val minMultiValued = multipleValued.minBy(_._2.size)
+          assert(minMultiValued._2.size > 1)
+          val sliceKey = minMultiValued._1
+          val newParent = if (singleValued.isEmpty && parent.isDefined) {
+            // short-cutting an empty node
+            parent
+          } else {
+            val singleValuedPairs = singleValued.flatMap(p => p._2.head.map(v => p._1 -> v))
+            Some(new Entry(parent, singleValuedPairs, false))
+          }
+          val restOfKeys = keys.filterNot(singleValued.keySet.contains)
+          for ((_, slice) <- entries.groupBy(_.get(sliceKey))) {
+            create(restOfKeys, slice, newParent)
+          }
+          newParent.get // totally safe: both branches for newParent actually return Some(x)
+        }
+      }
+    }
+
+    val entries = db.entries
+    val root = if (entries.isEmpty) {
+      new Entry(None, Map.empty, false)
+    } else {
+      create(db.possibleKeys, entries, None)
+    }
+    new HierarchicDatabase(root)
+  }
 }

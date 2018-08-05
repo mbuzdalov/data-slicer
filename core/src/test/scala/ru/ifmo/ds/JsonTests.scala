@@ -4,40 +4,47 @@ import org.scalatest.{FlatSpec, Matchers}
 import ru.ifmo.ds.io.Json
 
 class JsonTests extends FlatSpec with Matchers {
+  private[this] def load(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
+    val db = Json.loadFromString(contents, moreKeys)
+    val cdb = HierarchicDatabase.compact(db)
+    db.flatten.toSet shouldEqual cdb.flatten.toSet
+    db
+  }
+  
   "an empty JSON" should "fail to be read" in {
     a [Json.ParseException] should be thrownBy {
-      Json.loadFromString("")
+      load("")
     }
   }
 
   "an empty JSON array" should "transform into an empty database" in {
-    val db = Json.loadFromString("[]")
+    val db = load("[]")
     db.possibleKeys shouldBe empty
     db.entries shouldBe empty
   }
 
   "an empty JSON object" should "transform into a database with a single empty record" in {
-    val db = Json.loadFromString("{}")
+    val db = load("{}")
     db.possibleKeys shouldBe empty
     db.entries.size shouldBe 1
   }
 
   "a JSON object with a single key-value pair without the array key" should "be parsed OK with one record and one key" in {
-    val db = Json.loadFromString("""{"key":"value"}""")
+    val db = load("""{"key":"value"}""")
     db.possibleKeys shouldEqual Set("key")
     db.entries.size shouldBe 1
     db.entries.head("key") shouldEqual "value"
   }
 
   "a JSON array with an object of single key-value pair without the array key" should "be parsed OK with one record and one key" in {
-    val db = Json.loadFromString("""[{"key":"value"}]""")
+    val db = load("""[{"key":"value"}]""")
     db.possibleKeys shouldEqual Set("key")
     db.entries.size shouldEqual 1
     db.entries.head("key") shouldEqual "value"
   }
 
   "a JSON object with multiple single key-value pairs without the array key" should "be parsed OK with one record and some keys" in {
-    val db = Json.loadFromString("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
+    val db = load("""{"key1":"value", "key2":42, "key3":"not a value", "key4":4.5, "key5":false, "key6":null}""")
     db.possibleKeys shouldEqual Set("key1", "key2", "key3", "key4", "key5", "key6")
     db.entries.size shouldEqual 1
     val entry = db.entries.head
@@ -50,7 +57,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a typical JSON input" should "be parsed OK" in {
-    val db = Json.loadFromString(
+    val db = load(
       """{
         |  "author":"John Smith",
         |  "date":"2018.05.10",
@@ -141,7 +148,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a JSON input with an array with non-objects" should "be parsed OK" in {
-    val db = Json.loadFromString("""{"author":"me","measurements":[1,2,3,4,5]}""")
+    val db = load("""{"author":"me","measurements":[1,2,3,4,5]}""")
     db.possibleKeys shouldEqual Set("author", "measurements")
     db.entries.size shouldEqual 5
     db.entries.zipWithIndex foreach { case (e, i) =>
@@ -151,7 +158,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a JSON input with extra keys" should "be loaded and parsed OK" in {
-    val db = Json.loadFromString(
+    val db = load(
       contents = """{"author":"me","measurements":[1,2,3,4,5]}""",
       moreKeys = Map("tag" -> "42")
     )
@@ -166,18 +173,18 @@ class JsonTests extends FlatSpec with Matchers {
 
   "a JSON with repeated keys on one level" should "fail to be read" in {
     a [Json.ParseException] should be thrownBy {
-      Json.loadFromString("""{"key":"value1","key":"value2"}""")
+      load("""{"key":"value1","key":"value2"}""")
     }
   }
 
   "a JSON with repeated keys on different levels" should "fail when the inner key goes after the outer" in {
     an [IllegalArgumentException] should be thrownBy {
-      Json.loadFromString("""{"key":"value1","inner":[{"key":"value2"}]}""")
+      load("""{"key":"value1","inner":[{"key":"value2"}]}""")
     }
   }
 
   it should "succeed when the inner key duplicate key is not in an array" in {
-    val db = Json.loadFromString("""{"key":"value1","inner":{"key":"value2"}}""")
+    val db = load("""{"key":"value1","inner":{"key":"value2"}}""")
     db.possibleKeys shouldEqual Set("key", "inner.key")
     db.entries.size shouldBe 1
     db.entries.head("key") shouldBe "value1"
@@ -186,12 +193,12 @@ class JsonTests extends FlatSpec with Matchers {
 
   it should "also fail when the inner key goes before the outer" in {
     an [IllegalArgumentException] should be thrownBy {
-      Json.loadFromString("""{"inner":[{"key":"value2"}],"key":"value1"}""")
+      load("""{"inner":[{"key":"value2"}],"key":"value1"}""")
     }
   }
 
   "a JSON input with multiple children objects with arrays" should "parse as expected" in {
-    val db = Json.loadFromString(
+    val db = load(
       """{
         |  "a":{
         |    "b":5,
