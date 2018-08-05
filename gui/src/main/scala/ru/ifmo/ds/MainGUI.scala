@@ -16,7 +16,7 @@ object MainGUI {
       val editablePane = new JPanel(true)
       editablePane.setMinimumSize(new Dimension(400, 300))
       val consolePane = new ConsolePane.Builder()
-        .addBinding("args", "Array[String]", args).addFieldHelp("args: Seq[String] -- the arguments to the application")
+        .addBinding("args", "Array[String]", args).addFieldHelp("args: Array[String] -- the arguments to the application")
         .addBinding("pane", editablePane).addFieldHelp("pane: JPanel -- the panel above")
         .addPrelude(s"import ${JComponentExtensions.getClass.getCanonicalName.init}._")
         .addQuitHook(() => System.exit(0))
