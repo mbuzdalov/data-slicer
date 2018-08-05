@@ -43,6 +43,14 @@ object JComponentExtensions {
       getInnerComponent.validate()
     }
 
+    def removeByTitle(title: String): Unit = util.inSwing {
+      ensureInnerComponentSupportsKeyValueInterface()
+      val tab = getInnerComponent.indexOfTab(title)
+      if (tab >= 0) {
+        getInnerComponent.removeTabAt(tab)
+      }
+    }
+
     def addPlots(db: Database, titlePrefix: String, groupKeys: Seq[String],
       xAxis: Axis, yAxis: Axis, seriesKey: String
     ): Unit = {
