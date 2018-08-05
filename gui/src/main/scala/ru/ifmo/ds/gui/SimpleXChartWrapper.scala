@@ -3,6 +3,7 @@ package ru.ifmo.ds.gui
 import org.knowm.xchart.style.Styler.ToolTipType
 import org.knowm.xchart.{XChartPanel, XYChart}
 import ru.ifmo.ds.Database
+import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 import scala.collection.mutable
 
@@ -28,7 +29,7 @@ class SimpleXChartWrapper(width: Int, height: Int, xAxis: Axis, yAxis: Axis) {
       }
     }
 
-    for ((plot, map) <- contents.toIndexedSeq.sortBy(_._1)) {
+    for ((plot, map) <- contents.toIndexedSeq.sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)) {
       val xs, ys, errs = Array.newBuilder[Double]
       for ((x, y) <- map.toIndexedSeq.sortBy(_._1.toInt)) {
         xs += x

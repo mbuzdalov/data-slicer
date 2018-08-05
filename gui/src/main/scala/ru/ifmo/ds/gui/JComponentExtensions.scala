@@ -4,6 +4,7 @@ import java.awt.BorderLayout
 
 import javax.swing.{JComponent, JLabel, JTabbedPane, SwingConstants}
 import ru.ifmo.ds.Database
+import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 object JComponentExtensions {
   implicit class DirectHierarchy(val comp: JComponent) extends AnyVal {
@@ -59,12 +60,13 @@ object JComponentExtensions {
       db foreach { e =>
         map.getOrElseUpdate(groupKeys.map(e.apply), new mutable.ArrayBuffer()) += e
       }
+      val tpWithSep = if (titlePrefix.isEmpty) "" else titlePrefix + ": "
       def extractTitle(key: Seq[String]): String = groupKeys.size match {
         case 0 => titlePrefix
-        case 1 => (if (titlePrefix.isEmpty) "" else titlePrefix + ": ") + key.head
-        case _ => (groupKeys, key).zipped.map((k, v) => k + "=" + v).mkString(titlePrefix + ": ", ", ", "")
+        case 1 => tpWithSep + key.head
+        case _ => (groupKeys, key).zipped.map((k, v) => k + "=" + v).mkString(tpWithSep, ", ", "")
       }
-      val titledData = map.toIndexedSeq.map(p => (extractTitle(p._1), Database(p._2 :_*))).sortBy(_._1)
+      val titledData = map.toIndexedSeq.map(p => (extractTitle(p._1), Database(p._2 :_*))).sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)
       util.inSwing {
         for ((title, db) <- titledData) {
           val wrapper = new SimpleXChartWrapper(comp.getWidth, comp.getHeight, xAxis, yAxis)
