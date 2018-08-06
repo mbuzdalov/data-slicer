@@ -46,20 +46,20 @@ object Database {
     override def foreach[T](fun: Entry => T): Unit = myEntries.foreach(fun)
   }
 
-  private class SimpleKeyAddingWrapper(base: Database, map: Map[String, String]) extends Database {
+  private class SimpleKeyAddingWrapper(base: Database, newMap: Map[String, String]) extends Database {
     private class WrapperEntry(orig: Entry) extends Entry {
-      override def contains(key: String): Boolean = map.contains(key) || orig.contains(key)
-      override def apply(key: String): String = map.getOrElse(key, orig(key))
-      override def get(key: String): Option[String] = map.get(key).orElse(orig.get(key))
+      override def contains(key: String): Boolean = newMap.contains(key) || orig.contains(key)
+      override def apply(key: String): String = newMap.getOrElse(key, orig(key))
+      override def get(key: String): Option[String] = newMap.get(key).orElse(orig.get(key))
       override def foreach[T](fun: ((String, String)) => T): Unit = {
-        map.foreach(fun)
+        newMap.foreach(fun)
         orig.foreach(fun)
       }
     }
     private val wrap: Entry => Entry = e => new WrapperEntry(e)
 
-    override def possibleKeys: Set[String] = base.possibleKeys ++ map.keySet
-    override def valuesUnderKey(key: String): Set[String] = if (map.contains(key)) Set(map(key)) else base.valuesUnderKey(key)
+    override def possibleKeys: Set[String] = base.possibleKeys ++ newMap.keySet
+    override def valuesUnderKey(key: String): Set[String] = if (newMap.contains(key)) Set(newMap(key)) else base.valuesUnderKey(key)
     override def entries: Seq[Entry] = base.entries.map(wrap)
     override def foreach[T](fun: Entry => T): Unit = base.foreach(wrap.andThen(fun))
   }

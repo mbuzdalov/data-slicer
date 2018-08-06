@@ -94,7 +94,7 @@ object HierarchicDatabase {
             val singleValuedPairs = singleValued.flatMap(p => p._2.head.map(v => p._1 -> v))
             Some(new Entry(parent, singleValuedPairs, false))
           }
-          val restOfKeys = keys.filterNot(singleValued.keySet.contains)
+          val restOfKeys = keys.diff(singleValued.keySet)
           for ((_, slice) <- entries.groupBy(_.get(sliceKey))) {
             create(restOfKeys, slice, newParent)
           }
