@@ -22,6 +22,10 @@ class ConsolePane private (
   private val doc = new DefaultStyledDocument()
   private[this] val filter = new ConsoleFilter
 
+  private[this] val oldSystemIn = System.in
+  private[this] val oldSystemOut = System.out
+  private[this] val oldSystemErr = System.err
+
   setStyledDocument(doc)
   doc.setDocumentFilter(filter)
   setBackground(Color.BLACK)
@@ -122,6 +126,9 @@ class ConsolePane private (
     override def closeInterpreter(): Unit = {
       super.closeInterpreter()
       SwingUtilities.invokeLater(() => {
+        System.setIn(oldSystemIn)
+        System.setOut(oldSystemOut)
+        System.setErr(oldSystemErr)
         quitHooks.foreach(_.run())
       })
     }
