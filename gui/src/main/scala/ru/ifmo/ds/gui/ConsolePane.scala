@@ -17,12 +17,14 @@ class ConsolePane private (
   private val helpFields: Seq[String],
   private val helpFunctions: Seq[String],
   private val helpUtils: Seq[String],
-  private val quitHooks: Seq[Runnable]
+  private val quitHooks: Seq[Runnable],
+  access: ConsolePane.Access
 ) extends JTextPane { cp =>
+  access.cp = this
+
   private val doc = new DefaultStyledDocument()
   private[this] val filter = new ConsoleFilter
 
-  private[this] val oldSystemIn = System.in
   private[this] val oldSystemOut = System.out
   private[this] val oldSystemErr = System.err
 
@@ -64,6 +66,10 @@ class ConsolePane private (
   System.setOut(makeSwingOutputStream(plainAttributes, "system-out-to-swing"))
   System.setErr(makeSwingOutputStream(errorTextAttributes, "system-err-to-swing"))
 
+  private def append(what: String, attr: AttributeSet): Unit = doc.synchronized {
+    doc.insertString(doc.getLength, what, attr)
+  }
+
   private[this] val scalaRunner = new Thread(() => {
     val settings = new Settings()
     settings.embeddedDefaults[ConsolePane]
@@ -81,8 +87,8 @@ class ConsolePane private (
     override def run(): Unit = readOut(Array.ofDim(8192))
     private[this] final def readOut(buffer: Array[Char]): Unit = {
       val howMuch = reader.read(buffer)
-      if (howMuch.>(0)) {
-        doc.insertString(doc.getLength, String.valueOf(buffer, 0, howMuch), attr)
+      if (howMuch > 0) {
+        append(String.valueOf(buffer, 0, howMuch), attr)
         readOut(buffer)
       }
     }
@@ -101,7 +107,7 @@ class ConsolePane private (
   private[this] class MyLoop(reader: BufferedReader, writer: PrintWriter) extends ILoop(reader, writer) {
     override def createInterpreter(): Unit = {
       super.createInterpreter()
-      doc.insertString(doc.getLength, "// initializing...\n", infoTextAttributes)
+      append("// initializing...\n", infoTextAttributes)
       intp.interpret("import java.awt._")
       intp.interpret("import java.awt.event._")
       intp.interpret("import javax.swing._")
@@ -109,8 +115,8 @@ class ConsolePane private (
       intp.interpret("import ru.ifmo.ds.gui._")
 
       mumly {
-        intp.directBind("$$gui", new ConsolePane.Access(cp))
         intp.directBind("intp", intp)
+        intp.directBind("$$gui", access)
         intp.interpret("import $$gui._")
         intp.interpret(s"import ${util.getClass.getCanonicalName.init}._")
       }
@@ -120,13 +126,14 @@ class ConsolePane private (
 
       intp.interpret("$$gui.help()")
 
-      SwingUtilities.invokeLater(() => doc.insertString(doc.getLength, "\n", plainAttributes))
+      SwingUtilities.invokeLater(() => append("\n", plainAttributes))
     }
 
     override def closeInterpreter(): Unit = {
       super.closeInterpreter()
       SwingUtilities.invokeLater(() => {
-        System.setIn(oldSystemIn)
+        System.out.close()
+        System.err.close()
         System.setOut(oldSystemOut)
         System.setErr(oldSystemErr)
         quitHooks.foreach(_.run())
@@ -242,12 +249,25 @@ object ConsolePane {
       helpFields = helpFields.result(),
       helpFunctions = helpFunctions.result(),
       helpUtils = helpUtils.result(),
-      quitHooks = quitHooks.result()
+      quitHooks = quitHooks.result(),
+      new ConsolePane.Access
+    )
+
+    private def result(access: ConsolePane.Access) = new ConsolePane(
+      prelude = prelude.result(),
+      bindings = bindings.result(),
+      helpFields = helpFields.result(),
+      helpFunctions = helpFunctions.result(),
+      helpUtils = helpUtils.result(),
+      quitHooks = quitHooks.result(),
+      access
     )
 
     def resultBoundTo(boundPane: JPanel): JSplitPane = new Builder().setFrom(this).destructiveResultBoundTo(boundPane)
 
     private def destructiveResultBoundTo(boundPane: JPanel): JSplitPane = {
+      val singleAccess = new ConsolePane.Access
+
       def startConsole(consoleEnvelope: JPanel, boundPane: JPanel, split: JSplitPane): Unit = {
         val placeholderLabel = new JLabel("Starting the interpreter")
         placeholderLabel.setHorizontalAlignment(SwingConstants.CENTER)
@@ -259,7 +279,7 @@ object ConsolePane {
         new Thread(() => {
           SwingUtilities.invokeLater(() => {
             val consoleScroll = new JScrollPane(
-              result(),
+              result(singleAccess),
               ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
               ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS)
             consoleEnvelope.removeAll()
@@ -296,9 +316,11 @@ object ConsolePane {
     }
   }
 
-  final class Access private[ConsolePane] (cp: ConsolePane) {
-    val console: JTextPane = cp
-    val doc: AbstractDocument with StyledDocument = cp.doc
+  final class Access private[ConsolePane] {
+    private[ConsolePane] var cp: ConsolePane = _
+
+    def console: JTextPane = cp
+    def doc: AbstractDocument with StyledDocument = cp.doc
 
     def colorPrint(color: Color)(data: Any): Unit = util.notInSwing {
       val plainAttributes = console.getCharacterAttributes
@@ -306,7 +328,7 @@ object ConsolePane {
       currAttributes.addAttributes(plainAttributes)
       StyleConstants.setForeground(currAttributes, color)
 
-      doc.insertString(doc.getLength, data.toString, currAttributes)
+      cp.append(data.toString, currAttributes)
     }
 
     def colorPrintln(color: java.awt.Color)(data: Any): Unit = colorPrint(color)(data + "\n")
