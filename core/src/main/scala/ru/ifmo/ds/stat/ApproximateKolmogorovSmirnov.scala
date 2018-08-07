@@ -1,5 +1,7 @@
 package ru.ifmo.ds.stat
 
+import ru.ifmo.ds.Database
+
 /**
   * An approximate Kolmogorov-Smirnov test to be used while detecting differences
   */
@@ -37,5 +39,39 @@ object ApproximateKolmogorovSmirnov {
     val statistic = go(0, 0, 0)
     val p = 2 * math.exp(-2 * statistic * statistic * as.length * bs.length / (0.0 + as.length + bs.length))
     Result(p = p, d = statistic)
+  }
+
+  def runPairwise(db: Database, valueKey: String, resultKey: String, groupKeys: Set[String],
+                  oppositionKey: String, leftValue: String, rightValue: String): Database = {
+    import scala.collection.mutable
+
+    class BufferPair {
+      val left, right = new mutable.ArrayBuffer[Double]()
+    }
+
+    val map = new mutable.HashMap[Seq[Option[String]], BufferPair]()
+    val keys = groupKeys.toIndexedSeq
+
+    def getFor(e: Database.Entry): BufferPair = map.getOrElseUpdate(keys.map(e.get), new BufferPair)
+
+    for (e <- db) {
+      if (e.contains(valueKey)) {
+        e.get(oppositionKey) match {
+          case Some(`leftValue`)  => getFor(e).left  += e(valueKey).toDouble
+          case Some(`rightValue`) => getFor(e).right += e(valueKey).toDouble
+          case _ =>
+        }
+      }
+    }
+
+    Database(map.toIndexedSeq.map {
+      case (values, bp) =>
+        val entryMap = new mutable.HashMap[String, String]()
+        for ((k, i) <- keys.zipWithIndex) {
+          values(i).foreach(v => entryMap += k -> v)
+        }
+        entryMap += resultKey -> ApproximateKolmogorovSmirnov(bp.left, bp.right).p.toString
+        Database.entry(entryMap.toMap)
+    } :_*)
   }
 }
