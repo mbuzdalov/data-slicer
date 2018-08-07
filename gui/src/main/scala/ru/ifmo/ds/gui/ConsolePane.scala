@@ -1,12 +1,13 @@
 package ru.ifmo.ds.gui
 
 import java.awt.event._
-import java.awt.{Color, Font}
+import java.awt.{BorderLayout, Color, Font}
 import java.io._
 
 import javax.swing._
 import javax.swing.text._
 
+import scala.collection.immutable.VectorBuilder
 import scala.reflect.ClassTag
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.{ILoop, NamedParam, NamedParamClass}
@@ -189,12 +190,22 @@ class ConsolePane private (
 
 object ConsolePane {
   class Builder {
-    private[this] val prelude = IndexedSeq.newBuilder[String]
-    private[this] val bindings = IndexedSeq.newBuilder[NamedParam]
-    private[this] val helpFields = IndexedSeq.newBuilder[String]
-    private[this] val helpFunctions = IndexedSeq.newBuilder[String]
-    private[this] val helpUtils = IndexedSeq.newBuilder[String]
-    private[this] val quitHooks = IndexedSeq.newBuilder[Runnable]
+    private val prelude = new VectorBuilder[String]
+    private val bindings = new VectorBuilder[NamedParam]
+    private val helpFields = new VectorBuilder[String]
+    private val helpFunctions = new VectorBuilder[String]
+    private val helpUtils = new VectorBuilder[String]
+    private val quitHooks = new VectorBuilder[Runnable]
+
+    private def setFrom(that: Builder): Builder = {
+      prelude.clear();       prelude       ++= that.prelude.result()
+      bindings.clear();      bindings      ++= that.bindings.result()
+      helpFields.clear();    helpFields    ++= that.helpFields.result()
+      helpFunctions.clear(); helpFunctions ++= that.helpFunctions.result()
+      helpUtils.clear();     helpUtils     ++= that.helpUtils.result()
+      quitHooks.clear();     quitHooks     ++= that.quitHooks.result()
+      this
+    }
 
     helpFields += "console: JTextPane -- the text pane for this console"
     helpFields += "doc: AbstractDocument with StyledDocument -- this console's contents"
@@ -231,6 +242,55 @@ object ConsolePane {
       helpUtils = helpUtils.result(),
       quitHooks = quitHooks.result()
     )
+
+    def resultBoundTo(boundPane: JPanel): JSplitPane = new Builder().setFrom(this).destructiveResultBoundTo(boundPane)
+
+    private def destructiveResultBoundTo(boundPane: JPanel): JSplitPane = {
+      def startConsole(consoleEnvelope: JPanel, boundPane: JPanel, split: JSplitPane): Unit = {
+        val placeholderLabel = new JLabel("Starting the interpreter")
+        placeholderLabel.setHorizontalAlignment(SwingConstants.CENTER)
+        placeholderLabel.setVerticalAlignment(SwingConstants.CENTER)
+        consoleEnvelope.removeAll()
+        consoleEnvelope.add(placeholderLabel)
+        split.setDividerLocation(0.7)
+        consoleEnvelope.repaint()
+        new Thread(() => {
+          SwingUtilities.invokeLater(() => {
+            val consoleScroll = new JScrollPane(
+              result(),
+              ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+              ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS)
+            consoleEnvelope.removeAll()
+            consoleEnvelope.add(consoleScroll)
+            consoleEnvelope.validate()
+            consoleEnvelope.repaint()
+          })
+        }).start()
+      }
+
+      val consoleEnvelope = new JPanel(new BorderLayout())
+      val split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, true, boundPane, consoleEnvelope)
+      val consoleStarter = new JPanel()
+      val consoleStartButton = new JButton("Start Console")
+      consoleStarter.add(consoleStartButton)
+      consoleEnvelope.add(consoleStarter)
+      consoleStartButton.addActionListener(_ => {
+        startConsole(consoleEnvelope, boundPane, split)
+      })
+
+      addBinding("pane", boundPane).addFieldHelp("pane: JPanel -- the panel above")
+      addPrelude(s"import ${JComponentExtensions.getClass.getCanonicalName.init}._")
+      addQuitHook(() => SwingUtilities.invokeLater(() => {
+        consoleEnvelope.removeAll()
+        consoleEnvelope.repaint()
+        consoleEnvelope.add(consoleStarter)
+        split.setDividerLocation(-1)
+      }))
+
+      split.setOneTouchExpandable(true)
+      split.setResizeWeight(1)
+      split
+    }
   }
 
   final class Access private[ConsolePane] (cp: ConsolePane) {
