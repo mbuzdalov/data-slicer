@@ -29,6 +29,13 @@ object Database {
     def foreach[T](fun: ((String, String)) => T): Unit
   }
 
+  def entry(map: Map[String, String]): Entry = new Entry {
+    override def contains(key: String): Boolean = map.contains(key)
+    override def apply(key: String): String = map.apply(key)
+    override def get(key: String): Option[String] = map.get(key)
+    override def foreach[T](fun: ((String, String)) => T): Unit = map.foreach(fun)
+  }
+
   def apply(myEntries: Database.Entry*): Database = new Database {
     override val possibleKeys: Set[String] = {
       val builder = Set.newBuilder[String]
