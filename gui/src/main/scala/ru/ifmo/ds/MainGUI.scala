@@ -21,7 +21,8 @@ object MainGUI {
       val editablePane = designMainPane()
 
       val split = new Builder()
-        .addBinding("args", "Array[String]", args).addFieldHelp("args: Array[String] -- the arguments to the application")
+        .addBinding("args", "Array[String]", args)
+        .addFieldHelp("args: Array[String] -- the arguments to the application")
         .resultBoundTo(editablePane)
 
       frame.setLayout(new BorderLayout())

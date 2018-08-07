@@ -8,13 +8,12 @@ import javax.swing._
 import javax.swing.text._
 
 import scala.collection.immutable.VectorBuilder
-import scala.reflect.ClassTag
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interpreter.{ILoop, NamedParam, NamedParamClass}
+import scala.tools.nsc.interpreter.ILoop
 
 class ConsolePane private (
   prelude: Seq[String],
-  bindings: Seq[NamedParam],
+  bindings: Seq[(String, String, Any)],
   private val helpFields: Seq[String],
   private val helpFunctions: Seq[String],
   private val helpUtils: Seq[String],
@@ -112,7 +111,7 @@ class ConsolePane private (
         intp.interpret(s"import ${util.getClass.getCanonicalName.init}._")
       }
 
-      bindings.foreach(intp.directBind)
+      bindings.foreach(t => intp.directBind(t._1, t._2, t._3))
       prelude.foreach(intp.interpret)
 
       intp.interpret("$$gui.help()")
@@ -191,19 +190,19 @@ class ConsolePane private (
 object ConsolePane {
   class Builder {
     private val prelude = new VectorBuilder[String]
-    private val bindings = new VectorBuilder[NamedParam]
+    private val bindings = new VectorBuilder[(String, String, Any)]
     private val helpFields = new VectorBuilder[String]
     private val helpFunctions = new VectorBuilder[String]
     private val helpUtils = new VectorBuilder[String]
     private val quitHooks = new VectorBuilder[Runnable]
 
     private def setFrom(that: Builder): Builder = {
-      prelude.clear();       prelude       ++= that.prelude.result()
-      bindings.clear();      bindings      ++= that.bindings.result()
-      helpFields.clear();    helpFields    ++= that.helpFields.result()
-      helpFunctions.clear(); helpFunctions ++= that.helpFunctions.result()
-      helpUtils.clear();     helpUtils     ++= that.helpUtils.result()
-      quitHooks.clear();     quitHooks     ++= that.quitHooks.result()
+      prelude.clear();        prelude        ++= that.prelude.result()
+      bindings.clear();       bindings       ++= that.bindings.result()
+      helpFields.clear();     helpFields     ++= that.helpFields.result()
+      helpFunctions.clear();  helpFunctions  ++= that.helpFunctions.result()
+      helpUtils.clear();      helpUtils      ++= that.helpUtils.result()
+      quitHooks.clear();      quitHooks      ++= that.quitHooks.result()
       this
     }
 
@@ -223,12 +222,8 @@ object ConsolePane {
     def addFieldHelp(line: String):    Builder = { helpFields    += line; this }
     def addFunctionHelp(line: String): Builder = { helpFunctions += line; this }
 
-    def addBinding[T: scala.reflect.runtime.universe.TypeTag : ClassTag](name: String, value: T): Builder = {
-      bindings += ((name, value))
-      this
-    }
-    def addBinding[T](name: String, tpe: String, value: T): Builder = {
-      bindings += NamedParamClass(name, tpe, value)
+    def addBinding(name: String, tpe: String, value: Any): Builder = {
+      bindings += ((name, tpe, value))
       this
     }
 
@@ -278,7 +273,8 @@ object ConsolePane {
         startConsole(consoleEnvelope, boundPane, split)
       })
 
-      addBinding("pane", boundPane).addFieldHelp("pane: JPanel -- the panel above")
+      addBinding("pane", "javax.swing.JPanel", boundPane)
+      addFieldHelp("pane: JPanel -- the panel above")
       addPrelude(s"import ${JComponentExtensions.getClass.getCanonicalName.init}._")
       addQuitHook(() => SwingUtilities.invokeLater(() => {
         consoleEnvelope.removeAll()
