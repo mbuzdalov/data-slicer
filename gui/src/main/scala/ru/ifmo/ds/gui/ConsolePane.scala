@@ -1,6 +1,6 @@
 package ru.ifmo.ds.gui
 
-import java.awt.event.{KeyAdapter, KeyEvent}
+import java.awt.event._
 import java.awt.{Color, Font}
 import java.io._
 
@@ -40,12 +40,19 @@ class ConsolePane private (
 
   addKeyListener(new KeyAdapter {
     override def keyPressed(e: KeyEvent): Unit = {
-      if (e.getKeyChar == 10) {
+      if (e.getKeyChar == KeyEvent.VK_ENTER) {
         // Enter: one needs to be at the end of the text for this to work.
         setCaretPosition(doc.getLength)
-      } else if (e.getKeyChar >= ' ' && getCaretPosition < filter.getFirstEditablePosition) {
-        // One tries to write somewhere in the unmodifiable section, which is useless.
+      } else if (getCaretPosition < filter.getFirstEditablePosition && e.getKeyChar >= ' ') {
+        // One tries to write/paste somewhere in the unmodifiable section, which is useless.
         setCaretPosition(doc.getLength)
+      }
+      if (e.getExtendedKeyCode == KeyEvent.VK_HOME) {
+        setCaretPosition(filter.getFirstEditablePosition)
+        e.consume()
+      } else if (e.getExtendedKeyCode == KeyEvent.VK_END) {
+        setCaretPosition(doc.getLength)
+        e.consume()
       }
     }
   })
