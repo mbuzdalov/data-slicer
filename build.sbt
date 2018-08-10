@@ -12,7 +12,6 @@ lazy val scalaCompiler = "org.scala-lang" % "scala-compiler" % theScalaVersion
 lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.0.5" % Test
 lazy val gson       = "com.google.code.gson" % "gson" % "2.8.1"
 lazy val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
-lazy val xChart     = "org.knowm.xchart" % "xchart" % "3.5.2"
 lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.0"
 
 
@@ -43,4 +42,4 @@ lazy val gui = project
   .settings(commonSettings :_*)
   .settings(
     name    := "data-slicer-gui",
-    libraryDependencies ++= Seq(scalaCompiler, xChart, jFreeChart))
+    libraryDependencies ++= Seq(scalaCompiler, jFreeChart))
