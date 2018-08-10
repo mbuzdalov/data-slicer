@@ -5,6 +5,7 @@ abstract class Database {
   def valuesUnderKey(key: String): Set[String]
   def entries: Seq[Database.Entry]
   def foreach[T](fun: Database.Entry => T): Unit
+  def hasEntries: Boolean = entries.nonEmpty
 
   def withMoreKeys(map: Map[String, String]): Database = {
     require(map.keySet.diff(possibleKeys).isEmpty, "New keys should be different from existing ones")
@@ -65,6 +66,7 @@ object Database {
     }
     private val wrap: Entry => Entry = e => new WrapperEntry(e)
 
+    override val hasEntries: Boolean = base.hasEntries
     override def possibleKeys: Set[String] = base.possibleKeys ++ newMap.keySet
     override def valuesUnderKey(key: String): Set[String] = if (newMap.contains(key)) Set(newMap(key)) else base.valuesUnderKey(key)
     override def entries: Seq[Entry] = base.entries.map(wrap)
