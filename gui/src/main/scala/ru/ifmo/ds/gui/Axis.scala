@@ -1,3 +1,11 @@
 package ru.ifmo.ds.gui
 
-case class Axis(name: String, key: String, isLogarithmic: Boolean)
+import org.jfree.chart.axis.{LogarithmicAxis, NumberAxis}
+
+case class Axis(name: String, key: String, isLogarithmic: Boolean) {
+  def toJFreeChartAxis: NumberAxis = if (isLogarithmic) {
+    new LogarithmicAxis(name)
+  } else {
+    new NumberAxis(name)
+  }
+}

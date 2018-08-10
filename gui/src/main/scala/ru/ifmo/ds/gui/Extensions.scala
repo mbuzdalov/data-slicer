@@ -6,12 +6,11 @@ import javax.swing._
 
 import scala.collection.mutable
 
-import org.jfree.chart.{ChartFactory, ChartPanel}
-import org.jfree.chart.axis.{LogarithmicAxis, NumberAxis}
 import org.jfree.chart.labels.XYToolTipGenerator
-import org.jfree.chart.plot.PlotOrientation
+import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.renderer.xy.DeviationRenderer
-import org.jfree.data.xy.{IntervalXYDataset, XYDataset, YIntervalSeries, YIntervalSeriesCollection}
+import org.jfree.chart.{ChartFactory, ChartPanel}
+import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.util.OrderingForStringWithNumbers
@@ -59,14 +58,16 @@ object Extensions {
     result
   }
 
+  private def makeUpPlot(plot: XYPlot, xAxis: Axis, yAxis: Axis): Unit = {
+    plot.setBackgroundPaint(Color.WHITE)
+    plot.setRangeGridlinePaint(Color.BLACK)
+    plot.setDomainGridlinePaint(Color.BLACK)
+    plot.setDomainAxis(xAxis.toJFreeChartAxis)
+    plot.setRangeAxis(yAxis.toJFreeChartAxis)
+  }
+
   def makeXY(db: Database, categoryKeys: Seq[String], xAxis: Axis, yAxis: Axis, seriesKey: String): JComponent = {
     type LeafDescription = Seq[YIntervalSeries]
-
-    def toJFreeChartAxis(axis: Axis): NumberAxis = if (axis.isLogarithmic) {
-      new LogarithmicAxis(axis.name)
-    } else {
-      new NumberAxis(axis.name)
-    }
 
     def createJFreeChart(data: LeafDescription): JComponent = {
       assert(SwingUtilities.isEventDispatchThread)
@@ -78,21 +79,9 @@ object Extensions {
       val jFreeChart = ChartFactory.createXYLineChart("", xAxis.name, yAxis.name, jFreeData,
         PlotOrientation.VERTICAL, true, true, false)
       val jFreePanel = new ChartPanel(jFreeChart)
-
       val plot = jFreeChart.getXYPlot
-      val renderer = new DeviationRenderer(true, true) {
-        override def lookupSeriesFillPaint(series: Int): Paint = {
-          super.lookupSeriesPaint(series)
-        }
-      }
-      renderer.setAlpha(0.5f)
-      renderer.setDefaultToolTipGenerator(ExtendedTooltipGenerator)
-      plot.setRenderer(renderer)
-      plot.setBackgroundPaint(Color.WHITE)
-      plot.setRangeGridlinePaint(Color.BLACK)
-      plot.setDomainGridlinePaint(Color.BLACK)
-      plot.setDomainAxis(toJFreeChartAxis(xAxis))
-      plot.setRangeAxis(toJFreeChartAxis(yAxis))
+      makeUpPlot(plot, xAxis, yAxis)
+      plot.setRenderer(CustomDeviationRenderer)
       jFreePanel
     }
 
@@ -121,6 +110,62 @@ object Extensions {
     makePresentationTree(db, categoryKeys, composeSeries, createJFreeChart)
   }
 
+  def makeWhoIsBest(db: Database, categoryKeys: Seq[String], xAxis: Axis, yAxis: Axis, seriesKey: String, compareByKey: String): JComponent = {
+    type LeafDescription = Seq[XYSeries]
+
+    def createJFreeChart(data: LeafDescription): JComponent = {
+      assert(SwingUtilities.isEventDispatchThread)
+      val jFreeData = new XYSeriesCollection()
+      for (series <- data) {
+        jFreeData.addSeries(series)
+      }
+
+      val jFreeChart = ChartFactory.createScatterPlot("", xAxis.name, yAxis.name, jFreeData,
+        PlotOrientation.VERTICAL, true, true, false)
+      val jFreePanel = new ChartPanel(jFreeChart)
+      val plot = jFreeChart.getXYPlot
+      makeUpPlot(plot, xAxis, yAxis)
+      jFreePanel
+    }
+
+    def composeSeries(db: Database): LeafDescription = {
+      assert(!SwingUtilities.isEventDispatchThread)
+      val contents = new mutable.HashMap[(Double, Double), mutable.HashMap[String, mutable.ArrayBuffer[Double]]]()
+      db foreach { e =>
+        if (e.contains(xAxis.key) && e.contains(yAxis.key) && e.contains(seriesKey) && e.contains(compareByKey)) {
+          val mapForPointKey = contents.getOrElseUpdate(e(xAxis.key).toDouble -> e(yAxis.key).toDouble, new mutable.HashMap())
+          val mapForSeriesKey = mapForPointKey.getOrElseUpdate(e(seriesKey), new mutable.ArrayBuffer())
+          mapForSeriesKey += e(compareByKey).toDouble
+        }
+      }
+
+      def findSmallestByMedian(arg: mutable.HashMap[String, mutable.ArrayBuffer[Double]]): String = {
+        val medians = arg.mapValues(b => b.sorted.apply(b.size / 2))
+        medians.minBy(_._2)._1
+      }
+
+      val medians = contents.mapValues(findSmallestByMedian)
+      val allValues = medians.values.toIndexedSeq.distinct.sorted(OrderingForStringWithNumbers.SpecialDotTreatment)
+
+      allValues map { seriesKey =>
+        val myPairs = medians.filter(_._2 == seriesKey).map(_._1)
+        val series = new XYSeries(seriesKey)
+        myPairs.foreach(p => series.add(p._1, p._2))
+        series
+      }
+    }
+
+    makePresentationTree(db, categoryKeys, composeSeries, createJFreeChart)
+  }
+
+  private object CustomDeviationRenderer extends DeviationRenderer {
+    setAlpha(0.5f)
+    setDefaultToolTipGenerator(ExtendedTooltipGenerator)
+    override def lookupSeriesFillPaint(series: Int): Paint = {
+      super.lookupSeriesPaint(series)
+    }
+  }
+
   private object ExtendedTooltipGenerator extends XYToolTipGenerator {
     private def generateToolTips(dataset: XYDataset, series: Int, item: Int): Array[(Double, String)] = {
       Array.tabulate(dataset.getSeriesCount) { s =>
@@ -147,7 +192,7 @@ object Extensions {
     override def generateToolTip(dataset: XYDataset, series: Int, item: Int): String = {
       val allRows = dataset match {
         case d: IntervalXYDataset => generateIntervalToolTips(d, series, item)
-        case _ => generateToolTips(dataset, series, item)
+        case d => generateToolTips(d, series, item)
       }
       val sortedRows = allRows.sortBy(-_._1).map(_._2) // tooltip rows top-down
       sortedRows.mkString("<html>", "<br/>", "</html>")
