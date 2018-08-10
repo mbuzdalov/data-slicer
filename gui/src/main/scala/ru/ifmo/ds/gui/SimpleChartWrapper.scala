@@ -2,7 +2,7 @@ package ru.ifmo.ds.gui
 
 import java.awt.{Color, Paint}
 
-import javax.swing.JPanel
+import javax.swing.{JPanel, SwingUtilities}
 import org.jfree.chart.axis.{LogarithmicAxis, NumberAxis}
 import org.jfree.chart.labels.XYToolTipGenerator
 import org.jfree.chart.plot.PlotOrientation
@@ -14,7 +14,7 @@ import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 import scala.collection.mutable
 
-class SimpleChartWrapper(width: Int, height: Int, xAxis: Axis, yAxis: Axis) {
+class SimpleChartWrapper(xAxis: Axis, yAxis: Axis) {
   private val jFreeData = new YIntervalSeriesCollection
   private val jFreeChart = ChartFactory.createXYLineChart("", xAxis.name, yAxis.name, jFreeData,
     PlotOrientation.VERTICAL, true, true, false)
@@ -46,6 +46,7 @@ class SimpleChartWrapper(width: Int, height: Int, xAxis: Axis, yAxis: Axis) {
   val gui: JPanel = jFreePanel
 
   def addDatabase(db: Database, graphKey: String): Unit = {
+    assert(!SwingUtilities.isEventDispatchThread)
     val contents = new mutable.HashMap[String, mutable.HashMap[Double, mutable.ArrayBuffer[Double]]]()
     db foreach { e =>
       if (e.contains(xAxis.key) && e.contains(yAxis.key) && e.contains(graphKey)) {
@@ -55,14 +56,21 @@ class SimpleChartWrapper(width: Int, height: Int, xAxis: Axis, yAxis: Axis) {
       }
     }
 
-    for ((plot, map) <- contents.toIndexedSeq.sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)) {
+    val sortedContents = contents.toIndexedSeq.sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)
+    val allSeries = sortedContents.map { case (plot, map) =>
       val series = new YIntervalSeries(plot)
       for ((x, y) <- map.toIndexedSeq.sortBy(_._1.toInt)) {
         val ySorted = y.toIndexedSeq.sorted
         series.add(x, ySorted(ySorted.size / 2), ySorted.head, ySorted.last)
       }
-      jFreeData.addSeries(series)
+      series
     }
+
+    SwingUtilities.invokeLater(() => {
+      for (series <- allSeries) {
+        jFreeData.addSeries(series)
+      }
+    })
   }
 }
 

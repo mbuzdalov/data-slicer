@@ -69,7 +69,7 @@ object JComponentExtensions {
       val titledData = map.toIndexedSeq.map(p => (extractTitle(p._1), Database(p._2 :_*))).sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)
       util.inSwing {
         for ((title, db) <- titledData) {
-          val wrapper = new SimpleChartWrapper(comp.getWidth, comp.getHeight, xAxis, yAxis)
+          val wrapper = new SimpleChartWrapper(xAxis, yAxis)
           wrapper.addDatabase(db, seriesKey)
           this += (title, wrapper.gui)
         }
