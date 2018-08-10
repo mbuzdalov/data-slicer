@@ -302,7 +302,7 @@ object ConsolePane {
 
       addBinding("pane", "javax.swing.JPanel", boundPane)
       addFieldHelp("pane: JPanel -- the panel above")
-      addPrelude(s"import ${JComponentExtensions.getClass.getCanonicalName.init}._")
+      addPrelude(s"import ${Extensions.getClass.getCanonicalName.init}._")
       addQuitHook(() => SwingUtilities.invokeLater(() => {
         consoleEnvelope.removeAll()
         consoleEnvelope.repaint()
