@@ -73,7 +73,7 @@ object Database {
     override def foreach[T](fun: Entry => T): Unit = base.foreach(wrap.andThen(fun))
   }
 
-  def join(databases: Database*): Database = {
+  def merge(databases: Database*): Database = {
     val keysBuilder = Set.newBuilder[String]
     val entriesBuilder = IndexedSeq.newBuilder[Database.Entry]
     for (db <- databases) {
