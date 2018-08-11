@@ -6,10 +6,10 @@ import javax.swing._
 
 import scala.collection.mutable
 
+import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.chart.labels.XYToolTipGenerator
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
-import org.jfree.chart.renderer.xy.DeviationRenderer
-import org.jfree.chart.{ChartFactory, ChartPanel}
+import org.jfree.chart.renderer.xy.{DeviationRenderer, XYLineAndShapeRenderer}
 import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
@@ -58,12 +58,10 @@ object Extensions {
     result
   }
 
-  private def makeUpPlot(plot: XYPlot, xAxis: Axis, yAxis: Axis): Unit = {
+  private def makeUpPlot(plot: XYPlot): Unit = {
     plot.setBackgroundPaint(Color.WHITE)
     plot.setRangeGridlinePaint(Color.BLACK)
     plot.setDomainGridlinePaint(Color.BLACK)
-    plot.setDomainAxis(xAxis.toJFreeChartAxis)
-    plot.setRangeAxis(yAxis.toJFreeChartAxis)
   }
 
   def makeXY(db: Database, categoryKeys: Seq[String], xAxis: Axis, yAxis: Axis, seriesKey: String): JComponent = {
@@ -76,13 +74,11 @@ object Extensions {
         jFreeData.addSeries(series)
       }
 
-      val jFreeChart = ChartFactory.createXYLineChart("", xAxis.name, yAxis.name, jFreeData,
-        PlotOrientation.VERTICAL, true, true, false)
-      val jFreePanel = new ChartPanel(jFreeChart)
-      val plot = jFreeChart.getXYPlot
-      makeUpPlot(plot, xAxis, yAxis)
-      plot.setRenderer(CustomDeviationRenderer)
-      jFreePanel
+      val plot = new XYPlot(jFreeData, xAxis.toJFreeChartAxis, yAxis.toJFreeChartAxis, CustomDeviationRenderer)
+      plot.setOrientation(PlotOrientation.VERTICAL)
+      makeUpPlot(plot)
+
+      new ChartPanel(new JFreeChart(plot))
     }
 
     def composeSeries(db: Database): LeafDescription = {
@@ -120,12 +116,11 @@ object Extensions {
         jFreeData.addSeries(series)
       }
 
-      val jFreeChart = ChartFactory.createScatterPlot("", xAxis.name, yAxis.name, jFreeData,
-        PlotOrientation.VERTICAL, true, true, false)
-      val jFreePanel = new ChartPanel(jFreeChart)
-      val plot = jFreeChart.getXYPlot
-      makeUpPlot(plot, xAxis, yAxis)
-      jFreePanel
+      val plot = new XYPlot(jFreeData, xAxis.toJFreeChartAxis, yAxis.toJFreeChartAxis, new XYLineAndShapeRenderer(false, true))
+      plot.setOrientation(PlotOrientation.VERTICAL)
+      makeUpPlot(plot)
+
+      new ChartPanel(new JFreeChart(plot))
     }
 
     def composeSeries(db: Database): LeafDescription = {
@@ -146,9 +141,10 @@ object Extensions {
 
       val medians = contents.mapValues(findSmallestByMedian)
       val allValues = medians.values.toIndexedSeq.distinct.sorted(OrderingForStringWithNumbers.SpecialDotTreatment)
+      val mediansSeq = medians.toIndexedSeq
 
       allValues map { seriesKey =>
-        val myPairs = medians.filter(_._2 == seriesKey).map(_._1)
+        val myPairs = mediansSeq.filter(_._2 == seriesKey).map(_._1)
         val series = new XYSeries(seriesKey)
         myPairs.foreach(p => series.add(p._1, p._2))
         series
