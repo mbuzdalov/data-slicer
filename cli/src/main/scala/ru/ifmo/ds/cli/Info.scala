@@ -44,7 +44,7 @@ object Info extends CLI.Module {
 
       def composeString(addedCount: Int): Unit = {
         if (iterator.hasNext) {
-          val next = iterator.next()
+          val next = iterator.next().getOrElse("<none>")
           if (builder.length + 2 + next.length <= 80) {
             if (addedCount > 0) {
               builder.append(", ")

@@ -2,7 +2,7 @@ package ru.ifmo.ds
 
 abstract class Database {
   def possibleKeys: Set[String]
-  def valuesUnderKey(key: String): Set[String]
+  def valuesUnderKey(key: String): Set[Option[String]]
   def entries: Seq[Database.Entry]
   def foreach[T](fun: Database.Entry => T): Unit
   def hasEntries: Boolean = entries.nonEmpty
@@ -44,9 +44,9 @@ object Database {
       builder.result()
     }
 
-    override def valuesUnderKey(key: String): Set[String] = {
-      val builder = Set.newBuilder[String]
-      myEntries.foreach(e => builder ++= e.get(key))
+    override def valuesUnderKey(key: String): Set[Option[String]] = {
+      val builder = Set.newBuilder[Option[String]]
+      myEntries.foreach(e => builder += e.get(key))
       builder.result()
     }
 
@@ -68,7 +68,9 @@ object Database {
 
     override val hasEntries: Boolean = base.hasEntries
     override def possibleKeys: Set[String] = base.possibleKeys ++ newMap.keySet
-    override def valuesUnderKey(key: String): Set[String] = if (newMap.contains(key)) Set(newMap(key)) else base.valuesUnderKey(key)
+    override def valuesUnderKey(key: String): Set[Option[String]] = {
+      if (newMap.contains(key)) Set(newMap.get(key)) else base.valuesUnderKey(key)
+    }
     override def entries: Seq[Entry] = base.entries.map(wrap)
     override def foreach[T](fun: Entry => T): Unit = base.foreach(wrap.andThen(fun))
   }
@@ -84,8 +86,8 @@ object Database {
       override val possibleKeys: Set[String] = keysBuilder.result()
       override val entries: Seq[Entry] = entriesBuilder.result()
       override def foreach[T](fun: Entry => T): Unit = entries.foreach(fun)
-      override def valuesUnderKey(key: String): Set[String] = {
-        val valuesBuilder = Set.newBuilder[String]
+      override def valuesUnderKey(key: String): Set[Option[String]] = {
+        val valuesBuilder = Set.newBuilder[Option[String]]
         for (db <- databases) {
           valuesBuilder ++= db.valuesUnderKey(key)
         }

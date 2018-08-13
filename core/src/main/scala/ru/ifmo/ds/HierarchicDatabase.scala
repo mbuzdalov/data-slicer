@@ -10,8 +10,8 @@ class HierarchicDatabase(root: HierarchicDatabase.Entry) extends Database {
     builder.result()
   }
 
-  override def valuesUnderKey(key: String): Set[String] = {
-    val builder = Set.newBuilder[String]
+  override def valuesUnderKey(key: String): Set[Option[String]] = {
+    val builder = Set.newBuilder[Option[String]]
     root.collectValuesFor(key, builder += _)
     builder.result()
   }
@@ -57,9 +57,11 @@ object HierarchicDatabase {
       myChildren.foreach(_.collectKeys(consumer))
     }
 
-    private[HierarchicDatabase] def collectValuesFor(key: String, consumer: String => Unit): Unit = {
+    private[HierarchicDatabase] def collectValuesFor(key: String, consumer: Option[String] => Unit): Unit = {
       if (myKeys.contains(key)) {
-        consumer(myKeys(key))
+        consumer(myKeys.get(key))
+      } else if (canBeLeaf) {
+        consumer(None)
       } else {
         myChildren.foreach(_.collectValuesFor(key, consumer))
       }
