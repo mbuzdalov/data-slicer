@@ -3,7 +3,7 @@ package ru.ifmo.ds.io
 import java.io._
 
 import ru.ifmo.ds.Database
-import ru.ifmo.ds.io.json.Reading
+import ru.ifmo.ds.io.json.{Reading, Writing}
 
 object Json {
   class ParseException(message: String, cause: Throwable) extends RuntimeException {
@@ -45,7 +45,5 @@ object Json {
     sw.close()
   }
 
-  def writeToWriter(db: Database, writer: Writer): Unit = {
-
-  }
+  def writeToWriter(db: Database, writer: Writer): Unit = Writing.write(db, writer, "")
 }

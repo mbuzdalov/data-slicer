@@ -12,7 +12,7 @@ object CLI {
     final def usageWrap[T](arg: T): T = CLI.usageWrap(arg)
   }
 
-  private val modules = IndexedSeq(cli.Info, cli.Diff)
+  private val modules = IndexedSeq(cli.Info, cli.Diff, cli.Compress)
 
   private def usage(message: String): Nothing = {
     val err = Console.err

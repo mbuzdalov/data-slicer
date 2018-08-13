@@ -7,7 +7,10 @@ class JsonTests extends FlatSpec with Matchers {
   private[this] def load(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
     val db = Json.fromString(contents, moreKeys)
     val cdb = HierarchicDatabase.compact(db)
-    db.flatten.toSet shouldEqual cdb.flatten.toSet
+    cdb.flatten.toSet shouldEqual db.flatten.toSet
+    val str = Json.toString(db)
+    val fromStr = Json.fromString(str)
+    fromStr.flatten.toSet shouldEqual db.flatten.toSet
     db
   }
   
