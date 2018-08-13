@@ -8,21 +8,26 @@ import ru.ifmo.ds.{Database, HierarchicDatabase}
 import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap, HashSet => MuHashSet}
 
 object Json {
-  def loadFromString(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
+  class ParseException(message: String, cause: Throwable) extends RuntimeException {
+    def this(message: String) = this(message, null)
+    def this(cause: Throwable) = this(null, cause)
+  }
+
+  def fromString(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
     val reader = new StringReader(contents)
-    val result = loadFromReader(reader, moreKeys)
+    val result = fromReader(reader, moreKeys)
     reader.close()
     result
   }
 
-  def loadFromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
+  def fromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
     val reader = new FileReader(file)
-    val result = loadFromReader(reader, moreKeys)
+    val result = fromReader(reader, moreKeys)
     reader.close()
     result
   }
 
-  def loadFromReader(reader: Reader, moreKeys: Map[String, String] = Map.empty): Database = {
+  def fromReader(reader: Reader, moreKeys: Map[String, String] = Map.empty): Database = {
     try {
       val jsonReader = new JsonReader(reader)
       val rawRoot = jsonReader.peek() match {
@@ -95,11 +100,6 @@ object Json {
   }
 
   private def readObject(reader: JsonReader): RawEntry = readObjectOpen(reader).result()
-
-  class ParseException(message: String, cause: Throwable) extends RuntimeException {
-    def this(message: String) = this(message, null)
-    def this(cause: Throwable) = this(null, cause)
-  }
 
   private implicit class MuHashMapEx(val map: MuHashMap[String, String]) extends AnyVal {
     def updateUnique(k: String, v: String): Unit = {

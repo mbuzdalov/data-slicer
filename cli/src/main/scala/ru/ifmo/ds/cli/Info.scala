@@ -13,7 +13,7 @@ object Info extends CLI.Module {
       usage(s"No arguments given for command '$name'")
     } else {
       val file = new File(args(0))
-      val base = Json.loadFromFile(file, Map("filename" -> file.getAbsolutePath))
+      val base = Json.fromFile(file, Map("filename" -> file.getAbsolutePath))
       dumpBasicInfo(base)
     }
   }

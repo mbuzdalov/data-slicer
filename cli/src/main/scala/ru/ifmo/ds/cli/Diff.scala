@@ -34,13 +34,13 @@ object Diff extends CLI.Module {
         } else {
           (args.drop(startFiles + 1), args.slice(startCats + 1, startFiles))
         }
-        val db = Database.merge(files.map(f => Json.loadFromFile(new File(f), Map("filename" -> f))) :_*)
+        val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
         FindDifferences.traverse(db, oppositionKey, Some(oppositionLeftValue), Some(oppositionRightValue), cats,
           measure, consoleDumpingDifferenceListener)
       }
     } else {
-      val db1 = Json.loadFromFile(new File(args(1)), Map("filename" -> args(1))).filter(_.contains(measure))
-      val db2 = Json.loadFromFile(new File(args(2)), Map("filename" -> args(2))).filter(_.contains(measure))
+      val db1 = Json.fromFile(new File(args(1)), Map("filename" -> args(1))).filter(_.contains(measure))
+      val db2 = Json.fromFile(new File(args(2)), Map("filename" -> args(2))).filter(_.contains(measure))
       val cats = args.drop(3)
       FindDifferences.traverse(db1, db2, cats, measure, consoleDumpingDifferenceListener)
     }
