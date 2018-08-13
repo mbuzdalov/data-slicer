@@ -26,7 +26,7 @@ object Extensions {
             Right(makeLeaf(db))
           } else {
             val key = categoryKeys.head
-            val options = db.entries.map(_.get(key)).distinct
+            val options = db.valuesUnderKey(key)
             assert(options.nonEmpty)
             if (options.size == 1) {
               processCats(categoryKeys.tail)

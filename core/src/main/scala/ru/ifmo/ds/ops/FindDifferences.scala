@@ -32,8 +32,8 @@ object FindDifferences {
       }
     } else {
       val key = categoryKeys.head
-      val leftOptions = left.entries.map(_.get(key)).toSet
-      val rightOptions = right.entries.map(_.get(key)).toSet
+      val leftOptions = left.valuesUnderKey(key)
+      val rightOptions = right.valuesUnderKey(key)
       if (leftOptions != rightOptions) {
         val onlyLeft = leftOptions.diff(rightOptions)
         val onlyRight = rightOptions.diff(leftOptions)
