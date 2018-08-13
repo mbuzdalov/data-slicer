@@ -2,6 +2,7 @@ package ru.ifmo.ds.ops
 
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.stat.ApproximateKolmogorovSmirnov
+import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 object FindDifferences {
   trait DifferenceListener {
@@ -12,6 +13,9 @@ object FindDifferences {
     def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                 leftValues: Seq[Double], rightValues: Seq[Double], pValue: Double): Unit
   }
+
+  private[this] implicit val optionStringOrdering: Ordering[Option[String]] =
+    Ordering.Option(OrderingForStringWithNumbers.SpecialDotTreatment)
 
   private[this] def traverseImpl(left: Database, right: Database, slice: Map[String, Option[String]],
                                  categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener): Unit = {
@@ -35,7 +39,7 @@ object FindDifferences {
         val onlyRight = rightOptions.diff(leftOptions)
         listener.keyValuesDoNotMatch(slice, key, onlyLeft, onlyRight)
       }
-      val commonOptions = leftOptions.intersect(rightOptions)
+      val commonOptions = leftOptions.intersect(rightOptions).toIndexedSeq.sorted
       if (commonOptions.nonEmpty) {
         val newKeys = categoryKeys.tail
         for (o <- commonOptions) {
