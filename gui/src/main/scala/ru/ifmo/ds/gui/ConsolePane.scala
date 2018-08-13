@@ -14,6 +14,7 @@ import scala.tools.nsc.interpreter.ILoop
 class ConsolePane private (
   prelude: Seq[String],
   bindings: Seq[(String, String, Any)],
+  private val helpClasses: Seq[String],
   private val helpFields: Seq[String],
   private val helpFunctions: Seq[String],
   private val helpUtils: Seq[String],
@@ -205,6 +206,7 @@ object ConsolePane {
   class Builder {
     private val prelude = new VectorBuilder[String]
     private val bindings = new VectorBuilder[(String, String, Any)]
+    private val helpClasses = new VectorBuilder[String]
     private val helpFields = new VectorBuilder[String]
     private val helpFunctions = new VectorBuilder[String]
     private val helpUtils = new VectorBuilder[String]
@@ -213,6 +215,7 @@ object ConsolePane {
     private def setFrom(that: Builder): Builder = {
       prelude.clear();        prelude        ++= that.prelude.result()
       bindings.clear();       bindings       ++= that.bindings.result()
+      helpClasses.clear();    helpClasses    ++= that.helpClasses.result()
       helpFields.clear();     helpFields     ++= that.helpFields.result()
       helpFunctions.clear();  helpFunctions  ++= that.helpFunctions.result()
       helpUtils.clear();      helpUtils      ++= that.helpUtils.result()
@@ -232,6 +235,7 @@ object ConsolePane {
     helpUtils += "notInSwing(fun: => T): Future[T] -- runs something in a dedicated non-Swing thread"
 
     def addPrelude(line: String):      Builder = { prelude       += line; this }
+    def addClassHelp(line: String):    Builder = { helpClasses   += line; this }
     def addUtilHelp(line: String):     Builder = { helpUtils     += line; this }
     def addFieldHelp(line: String):    Builder = { helpFields    += line; this }
     def addFunctionHelp(line: String): Builder = { helpFunctions += line; this }
@@ -246,6 +250,7 @@ object ConsolePane {
     def result(): ConsolePane = new ConsolePane(
       prelude = prelude.result(),
       bindings = bindings.result(),
+      helpClasses = helpClasses.result(),
       helpFields = helpFields.result(),
       helpFunctions = helpFunctions.result(),
       helpUtils = helpUtils.result(),
@@ -256,6 +261,7 @@ object ConsolePane {
     private def result(access: ConsolePane.Access) = new ConsolePane(
       prelude = prelude.result(),
       bindings = bindings.result(),
+      helpClasses = helpClasses.result(),
       helpFields = helpFields.result(),
       helpFunctions = helpFunctions.result(),
       helpUtils = helpUtils.result(),
@@ -300,9 +306,30 @@ object ConsolePane {
         startConsole(consoleEnvelope, boundPane, split)
       })
 
+      addClassHelp("case class Axis(name: String, key: String, isLogarithmic: Boolean) --")
+      addClassHelp("  used to define axes in plot building methods.")
+
       addBinding("pane", "javax.swing.JPanel", boundPane)
       addFieldHelp("pane: JPanel -- the panel above")
+
       addPrelude(s"import ${Extensions.getClass.getCanonicalName.init}._")
+      addFunctionHelp("makeXY(")
+      addFunctionHelp("  db: Database, categoryKeys: Seq[String],")
+      addFunctionHelp("  xAxis: Axis, yAxis: Axis, seriesKey: String")
+      addFunctionHelp("): JComponent -- ")
+      addFunctionHelp("  creates a pile of XY plots (using JFreeChart) from the database `db`,")
+      addFunctionHelp("  splitting it by categories taken from `categoryKeys` in order,")
+      addFunctionHelp("  using the given axes, and using `seriesKey` to determine what a series is.")
+      addFunctionHelp("makeWhoIsBest(")
+      addFunctionHelp("  db: Database, categoryKeys: Seq[String],")
+      addFunctionHelp("  xAxis: Axis, yAxis: Axis, seriesKey: String, compareByKey: String")
+      addFunctionHelp("): JComponent -- ")
+      addFunctionHelp("  creates a pile of scatter plots (using JFreeChart) from the database `db`,")
+      addFunctionHelp("  where each point is determined by which algorithm (`seriesKey` is the key)")
+      addFunctionHelp("  brings the smallest result (`compareByKey` is the key).")
+      addFunctionHelp("  The database is first split by categories taken from `categoryKeys` in order,")
+      addFunctionHelp("  and the given axes are used.")
+
       addQuitHook(() => SwingUtilities.invokeLater(() => {
         consoleEnvelope.removeAll()
         consoleEnvelope.repaint()
@@ -337,12 +364,24 @@ object ConsolePane {
 
     def help(): Unit = colorPrint(Color.GREEN)(helpText)
 
-    def helpText: String = s"\nYou may use the following additional fields and methods:\n${
-      cp.helpFields.mkString("  ", "\n  ", "\n")
-    }\n${
-      cp.helpFunctions.mkString("  ", "\n  ", "\n")
-    }\n${
-      cp.helpUtils.mkString("  ", "\n  ", "")
+    private[this] def mkString(s: Seq[String], isLast: Boolean): String = {
+      if (s.isEmpty) {
+        ""
+      } else if (isLast) {
+        s.mkString("  ", "\n  ", "")
+      } else {
+        s.mkString("  ", "\n  ", "\n\n")
+      }
+    }
+
+    def helpText: String = s"\nYou may directly use the following additional classes, fields and methods:\n${
+      mkString(cp.helpClasses, isLast = false)
+    }${
+      mkString(cp.helpFields, isLast = false)
+    }${
+      mkString(cp.helpFunctions, isLast = false)
+    }${
+      mkString(cp.helpUtils, isLast = true)
     }"
   }
 }
