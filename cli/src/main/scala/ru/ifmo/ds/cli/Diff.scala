@@ -6,6 +6,7 @@ import ru.ifmo.ds.{CLI, Database}
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.ops.FindDifferences
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
+import ru.ifmo.ds.stat.ApproximateKolmogorovSmirnov
 
 object Diff extends CLI.Module {
   override def name: String = "diff"
@@ -36,7 +37,7 @@ object Diff extends CLI.Module {
         }
         val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
         FindDifferences.traverse(db, oppositionKey, Some(oppositionLeftValue), Some(oppositionRightValue), cats,
-          measure, consoleDumpingDifferenceListener)
+                                 measure, consoleDumpingDifferenceListener)
       }
     } else {
       val db1 = Json.fromFile(new File(args(1)), Map("filename" -> args(1))).filter(_.contains(measure))
@@ -94,13 +95,14 @@ object Diff extends CLI.Module {
     }
 
     override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
-                                         leftValues: Seq[Double], rightValues: Seq[Double], pValue: Double): Unit = {
-      if (pValue < 0.05) {
+                                         leftValues: Seq[Double], rightValues: Seq[Double],
+                                         result: ApproximateKolmogorovSmirnov.Result): Unit = {
+      if (result.p < 0.05) {
         println(s"Significant difference found for key '$key':")
         dumpSlice(slice)
         println(leftValues.mkString("  left values: [", ", ", "]"))
         println(rightValues.mkString("  right values: [", ", ", "]"))
-        println(s"  p-value: $pValue < 0.05")
+        println(s"  p-value: ${result.p} < 0.05")
       }
     }
   }

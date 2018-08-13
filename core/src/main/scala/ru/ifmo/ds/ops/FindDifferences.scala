@@ -11,8 +11,19 @@ object FindDifferences {
     def kolmogorovSmirnovFailure(slice: Map[String, Option[String]], key: String,
                                  leftValues: Seq[String], rightValues: Seq[String], exception: Throwable): Unit
     def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
-                                leftValues: Seq[Double], rightValues: Seq[Double], pValue: Double): Unit
+                                leftValues: Seq[Double], rightValues: Seq[Double],
+                                result: ApproximateKolmogorovSmirnov.Result): Unit
   }
+
+  sealed trait Result
+  case class NonMatchedKeys(slice: Map[String, Option[String]], key: String,
+                            onlyLeft: Set[Option[String]], onlyRight: Set[Option[String]]) extends Result
+  case class KolmogorovSmirnovFailure(slice: Map[String, Option[String]], key: String,
+                                      leftValues: Seq[String], rightValues: Seq[String],
+                                      exception: Throwable) extends Result
+  case class KolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
+                                     leftValues: Seq[Double], rightValues: Seq[Double],
+                                     result: ApproximateKolmogorovSmirnov.Result) extends Result
 
   private[this] implicit val optionStringOrdering: Ordering[Option[String]] =
     Ordering.Option(OrderingForStringWithNumbers.SpecialDotTreatment)
@@ -26,7 +37,7 @@ object FindDifferences {
         val leftValues = rawLeft.map(_.toDouble)
         val rightValues = rawRight.map(_.toDouble)
         val ks = ApproximateKolmogorovSmirnov(leftValues, rightValues)
-        listener.kolmogorovSmirnovResult(slice, valueKey, leftValues, rightValues, ks.p)
+        listener.kolmogorovSmirnovResult(slice, valueKey, leftValues, rightValues, ks)
       } catch {
         case th: Throwable => listener.kolmogorovSmirnovFailure(slice, valueKey, rawLeft, rawRight, th)
       }
@@ -51,6 +62,26 @@ object FindDifferences {
     }
   }
 
+  private[this] class Builder extends DifferenceListener {
+    private[this] val builder = IndexedSeq.newBuilder[Result]
+
+    override def keyValuesDoNotMatch(slice: Map[String, Option[String]], key: String,
+                                     onlyLeft: Set[Option[String]], onlyRight: Set[Option[String]]): Unit =
+      builder += NonMatchedKeys(slice, key, onlyLeft, onlyRight)
+
+    override def kolmogorovSmirnovFailure(slice: Map[String, Option[String]], key: String, leftValues: Seq[String],
+                                          rightValues: Seq[String], exception: Throwable): Unit = {
+      builder += KolmogorovSmirnovFailure(slice, key, leftValues, rightValues, exception)
+    }
+
+    override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String, leftValues: Seq[Double],
+                                         rightValues: Seq[Double], result: ApproximateKolmogorovSmirnov.Result): Unit = {
+      builder += KolmogorovSmirnovResult(slice, key, leftValues, rightValues, result)
+    }
+
+    def result(): IndexedSeq[Result] = builder.result()
+  }
+
   def traverse(left: Database, right: Database, categoryKeys: Seq[String],
                valueKey: String, listener: DifferenceListener): Unit = {
     traverseImpl(left, right, Map.empty, categoryKeys, valueKey, listener)
@@ -61,5 +92,19 @@ object FindDifferences {
     val ldb = db.filter(e => e.get(differenceKey) == leftValue && e.contains(valueKey))
     val rdb = db.filter(e => e.get(differenceKey) == rightValue && e.contains(valueKey))
     traverseImpl(ldb, rdb, Map.empty, categoryKeys, valueKey, listener)
+  }
+
+  def collect(left: Database, right: Database, categoryKeys: Seq[String],
+              valueKey: String, listener: DifferenceListener): Seq[Result] = {
+    val b = new Builder
+    traverse(left, right, categoryKeys, valueKey, b)
+    b.result()
+  }
+
+  def collect(db: Database, differenceKey: String, leftValue: Option[String], rightValue: Option[String],
+              categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener): Seq[Result] = {
+    val b = new Builder
+    traverse(db, differenceKey, leftValue, rightValue, categoryKeys, valueKey, b)
+    b.result()
   }
 }
