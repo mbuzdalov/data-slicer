@@ -164,25 +164,29 @@ object Extensions {
 
   private object ExtendedTooltipGenerator extends XYToolTipGenerator {
     private def generateToolTips(dataset: XYDataset, series: Int, item: Int): Array[(Double, String)] = {
-      Array.tabulate(dataset.getSeriesCount) { s =>
-        val x = dataset.getX(s, item).intValue()
-        val y = dataset.getYValue(s, item)
-        val prefix = if (s == series) "<b>" else ""
-        val suffix = if (s == series) "</b>" else ""
-        (y, f"$prefix${dataset.getSeriesKey(s)}: $x => $y%.3e$suffix")
-      }
+      (0 until dataset.getSeriesCount).flatMap { s =>
+        if (dataset.getItemCount(s) > item) {
+          val x = dataset.getX(s, item).intValue()
+          val y = dataset.getYValue(s, item)
+          val prefix = if (s == series) "<b>" else ""
+          val suffix = if (s == series) "</b>" else ""
+          Some(y -> f"$prefix${dataset.getSeriesKey(s)}: $x => $y%.3e$suffix")
+        } else None
+      }.toArray
     }
 
     private def generateIntervalToolTips(dataset: IntervalXYDataset, series: Int, item: Int): Array[(Double, String)] = {
-      Array.tabulate(dataset.getSeriesCount) { s =>
-        val x = dataset.getX(s, item).intValue()
-        val y = dataset.getYValue(s, item)
-        val yMin = dataset.getStartYValue(s, item)
-        val yMax = dataset.getEndYValue(s, item)
-        val prefix = if (s == series) "<b>" else ""
-        val suffix = if (s == series) "</b>" else ""
-        (y, f"$prefix${dataset.getSeriesKey(s)}: $x => [$yMin%.3e; $y%.3e, $yMax%.3e]$suffix")
-      }
+      (0 until dataset.getSeriesCount).flatMap { s =>
+        if (dataset.getItemCount(s) > item) {
+          val x = dataset.getX(s, item).intValue()
+          val y = dataset.getYValue(s, item)
+          val yMin = dataset.getStartYValue(s, item)
+          val yMax = dataset.getEndYValue(s, item)
+          val prefix = if (s == series) "<b>" else ""
+          val suffix = if (s == series) "</b>" else ""
+          Some(y -> f"$prefix${dataset.getSeriesKey(s)}: $x => [$yMin%.3e; $y%.3e, $yMax%.3e]$suffix")
+        } else None
+      }.toArray
     }
 
     override def generateToolTip(dataset: XYDataset, series: Int, item: Int): String = {
