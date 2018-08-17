@@ -21,6 +21,23 @@ object Writing {
 
     def writePlain(map: Map[String, String]): Unit = map.foreach(p => json.name(p._1).value(p._2))
 
+    def everyoneStartsWith(keys: Iterable[String], p: String) = keys.forall(_.startsWith(p))
+
+    def longestDottedPrefix(keys: Iterable[String]): String = {
+      val headKey = keys.head
+      def go(prev: Int): Int = {
+        val nextDot = headKey.indexOf('.', prev + 1)
+        if (nextDot < 0) prev else {
+          val newPrefix = headKey.substring(0, nextDot + 1) // including the dot
+          if (everyoneStartsWith(keys, newPrefix)) {
+            go(nextDot)
+          } else prev
+        }
+      }
+      val maxPrefix = go(-1)
+      if (maxPrefix <= 0) "" else headKey.substring(0, maxPrefix)
+    }
+
     def writeCompact(map: Map[String, String]): Unit = {
       // we are in an Object already
       if (map.size == 1) {
@@ -31,23 +48,12 @@ object Writing {
           val dot = s.indexOf('.')
           if (dot == -1) s else s.substring(0, dot)
         }
-        def everyoneStartsWith(p: String) = map.keys.forall(_.startsWith(p))
-        val headKey = map.keys.head
 
-        def go(prev: Int): Int = {
-          val nextDot = headKey.indexOf('.', prev + 1)
-          if (nextDot < 0) prev else {
-            val newPrefix = headKey.substring(0, nextDot + 1) // including the dot
-            if (everyoneStartsWith(newPrefix)) {
-              go(nextDot)
-            } else prev
-          }
-        }
-        val maxDotPrefix = go(-1)
-        if (maxDotPrefix > 0) {
-          json.name(headKey.substring(0, maxDotPrefix)) // not including the dot
+        val maxDotPrefix = longestDottedPrefix(map.keys)
+        if (maxDotPrefix.nonEmpty) {
+          json.name(maxDotPrefix) // not including the dot
           json.beginObject()
-          writeCompact(map.map(p => p._1.substring(maxDotPrefix + 1) -> p._2))
+          writeCompact(map.map(p => p._1.substring(maxDotPrefix.length + 1) -> p._2))
           json.endObject()
         } else {
           map.groupBy(p => firstDotSegment(p._1)).foreach(z => writeCompact(z._2))

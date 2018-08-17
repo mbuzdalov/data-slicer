@@ -230,4 +230,21 @@ class JsonTests extends FlatSpec with Matchers {
     db3("b.c") shouldEqual "10"
     db3.contains("a.c") shouldBe false
   }
+
+  "a JSON input with many entries starting with the same prefix" should "parse as expected" in {
+    val db = load(
+      """{
+        |  "a":{
+        |     "b1":"c",
+        |     "b2":"d",
+        |     "b3": {
+        |       "c1":0,
+        |       "c2":1,
+        |       "c3": [2, 3, 4, 5, 6]
+        |     }
+        |  }
+        |}
+      """.stripMargin)
+    db.possibleKeys shouldEqual Set("a.b1", "a.b2", "a.b3.c1", "a.b3.c2", "a.b3.c3")
+  }
 }
