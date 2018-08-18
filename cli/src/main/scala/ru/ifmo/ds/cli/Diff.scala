@@ -100,8 +100,8 @@ object Diff extends CLI.Module {
       if (result.p < 0.05) {
         println(s"Significant difference found for key '$key':")
         dumpSlice(slice)
-        println(leftValues.mkString("  left values: [", ", ", "]"))
-        println(rightValues.mkString("  right values: [", ", ", "]"))
+        println(leftValues.sorted.mkString("  left values: [", ", ", "]"))
+        println(rightValues.sorted.mkString("  right values: [", ", ", "]"))
         println(s"  p-value: ${result.p} < 0.05")
       }
     }
