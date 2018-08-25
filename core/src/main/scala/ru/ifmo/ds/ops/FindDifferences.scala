@@ -1,7 +1,7 @@
 package ru.ifmo.ds.ops
 
 import ru.ifmo.ds.Database
-import ru.ifmo.ds.stat.ApproximateKolmogorovSmirnov
+import ru.ifmo.ds.stat.KolmogorovSmirnov
 import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 object FindDifferences {
@@ -12,7 +12,7 @@ object FindDifferences {
                                  leftValues: Seq[String], rightValues: Seq[String], exception: Throwable): Unit
     def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                 leftValues: Seq[Double], rightValues: Seq[Double],
-                                result: ApproximateKolmogorovSmirnov.Result): Unit
+                                result: KolmogorovSmirnov.Result): Unit
   }
 
   sealed trait Result
@@ -23,7 +23,7 @@ object FindDifferences {
                                       exception: Throwable) extends Result
   case class KolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                      leftValues: Seq[Double], rightValues: Seq[Double],
-                                     result: ApproximateKolmogorovSmirnov.Result) extends Result
+                                     result: KolmogorovSmirnov.Result) extends Result
 
   private[this] implicit val optionStringOrdering: Ordering[Option[String]] =
     Ordering.Option(OrderingForStringWithNumbers.SpecialDotTreatment)
@@ -36,7 +36,7 @@ object FindDifferences {
       try {
         val leftValues = rawLeft.map(_.toDouble)
         val rightValues = rawRight.map(_.toDouble)
-        val ks = ApproximateKolmogorovSmirnov(leftValues, rightValues)
+        val ks = KolmogorovSmirnov(leftValues, rightValues)
         listener.kolmogorovSmirnovResult(slice, valueKey, leftValues, rightValues, ks)
       } catch {
         case th: Throwable => listener.kolmogorovSmirnovFailure(slice, valueKey, rawLeft, rawRight, th)
@@ -75,7 +75,7 @@ object FindDifferences {
     }
 
     override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String, leftValues: Seq[Double],
-                                         rightValues: Seq[Double], result: ApproximateKolmogorovSmirnov.Result): Unit = {
+                                         rightValues: Seq[Double], result: KolmogorovSmirnov.Result): Unit = {
       builder += KolmogorovSmirnovResult(slice, key, leftValues, rightValues, result)
     }
 
