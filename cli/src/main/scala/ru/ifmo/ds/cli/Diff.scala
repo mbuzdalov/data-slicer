@@ -12,57 +12,58 @@ object Diff extends CLI.Module {
   override def name: String = "diff"
 
   override def apply(args: Array[String]): Unit = {
-    if (args.length < 3) {
+    if (args.length < 1) {
       usage(args.mkString("Too few arguments:\n  '", "'\n  '", "'"))
     }
     val measure = args(0)
-    if (args(1) == "--oppose") {
-      if (args.length < 8) {
-        usage(args.mkString("Too few arguments for --oppose:\n  '", "'\n  '", "'"))
-      } else {
-        val oppositionKey = args(2)
-        val oppositionLeftValue = args(3)
-        val oppositionRightValue = args(4)
-        val startFiles = args.indexOf("--files")
-        val startCats = args.indexOf("--cats")
-        if (startFiles < 5) {
-          usage("No --files found for the --oppose option")
-        }
-        val (files, cats) = if (startCats == -1) {
-          (args.drop(startFiles + 1), Array.empty[String])
-        } else if (startFiles < startCats) {
-          (args.slice(startFiles + 1, startCats), args.drop(startCats + 1))
-        } else {
-          (args.drop(startFiles + 1), args.slice(startCats + 1, startFiles))
-        }
-        val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
-        FindDifferences.traverse(db, oppositionKey, Some(oppositionLeftValue), Some(oppositionRightValue), cats,
-                                 measure, consoleDumpingDifferenceListener)
-      }
+    val opposeOpt = new CommandLineOption("--oppose", 3, 3)
+    val filesOpt = new CommandLineOption("--files", 1)
+    val catsOpt = new CommandLineOption("--cats", 1)
+    val pValueOpt = new CommandLineOption("-p", 1, 1)
+    val filenameOpt = new CommandLineOption("", 2, 2, true, {
+      val errorMsg = "At least one file name is explicitly specified outside any command-line option"
+      opposeOpt.disable(errorMsg)
+      filesOpt.disable(errorMsg)
+    })
+
+    CommandLineOption.submit(Seq(opposeOpt, filesOpt, catsOpt, pValueOpt, filenameOpt), args.tail :_*)
+
+    val pValue = pValueOpt.resultOrElse(IndexedSeq("0.05")).head.toDouble
+    val nakedFileNames = filenameOpt.resultOrElse(IndexedSeq.empty)
+    if (nakedFileNames.isEmpty) {
+      val opposeArgs = opposeOpt.result()
+      val files = filesOpt.result()
+      val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
+      FindDifferences.traverse(db, opposeArgs(0), Some(opposeArgs(1)), Some(opposeArgs(2)), catsOpt.result(),
+                               measure, new ConsoleListener(pValue))
     } else {
-      val db1 = Json.fromFile(new File(args(1)), Map("filename" -> args(1))).filter(_.contains(measure))
-      val db2 = Json.fromFile(new File(args(2)), Map("filename" -> args(2))).filter(_.contains(measure))
-      val cats = args.drop(3)
-      FindDifferences.traverse(db1, db2, cats, measure, consoleDumpingDifferenceListener)
+      def build(filename: String) = Json.fromFile(new File(filename), Map("filename" -> filename)).filter(_.contains(measure))
+      val db1 = build(nakedFileNames(0))
+      val db2 = build(nakedFileNames(1))
+      FindDifferences.traverse(db1, db2, catsOpt.result(), measure, new ConsoleListener(pValue))
     }
   }
 
   override def printUsage(out: PrintStream): Unit = {
-    out.println(s"""|  $name <measure-key> <filename1> <filename2> [cat-key-1] [cat-key-2] ...
-                    |    Finds differences in databases given by <filename1> and <filename2>.
+    out.println(s"""|  $name <measure-key> <DB defining args> [-p <p-value>] [--cats [cat-key-1] [cat-key-2] ...]
+                    |    Finds differences in databases given by <DB defining args>.
                     |    The comparison is done by running the Kolmogorov-Smirnov test on values under <measure-key>,
                     |    interpreted as Double values. Before making the comparison, both databases are factored by
                     |    the keys [cat-key-1], [cat-key-2] etc in the specified order.
+                    |    The p-value threshold used to determine whether the result is significant is specified by -p,
+                    |    or otherwise the value of 0.05 is used.
                     |    The non-matching values of category keys are also reported.
-                    |  $name <measure-key> --oppose <key> <left-value> <right-value>
-                    |                     --files <file1> [file2] ...
-                    |                    [--cats [cat-key-1] [cat-key-2]]
-                    |    Does the same as the above, except that first all the given files are merged into one database,
-                    |    and then the left database is taken as its slice with <key> equal to <left-value>,
-                    |    and the right database is similarly its slice with <key> equal to <right-value>.""".stripMargin)
+                    |
+                    |    The <DB defining args> are either:
+                    |      <filename 1> <filename 2>
+                    |        Compare two given databases.
+                    |      --oppose <key> <left-value> <right-value> --files <file1> [file2] ...
+                    |        Merges all files from the --files section into a single database,
+                    |        then takes all entries with <key> having <left-value> to the left-hand side,
+                    |        and all entries with <key> having <right-value> to the right-hand side.""".stripMargin)
   }
 
-  final val consoleDumpingDifferenceListener: DifferenceListener = new DifferenceListener {
+  private[this] class ConsoleListener(p: Double) extends DifferenceListener {
     private[this] def dumpSlice(slice: Map[String, Option[String]]): Unit = {
       println("  For the following slice:")
       for ((k, v) <- slice) {
@@ -97,12 +98,12 @@ object Diff extends CLI.Module {
     override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                          leftValues: Seq[Double], rightValues: Seq[Double],
                                          result: ApproximateKolmogorovSmirnov.Result): Unit = {
-      if (result.p < 0.05) {
+      if (result.p < p) {
         println(s"Significant difference found for key '$key':")
         dumpSlice(slice)
         println(leftValues.sorted.mkString("  left values: [", ", ", "]"))
         println(rightValues.sorted.mkString("  right values: [", ", ", "]"))
-        println(s"  p-value: ${result.p} < 0.05")
+        println(s"  p-value: ${result.p} < $p")
       }
     }
   }
