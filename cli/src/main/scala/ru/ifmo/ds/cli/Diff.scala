@@ -34,7 +34,7 @@ object Diff extends CLI.Module {
       val opposeArgs = opposeOpt.result()
       val files = filesOpt.result()
       val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
-      FindDifferences.traverse(db, opposeArgs(0), Some(opposeArgs(1)), Some(opposeArgs(2)), catsOpt.result(),
+      FindDifferences.traverse(db, opposeArgs(0), _.contains(opposeArgs(1)), _.contains(opposeArgs(2)), catsOpt.result(),
                                measure, new ConsoleListener(pValue))
     } else {
       def build(filename: String) = Json.fromFile(new File(filename), Map("filename" -> filename)).filter(_.contains(measure))
