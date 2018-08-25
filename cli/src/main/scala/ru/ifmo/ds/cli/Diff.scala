@@ -19,6 +19,7 @@ object Diff extends CLI.Module {
     val opposeOpt = new CommandLineOption("--oppose", 3, 3)
     val filesOpt = new CommandLineOption("--files", 1)
     val catsOpt = new CommandLineOption("--cats", 1)
+    val fileNameKeyOpt = new CommandLineOption("--filename-key", 1)
     val pValueOpt = new CommandLineOption("-p", 1, 1)
     val filenameOpt = new CommandLineOption("", 2, 2, true, {
       val errorMsg = "At least one file name is explicitly specified outside any command-line option"
@@ -30,14 +31,17 @@ object Diff extends CLI.Module {
 
     val pValue = pValueOpt.resultOrElse(IndexedSeq("0.05")).head.toDouble
     val nakedFileNames = filenameOpt.resultOrElse(IndexedSeq.empty)
+    val fileNameKey = fileNameKeyOpt.resultOrElse(IndexedSeq("filename")).head
+
+    def build(filename: String) = Json.fromFile(new File(filename), Map(fileNameKey -> filename)).filter(_.contains(measure))
+
     if (nakedFileNames.isEmpty) {
       val opposeArgs = opposeOpt.result()
       val files = filesOpt.result()
-      val db = Database.merge(files.map(f => Json.fromFile(new File(f), Map("filename" -> f))) :_*)
+      val db = Database.merge(files.map(build) :_*)
       FindDifferences.traverse(db, opposeArgs(0), _.contains(opposeArgs(1)), _.contains(opposeArgs(2)), catsOpt.result(),
                                measure, new ConsoleListener(pValue))
     } else {
-      def build(filename: String) = Json.fromFile(new File(filename), Map("filename" -> filename)).filter(_.contains(measure))
       val db1 = build(nakedFileNames(0))
       val db2 = build(nakedFileNames(1))
       FindDifferences.traverse(db1, db2, catsOpt.result(), measure, new ConsoleListener(pValue))
@@ -46,7 +50,9 @@ object Diff extends CLI.Module {
 
   override def printUsage(out: PrintStream): Unit = {
     out.println(s"""|  $name <measure-key> <DB defining args> [-p <p-value>] [--cats [cat-key-1] [cat-key-2] ...]
-                    |    Finds differences in databases given by <DB defining args>.
+                    |                                         [--filename-key <fn-key>]
+                    |    Finds differences in databases given by <DB defining args>. While loading databases,
+                    |    the file name is added to each database under the key <fn-key> ("filename" by default).
                     |    The comparison is done by running the Kolmogorov-Smirnov test on values under <measure-key>,
                     |    interpreted as Double values. Before making the comparison, both databases are factored by
                     |    the keys [cat-key-1], [cat-key-2] etc in the specified order.
