@@ -35,19 +35,19 @@ object KolmogorovSmirnov {
 
       u(0) = 1.0
       for (i <- 0 to m) {
-        for (j <- 0 to n) {
-          if (math.abs(i / md - j / nd) > q) {
-            u(j) = 0
+        val jMin = math.max(0, math.ceil((i / md - q) * nd).toInt)
+        val jMax = math.min(n, math.floor((i / md + q) * nd).toInt)
+        for (j <- jMin to jMax) {
+          val rowMul = (n - j).toDouble / (n - j + m - i)
+          if (n > j) {
+            u(j + 1) += u(j) * rowMul
           }
-          if (u(j) != 0) {
-            if (n - j + m - i > 0) { // otherwise this is the last cell, and here is nothing to do
-              val rowMul = (n - j).toDouble / (n - j + m - i)
-              if (rowMul > 0) {
-                u(j + 1) += u(j) * rowMul
-              }
-              u(j) *= (1 - rowMul)
-            }
+          if (m > i) {
+            u(j) *= 1 - rowMul
           }
+        }
+        if (jMax < n) {
+          u(jMax + 1) = 0
         }
       }
       u(n)
