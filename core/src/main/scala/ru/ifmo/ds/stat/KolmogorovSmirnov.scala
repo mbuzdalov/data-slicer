@@ -39,15 +39,12 @@ object KolmogorovSmirnov {
         val jMax = math.min(n, math.floor((i / md + q) * nd).toInt)
         for (j <- jMin to jMax) {
           val rowMul = (n - j).toDouble / (n - j + m - i)
-          if (n > j) {
+          if (jMax > j) {
             u(j + 1) += u(j) * rowMul
           }
           if (m > i) {
             u(j) *= 1 - rowMul
           }
-        }
-        if (jMax < n) {
-          u(jMax + 1) = 0
         }
       }
       u(n)
