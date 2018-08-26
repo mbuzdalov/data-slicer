@@ -7,6 +7,10 @@ import com.google.gson.stream.JsonWriter
 import ru.ifmo.ds.Database
 
 object Writing {
+  private[this] object State extends Enumeration {
+    val TopLevel, InsideArray, InsideObject = Value
+  }
+
   private[this] def findNeutral(keys: Set[String]): String = {
     if (keys.contains("_")) {
       Stream.from(0).map("_" + _).filterNot(keys.contains).head
@@ -17,11 +21,13 @@ object Writing {
     val neutral = findNeutral(db.possibleKeys)
     val json = new JsonWriter(writer)
     json.setIndent(indent)
-    import scala.collection.mutable
-
-    def writePlain(map: Map[String, String]): Unit = map.foreach(p => json.name(p._1).value(p._2))
 
     def everyoneStartsWith(keys: Iterable[String], p: String) = keys.forall(_.startsWith(p))
+
+    def firstDottedToken(key: String): String = {
+      val idx = key.indexOf('.')
+      if (idx < 0) key else key.substring(0, idx)
+    }
 
     def longestDottedPrefix(keys: Iterable[String]): String = {
       val headKey = keys.head
@@ -38,76 +44,74 @@ object Writing {
       if (maxPrefix <= 0) "" else headKey.substring(0, maxPrefix)
     }
 
-    def writeCompact(map: Map[String, String]): Unit = {
-      // we are in an Object already
-      if (map.size == 1) {
-        writePlain(map)
-      } else if (map.nonEmpty) {
-        // first try to tear of longest prefix ending with a dot
-        def firstDotSegment(s: String) = {
-          val dot = s.indexOf('.')
-          if (dot == -1) s else s.substring(0, dot)
-        }
+    def dropKeyPrefix(keys: Set[String], prefixLength: Int, e: Database.Entry): Database.Entry = {
+      Database.entry(keys.flatMap(k => e.get(k).map(v => k -> v)).map(p => (p._1.substring(prefixLength), p._2)).toMap)
+    }
 
-        val maxDotPrefix = longestDottedPrefix(map.keys)
-        if (maxDotPrefix.nonEmpty) {
-          json.name(maxDotPrefix) // not including the dot
+    def write(keys0: Set[String], entries: Seq[Database.Entry], state: State.Value): Unit = {
+      val keys = keys0.filter(k => entries.exists(_.contains(k)))
+      val ldp = longestDottedPrefix(keys)
+      if (ldp.nonEmpty && keys.size > 1) {
+        val newKeys = keys.map(_.substring(ldp.length + 1))
+        val newEntries = entries.map(e => dropKeyPrefix(keys, ldp.length + 1, e))
+        state match {
+          case State.TopLevel | State.InsideArray =>
+            json.beginObject()
+            json.name(ldp)
+            json.beginObject()
+            write(newKeys, newEntries, State.InsideObject)
+            json.endObject()
+            json.endObject()
+          case State.InsideObject =>
+            json.name(ldp)
+            json.beginObject()
+            write(newKeys, newEntries, State.InsideObject)
+            json.endObject()
+        }
+      } else {
+        val nDifferentValues = keys.map(k => k -> entries.iterator.map(_.get(k)).toSet.size).toMap
+        val (singularKeys, nonSingularKeys) = keys.partition(k => nDifferentValues(k) == 1)
+        val shallInitObject = (singularKeys.nonEmpty || nonSingularKeys.size == 1) && state != State.InsideObject
+        val newState = if (shallInitObject) {
           json.beginObject()
-          writeCompact(map.map(p => p._1.substring(maxDotPrefix.length + 1) -> p._2))
-          json.endObject()
-        } else {
-          map.groupBy(p => firstDotSegment(p._1)).foreach(z => writeCompact(z._2))
+          State.InsideObject
+        } else state
+        if (singularKeys.nonEmpty) {
+          val example = entries.head
+          if (singularKeys.size == 1) {
+            val theKey = singularKeys.head
+            json.name(theKey).value(example(theKey))
+          } else {
+            singularKeys.groupBy(firstDottedToken).foreach(p => write(p._2, Seq(example), State.InsideObject))
+          }
         }
-      }
-    }
-
-    def wrapSingle(keys: Set[String], entry: Database.Entry): Unit = {
-      json.beginObject()
-      writeCompact(keys.flatMap(k => entry.get(k).map(v => k -> v)).toMap)
-      json.endObject()
-    }
-
-    def create(keys: Set[String], entries: Seq[Database.Entry], hasParent: Boolean): Unit = {
-      require(entries.nonEmpty)
-      if (entries.size == 1) wrapSingle(keys, entries.head) else {
-        val possibleValues = keys.map(k => (k, new mutable.HashSet[Option[String]]())).toMap
-        entries.foreach(e => possibleValues.foreach(p => p._2 += e.get(p._1)))
-        val (singleValued, multipleValued) = possibleValues.partition(_._2.size == 1)
-        if (multipleValued.isEmpty) {
-          wrapSingle(keys, entries.head)
-        } else if (multipleValued.size == 1) {
-          val sliceKey = multipleValued.head._1
-          val shouldMakeNewBraces = singleValued.nonEmpty || !hasParent
-          if (shouldMakeNewBraces) {
-            json.beginObject()
-            writeCompact(singleValued.flatMap(p => p._2.head.map(v => p._1 -> v)))
-          }
-          json.name(sliceKey).beginArray()
-          for (e <- entries) {
-            json.value(e(sliceKey))
-          }
-          json.endArray()
-          if (shouldMakeNewBraces) {
-            json.endObject()
-          }
-        } else {
-          val minMultiValued = multipleValued.minBy(_._2.size)
-          assert(minMultiValued._2.size > 1)
-          val sliceKey = minMultiValued._1
-          val shouldMakeNewBraces = singleValued.nonEmpty || !hasParent
-          if (shouldMakeNewBraces) {
-            json.beginObject()
-            writeCompact(singleValued.flatMap(p => p._2.head.map(v => p._1 -> v)))
-            json.name(neutral).beginArray()
-          }
-          val restOfKeys = keys.diff(singleValued.keySet)
-          for ((_, slice) <- entries.groupBy(_.get(sliceKey))) {
-            create(restOfKeys, slice, hasParent = true)
-          }
-          if (shouldMakeNewBraces) {
+        if (nonSingularKeys.nonEmpty) {
+          if (nonSingularKeys.size == 1) {
+            // we are inside the object, so we can safely write an array directly
+            val theKey = nonSingularKeys.head
+            json.name(theKey).beginArray()
+            for (e <- entries) {
+              json.value(e(theKey))
+            }
             json.endArray()
-            json.endObject()
+          } else {
+            newState match {
+              case State.TopLevel => json.beginArray()
+              case State.InsideObject => json.name(neutral).beginArray()
+              case State.InsideArray =>
+            }
+
+            val splitKey = nonSingularKeys.minBy(nDifferentValues)
+            entries.groupBy(_.get(splitKey)).foreach(g => write(nonSingularKeys, g._2, State.InsideArray))
+
+            if (newState != State.InsideArray) {
+              json.endArray()
+            }
           }
+        }
+
+        if (shallInitObject) {
+          json.endObject()
         }
       }
     }
@@ -116,8 +120,11 @@ object Writing {
     if (entries.isEmpty) {
       json.beginArray()
       json.endArray()
+    } else if (db.possibleKeys.isEmpty) {
+      json.beginObject()
+      json.endObject()
     } else {
-      create(db.possibleKeys, entries, hasParent = false)
+      write(db.possibleKeys, entries, State.TopLevel)
     }
     json.flush()
   }
