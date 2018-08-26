@@ -109,7 +109,8 @@ class JsonTests extends FlatSpec with Matchers {
         |                { "fork":0, "time":2.372635e-6 },
         |                { "fork":1, "time":2.418476e-6 },
         |                { "fork":2, "time":2.387264e-6 }
-        |              ]
+        |              ],
+        |              "extra":["foo","bar"]
         |            }
         |          ]
         |        }
@@ -119,9 +120,10 @@ class JsonTests extends FlatSpec with Matchers {
         |}
       """.stripMargin)
     db.possibleKeys shouldEqual Set("author", "date", "os", "jvm", "generator.type",
-                                    "nPoints", "dimension", "algorithm", "fork", "time")
+                                    "nPoints", "dimension", "algorithm", "fork", "time",
+                                    "extra")
     val entries = db.entries
-    entries.size shouldEqual 12
+    entries.size shouldEqual 14
 
     entries foreach { e =>
       e("os") shouldEqual "Linux"
@@ -137,14 +139,17 @@ class JsonTests extends FlatSpec with Matchers {
     entries.slice(0, 3).foreach(_("algorithm") shouldEqual "jfb.rbtree")
     entries.slice(3, 6).foreach(_("algorithm") shouldEqual "ens.ndt")
     entries.slice(6, 9).foreach(_("algorithm") shouldEqual "jfb.rbtree")
-    entries.slice(9,12).foreach(_("algorithm") shouldEqual "ens.ndt")
+    entries.slice(9,14).foreach(_("algorithm") shouldEqual "ens.ndt")
+
+    entries.slice(0, 12).foreach(_.contains("extra") shouldBe false)
+    entries.slice(12,14).foreach(_.contains("extra") shouldBe true)
 
     val expectedTimes = Seq("1.534436e-6", "1.567734e-6", "1.548824e-6",
                             "1.134325e-6", "1.122452e-6", "1.114536e-6",
                             "3.125346e-6", "3.145246e-6", "3.136284e-6",
                             "2.372635e-6", "2.418476e-6", "2.387264e-6")
 
-    entries.zipWithIndex foreach { case (e, i) =>
+    entries.take(12).zipWithIndex foreach { case (e, i) =>
       e("fork") shouldEqual String.valueOf(i % 3)
       e("time") shouldEqual expectedTimes(i)
     }

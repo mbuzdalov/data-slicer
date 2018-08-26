@@ -76,36 +76,57 @@ object Writing {
           json.beginObject()
           State.InsideObject
         } else state
-        if (singularKeys.nonEmpty) {
-          val example = entries.head
-          if (singularKeys.size == 1) {
-            val theKey = singularKeys.head
-            json.name(theKey).value(example(theKey))
-          } else {
-            singularKeys.groupBy(firstDottedToken).foreach(p => write(p._2, Seq(example), State.InsideObject))
+
+        // It can happen that non-singular keys have a huge common prefix, which is shared with at least one of singular keys.
+        // This can be done in a more compact way than using a purely separate encoding.
+        if (nonSingularKeys.nonEmpty && longestDottedPrefix(nonSingularKeys).nonEmpty && {
+          val first = firstDottedToken(nonSingularKeys.head) + "."
+          singularKeys.exists(_.startsWith(first))
+        }) {
+          val first = firstDottedToken(nonSingularKeys.head) + "."
+          val (mainstreamSingular, extraSingular) = singularKeys.partition(_.startsWith(first))
+          // we are inside an object, so this hack is safe
+          write(extraSingular, Seq(entries.head), State.InsideObject)
+          write(mainstreamSingular ++ nonSingularKeys, entries, State.InsideObject)
+        } else {
+          if (singularKeys.nonEmpty) {
+            val example = entries.head
+            if (singularKeys.size == 1) {
+              val theKey = singularKeys.head
+              json.name(theKey).value(example(theKey))
+            } else {
+              singularKeys.groupBy(firstDottedToken).foreach(p => write(p._2, Seq(example), State.InsideObject))
+            }
           }
-        }
-        if (nonSingularKeys.nonEmpty) {
-          if (nonSingularKeys.size == 1) {
-            // we are inside the object, so we can safely write an array directly
-            val theKey = nonSingularKeys.head
-            json.name(theKey).beginArray()
-            for (e <- entries) {
-              json.value(e(theKey))
-            }
-            json.endArray()
-          } else {
-            newState match {
-              case State.TopLevel => json.beginArray()
-              case State.InsideObject => json.name(neutral).beginArray()
-              case State.InsideArray =>
-            }
-
-            val splitKey = nonSingularKeys.minBy(nDifferentValues)
-            entries.groupBy(_.get(splitKey)).foreach(g => write(nonSingularKeys, g._2, State.InsideArray))
-
-            if (newState != State.InsideArray) {
+          if (nonSingularKeys.nonEmpty) {
+            if (nonSingularKeys.size == 1) {
+              // we are inside the object, so we can safely write an array directly
+              val theKey = nonSingularKeys.head
+              json.name(theKey).beginArray()
+              for (e <- entries) {
+                json.value(e(theKey))
+              }
               json.endArray()
+            } else {
+              newState match {
+                case State.TopLevel => json.beginArray()
+                case State.InsideObject => json.name(neutral).beginArray()
+                case State.InsideArray =>
+              }
+
+              val splitKey = nonSingularKeys.minBy(nDifferentValues)
+              if (entries.exists(!_.contains(splitKey)) && entries.exists(_.contains(splitKey))) {
+                // This requires a separate treatment unfortunately.
+                val (withSome, withNone) = entries.partition(_.contains(splitKey))
+                write(nonSingularKeys, withSome, State.InsideArray)
+                write(nonSingularKeys, withNone, State.InsideArray)
+              } else {
+                entries.groupBy(_.get(splitKey)).foreach(g => write(nonSingularKeys, g._2, State.InsideArray))
+              }
+
+              if (newState != State.InsideArray) {
+                json.endArray()
+              }
             }
           }
         }
