@@ -1,5 +1,7 @@
 package ru.ifmo.ds.stat
 
+import java.util.Random
+
 import org.scalatest.{FlatSpec, Matchers}
 
 class KolmogorovSmirnovTests extends FlatSpec with Matchers {
@@ -35,5 +37,20 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     checkNonStrict(1 to 10, 11 to 18, KolmogorovSmirnov.Result(0.0002758, 1))
     checkNonStrict(1 to 11 by 2, 2 to 10 by 2, KolmogorovSmirnov.Result(1, 0.16667))
     checkNonStrict(1 to 11 by 2, 6 to 16 by 2, KolmogorovSmirnov.Result(0.4413, 0.5))
+  }
+
+  "Two implementations of pSmirnov2x" should "agree on randomly generated tests" in {
+    val rng = new Random(7284368346522214L)
+
+    def checkRandomBounded(bound: Int) = {
+      val n, m = 1 + rng.nextInt(bound)
+      val p = rng.nextDouble()
+      val v2x = KolmogorovSmirnov.pSmirnov2x(p, n, m)
+      val v2y = KolmogorovSmirnov.pSmirnov2y(p, n, m)
+      v2y shouldBe (v2x +- 1e-9)
+    }
+
+    for (_ <- 0 until 100000) checkRandomBounded(20)
+    for (_ <- 0 until 100) checkRandomBounded(200)
   }
 }

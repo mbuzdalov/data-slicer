@@ -7,7 +7,7 @@ object KolmogorovSmirnov {
   case class Result(p: Double, d: Double)
 
   // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
-  private[this] def pSmirnov2x(stat: Double, m: Int, n: Int): Double = {
+  final def pSmirnov2x(stat: Double, m: Int, n: Int): Double = {
     if (m > n) pSmirnov2x(stat, n, m) else {
       val md = m.toDouble
       val nd = n.toDouble
@@ -22,6 +22,34 @@ object KolmogorovSmirnov {
         }
       }
 
+      u(n)
+    }
+  }
+
+  final def pSmirnov2y(stat: Double, m: Int, n: Int): Double = {
+    if (m > n) pSmirnov2y(stat, n, m) else {
+      val md = m.toDouble
+      val nd = n.toDouble
+      val q = (0.5 + math.floor(stat * md * nd - 1e-7)) / (md * nd)
+      val u = Array.ofDim[Double](n + 1)
+
+      u(0) = 1.0
+      for (i <- 0 to m) {
+        for (j <- 0 to n) {
+          if (math.abs(i / md - j / nd) > q) {
+            u(j) = 0
+          }
+          if (u(j) != 0) {
+            if (n - j + m - i > 0) { // otherwise this is the last cell, and here is nothing to do
+              val rowMul = (n - j).toDouble / (n - j + m - i)
+              if (rowMul > 0) {
+                u(j + 1) += u(j) * rowMul
+              }
+              u(j) *= (1 - rowMul)
+            }
+          }
+        }
+      }
       u(n)
     }
   }
