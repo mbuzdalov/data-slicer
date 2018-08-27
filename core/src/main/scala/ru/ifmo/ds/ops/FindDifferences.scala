@@ -13,6 +13,8 @@ object FindDifferences {
     def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                 leftValues: Seq[Double], rightValues: Seq[Double],
                                 result: KolmogorovSmirnov.Result): Unit
+    def sliceStatistics(slice: Map[String, Option[String]], key: String,
+                        statistics: Seq[KolmogorovSmirnov.Result]): Unit
   }
 
   sealed trait Result
@@ -29,7 +31,8 @@ object FindDifferences {
     Ordering.Option(OrderingForStringWithNumbers.SpecialDotTreatment)
 
   private[this] def traverseImpl(left: Database, right: Database, slice: Map[String, Option[String]],
-                                 categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener): Unit = {
+                                 categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener
+                                ): IndexedSeq[KolmogorovSmirnov.Result] = {
     if (categoryKeys.isEmpty) {
       val rawLeft = left.entries.map(_(valueKey))
       val rawRight = right.entries.map(_(valueKey))
@@ -38,8 +41,11 @@ object FindDifferences {
         val rightValues = rawRight.map(_.toDouble)
         val ks = KolmogorovSmirnov(leftValues, rightValues)
         listener.kolmogorovSmirnovResult(slice, valueKey, leftValues, rightValues, ks)
+        IndexedSeq(ks)
       } catch {
-        case th: Throwable => listener.kolmogorovSmirnovFailure(slice, valueKey, rawLeft, rawRight, th)
+        case th: Throwable =>
+          listener.kolmogorovSmirnovFailure(slice, valueKey, rawLeft, rawRight, th)
+          IndexedSeq.empty
       }
     } else {
       val key = categoryKeys.head
@@ -51,19 +57,24 @@ object FindDifferences {
         listener.keyValuesDoNotMatch(slice, key, onlyLeft, onlyRight)
       }
       val commonOptions = leftOptions.intersect(rightOptions).toIndexedSeq.sorted
-      if (commonOptions.nonEmpty) {
+      val result = if (commonOptions.nonEmpty) {
         val newKeys = categoryKeys.tail
-        for (o <- commonOptions) {
+        commonOptions flatMap { o =>
           val newLeft = left.filter(_.get(key) == o)
           val newRight = right.filter(_.get(key) == o)
           traverseImpl(newLeft, newRight, slice.updated(key, o), newKeys, valueKey, listener)
         }
-      }
+      } else IndexedSeq.empty
+      listener.sliceStatistics(slice, valueKey, result)
+      result
     }
   }
 
   private[this] class Builder extends DifferenceListener {
     private[this] val builder = IndexedSeq.newBuilder[Result]
+
+    override def sliceStatistics(slice: Map[String, Option[String]], key: String,
+                                 statistics: Seq[KolmogorovSmirnov.Result]): Unit = {}
 
     override def keyValuesDoNotMatch(slice: Map[String, Option[String]], key: String,
                                      onlyLeft: Set[Option[String]], onlyRight: Set[Option[String]]): Unit =

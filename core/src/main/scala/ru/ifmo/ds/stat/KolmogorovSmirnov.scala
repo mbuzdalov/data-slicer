@@ -1,24 +1,25 @@
 package ru.ifmo.ds.stat
 
+import spire.math.Rational
+
 /**
   * The Kolmogorov-Smirnov test to be used while detecting differences
   */
 object KolmogorovSmirnov {
-  case class Result(p: Double, d: Double)
+  case class Result(p: Double, d: Rational, firstSampleSize: Int, secondSampleSize: Int)
 
   // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
-  final def pSmirnov2x(stat: Double, m: Int, n: Int): Double = {
+  final def pSmirnov2x(stat: Rational, m: Int, n: Int): Double = {
     if (m > n) pSmirnov2x(stat, n, m) else {
-      val md = m.toDouble
-      val nd = n.toDouble
-      val q = (0.5 + math.floor(stat * md * nd - 1e-7)) / (md * nd)
-      val u = Array.tabulate(n + 1)(j => if (j / nd > q) 0.0 else 1.0)
+      val r = Array.tabulate(n + 1)(j => Rational(j, n))
+      val u = Array.tabulate(n + 1)(j => if (r(j) >= stat) 0.0 else 1.0)
 
       for (i <- 1 to m) {
+        val im = Rational(i, m)
         val w = i / (i.toDouble + n)
-        u(0) = if (i / md > q) 0 else w * u(0)
+        u(0) = if (im >= stat) 0 else w * u(0)
         for (j <- 1 to n) {
-          u(j) = if (math.abs(i / md - j / nd) > q) 0 else w * u(j) + u(j - 1)
+          u(j) = if ((im - r(j)).abs >= stat) 0 else w * u(j) + u(j - 1)
         }
       }
 
@@ -26,17 +27,15 @@ object KolmogorovSmirnov {
     }
   }
 
-  final def pSmirnov2y(stat: Double, m: Int, n: Int): Double = {
+  final def pSmirnov2y(stat: Rational, m: Int, n: Int): Double = {
     if (m > n) pSmirnov2y(stat, n, m) else {
-      val md = m.toDouble
-      val nd = n.toDouble
-      val q = (0.5 + math.floor(stat * md * nd - 1e-7)) / (md * nd)
       val u = Array.ofDim[Double](n + 1)
 
       u(0) = 1.0
       for (i <- 0 to m) {
-        val jMin = math.max(0, math.ceil((i / md - q) * nd).toInt)
-        val jMax = math.min(n, math.floor((i / md + q) * nd).toInt)
+        val im = Rational(i, m)
+        val jMin = math.max(0, ((im - stat) * n).ceil.toInt)
+        val jMax = math.min(n, ((im + stat) * n).floor.toInt)
         for (j <- jMin to jMax) {
           val rowMul = (n - j).toDouble / (n - j + m - i)
           if (jMax > j) {
@@ -73,8 +72,8 @@ object KolmogorovSmirnov {
       if (idx == -1) a.size else idx
     }
 
-    def go(ai: Int, bi: Int, diff: Double): Double = {
-      val maxDiff = math.max(diff, math.abs(ai.toDouble / asSize - bi.toDouble / bsSize))
+    def go(ai: Int, bi: Int, diff: Rational): Rational = {
+      val maxDiff = (Rational(ai, asSize) - Rational(bi, bsSize)).abs.max(diff)
 
       if (asSize == ai || bsSize == bi) maxDiff else {
         val av = as(ai)
@@ -94,8 +93,43 @@ object KolmogorovSmirnov {
     val p = if (strict) {
       1 - pSmirnov2x(statistic, asSize, bsSize)
     } else {
-      approx(statistic * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
+      approx(statistic.toDouble * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
     }
-    Result(p = math.min(1, p), d = statistic)
+    Result(p = math.min(1, p), d = statistic, firstSampleSize = asSize, secondSampleSize = bsSize)
+  }
+
+  def rankSumOnMultipleOutcomes(stats: Seq[Result]): Double = {
+    if (stats.isEmpty) 1.0 else {
+      val n = stats.head.firstSampleSize
+      val m = stats.head.secondSampleSize
+      require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m), "sample sizes must be equal")
+      val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
+      val possiblePVals = possibleStats.map(s => 1 - pSmirnov2x(s, n, m))
+      val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
+
+      val statIndices = possibleStats.zipWithIndex.toMap
+      val inputRankSum = stats.map(s => statIndices(s.d)).sum
+
+      val dpCurr, dpNext = Array.ofDim[Double](stats.size * (possibleProbs.size - 1) + 1)
+      dpCurr(0) = 1.0
+      for (_ <- stats.indices) {
+        java.util.Arrays.fill(dpNext, 0.0)
+        var i = dpCurr.length - 1
+        while (i >= 0) {
+          if (dpCurr(i) > 0) {
+            var j = 0
+            val jMax = possibleProbs.size
+            while (j < jMax) {
+              dpNext(i + j) += dpCurr(i) * possibleProbs(j)
+              j += 1
+            }
+          }
+          i -= 1
+        }
+        System.arraycopy(dpNext, 0, dpCurr, 0, dpCurr.length)
+      }
+      val pValue = (0 to inputRankSum).view.map(dpCurr).sum
+      pValue
+    }
   }
 }

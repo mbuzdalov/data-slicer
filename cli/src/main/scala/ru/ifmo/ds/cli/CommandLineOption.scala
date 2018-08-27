@@ -10,6 +10,7 @@ class CommandLineOption(val key: String,
   private[this] var reason: String = _
   private[this] val values = IndexedSeq.newBuilder[String]
   private[this] var nValues = 0
+  private[this] var present = false
 
   def enable(): Unit = {
     enabled = true
@@ -32,7 +33,12 @@ class CommandLineOption(val key: String,
     }
   }
 
-  def stopBlock(): Unit = checkIfTooFewValues("")
+  def isPresent: Boolean = present
+
+  def stopBlock(): Unit = {
+    present = true
+    checkIfTooFewValues("")
+  }
 
   def result(): IndexedSeq[String] = {
     checkIfTooFewValues(" is currently required and")
