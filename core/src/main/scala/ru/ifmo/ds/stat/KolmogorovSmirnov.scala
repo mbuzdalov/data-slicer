@@ -98,38 +98,45 @@ object KolmogorovSmirnov {
     Result(p = math.min(1, p), d = statistic, firstSampleSize = asSize, secondSampleSize = bsSize)
   }
 
+  private[this] val sizeCache = new scala.collection.mutable.HashMap[(Int, Int), Array[Double]]
+
   def rankSumOnMultipleOutcomes(stats: Seq[Result]): Double = {
     if (stats.isEmpty) 1.0 else {
       val n = stats.head.firstSampleSize
       val m = stats.head.secondSampleSize
       require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m), "sample sizes must be equal")
       val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
-      val possiblePVals = possibleStats.map(s => 1 - pSmirnov2x(s, n, m))
-      val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
 
       val statIndices = possibleStats.zipWithIndex.toMap
       val inputRankSum = stats.map(s => statIndices(s.d)).sum
 
-      val dpCurr, dpNext = Array.ofDim[Double](stats.size * (possibleProbs.size - 1) + 1)
-      dpCurr(0) = 1.0
-      for (_ <- stats.indices) {
-        java.util.Arrays.fill(dpNext, 0.0)
-        var i = dpCurr.length - 1
-        while (i >= 0) {
-          if (dpCurr(i) > 0) {
-            var j = 0
-            val jMax = possibleProbs.size
-            while (j < jMax) {
-              dpNext(i + j) += dpCurr(i) * possibleProbs(j)
-              j += 1
+      val dpArray = sizeCache.getOrElseUpdate(n -> m, {
+        val possiblePVals = possibleStats.map(s => 1 - pSmirnov2x(s, n, m))
+        val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
+        require(math.abs(possibleProbs.sum - 1) < 1e-9)
+
+        val dpCurr, dpNext = Array.ofDim[Double](stats.size * (possibleProbs.size - 1) + 1)
+        dpCurr(0) = 1.0
+        for (_ <- stats.indices) {
+          java.util.Arrays.fill(dpNext, 0.0)
+          var i = dpCurr.length - 1
+          while (i >= 0) {
+            if (dpCurr(i) > 0) {
+              var j = 0
+              val jMax = possibleProbs.size
+              while (j < jMax) {
+                dpNext(i + j) += dpCurr(i) * possibleProbs(j)
+                j += 1
+              }
             }
+            i -= 1
           }
-          i -= 1
+          System.arraycopy(dpNext, 0, dpCurr, 0, dpCurr.length)
         }
-        System.arraycopy(dpNext, 0, dpCurr, 0, dpCurr.length)
-      }
-      val pValue = (0 to inputRankSum).view.map(dpCurr).sum
-      pValue
+        dpCurr
+      })
+
+      (0 to inputRankSum).view.map(dpArray).sum
     }
   }
 }
