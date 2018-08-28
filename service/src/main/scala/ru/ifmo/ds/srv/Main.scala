@@ -182,8 +182,8 @@ object Main {
       usage()
     } else {
       val file = Paths.get(args(0))
-      if (Files.exists(file)) {
-        sys.error(s"Error: File '${args(0)} does not exist'")
+      if (!Files.exists(file)) {
+        sys.error(s"Error: File '${args(0)}' does not exist")
         usage()
       }
       if (args.contains("--single-step")) {
