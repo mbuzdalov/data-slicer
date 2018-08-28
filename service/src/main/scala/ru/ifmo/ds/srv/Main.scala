@@ -92,7 +92,7 @@ object Main {
       val pb = new ProcessBuilder()
       pb.command("sbt",
                  "project benchmarking",
-                 s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toRealPath()}")
+                 s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toAbsolutePath}")
       pb.inheritIO().directory(root.toFile)
       val exitCode = pb.start().waitFor()
       if (exitCode != 0) {
