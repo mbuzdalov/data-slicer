@@ -26,10 +26,15 @@ object Main {
   final val KeyAlgorithm = "params.algorithmId"
   final val BasicPValue = 1e-3
 
+  private[this] val terminateOnPhaseCompletion = {
+    System.getProperty("stopOnPhaseCompletion", "false") == "true"
+  }
+
   class PropertyKey(val key: String) extends AnyVal
   private[this] implicit class PropertiesEx(val p: Properties) extends AnyVal {
     def apply(key: PropertyKey): String = p.getProperty(key.key)
   }
+  private[this] class StageTermination(message: String) extends RuntimeException(message)
 
   private[this] def usage(): Nothing = {
     sys.error("Usage: ru.ifmo.ds.srv.Main <config-file>")
@@ -37,6 +42,7 @@ object Main {
 
   private[this] def setCompleteKey(p: Properties, key: String): Unit = {
     p.setProperty(key, "true")
+    if (terminateOnPhaseCompletion) throw new StageTermination(key)
   }
 
   private[this] class CompareListener(p: Double) extends DifferenceListener {
@@ -186,7 +192,11 @@ object Main {
       val config = new Properties()
       config.load(reader)
       reader.close()
-      execute(config, file.getParent)
+      try {
+        execute(config, file.getParent)
+      } catch {
+        case e: StageTermination => println(e.getMessage)
+      }
     }
   }
 }
