@@ -26,9 +26,7 @@ object Main {
   final val KeyAlgorithm = "params.algorithmId"
   final val BasicPValue = 1e-3
 
-  private[this] val terminateOnPhaseCompletion = {
-    System.getProperty("stopOnPhaseCompletion", "false") == "true"
-  }
+  private[this] var terminateOnPhaseCompletion = false
 
   class PropertyKey(val key: String) extends AnyVal
   private[this] implicit class PropertiesEx(val p: Properties) extends AnyVal {
@@ -180,13 +178,16 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    if (args.length != 1) {
+    if (args.length < 1) {
       usage()
     } else {
       val file = Paths.get(args(0))
       if (Files.exists(file)) {
         sys.error(s"Error: File '${args(0)} does not exist'")
         usage()
+      }
+      if (args.contains("--single-step")) {
+        terminateOnPhaseCompletion = true
       }
       val reader = Files.newBufferedReader(file)
       val config = new Properties()
