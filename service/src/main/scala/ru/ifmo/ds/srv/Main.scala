@@ -3,7 +3,7 @@ package ru.ifmo.ds.srv
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
-import java.util.Properties
+import java.util.{Collections, Properties}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
@@ -89,14 +89,20 @@ object Main {
       val algorithms = if (Files.exists(algorithmFile)) {
         Files.lines(curr.resolve(lOA)).collect(Collectors.joining(",", "--algo=", ""))
       } else ""
-      val pb = new ProcessBuilder()
-      pb.command("sbt",
-                 "project benchmarking",
-                 s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toAbsolutePath}")
-      pb.inheritIO().directory(root.toFile)
-      val exitCode = pb.start().waitFor()
-      if (exitCode != 0) {
-        throw new IOException("Exit code " + exitCode)
+      if (algorithms == "--algo=") {
+        // When no algorithms are different, JMH thinks one shall use the compiled-in parameters, which fails.
+        // Write an empty JSON file instead.
+        Files.write(outputFile, Collections.singletonList("[]"))
+      } else {
+        val pb = new ProcessBuilder()
+        pb.command("sbt",
+                   "project benchmarking",
+                   s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toAbsolutePath}")
+        pb.inheritIO().directory(root.toFile)
+        val exitCode = pb.start().waitFor()
+        if (exitCode != 0) {
+          throw new IOException("Exit code " + exitCode)
+        }
       }
       setCompleteKey(p, completeKey)
     }
