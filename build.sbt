@@ -33,8 +33,7 @@ lazy val cli = project
   .in(file("cli"))
   .dependsOn(core)
   .settings(commonSettings :_*)
-  .settings(
-    name    := "data-slicer-cli")
+  .settings(name := "data-slicer-cli")
 
 lazy val gui = project
   .in(file("gui"))
@@ -43,3 +42,9 @@ lazy val gui = project
   .settings(
     name    := "data-slicer-gui",
     libraryDependencies ++= Seq(scalaCompiler, jFreeChart))
+
+lazy val service = project
+  .in(file("service"))
+  .dependsOn(core)
+  .settings(commonSettings :_*)
+  .settings(name := "data-slicer-service")
