@@ -20,11 +20,11 @@ object Main {
   final val DataSubdirectoryRaw = new PropertyKey("data.subdirectory.raw")
   final val DataSubdirectoryConsolidated = new PropertyKey("data.subdirectory.consolidated")
   final val ListOfAlgorithms = new PropertyKey("list.of.changed.algorithms")
+  final val BasicPValue = new PropertyKey("p.value.base")
 
   final val KeyValue = "primaryMetric.rawData"
   final val KeyCats = Seq("benchmark", "params.d", "params.f", "params.n")
   final val KeyAlgorithm = "params.algorithmId"
-  final val BasicPValue = 1e-3
 
   private[this] var terminateOnPhaseCompletion = false
 
@@ -112,7 +112,7 @@ object Main {
           val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut).toFile)
           val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut).toFile)
           val commonAlgorithms = oldDB.valuesUnderKey(KeyAlgorithm).intersect(newDB.valuesUnderKey(KeyAlgorithm))
-          val listener = new CompareListener(BasicPValue / commonAlgorithms.size)
+          val listener = new CompareListener(p(BasicPValue).toDouble / commonAlgorithms.size)
           FindDifferences.traverse(oldDB, newDB, KeyAlgorithm +: KeyCats, KeyValue, listener)
           Files.write(listOfAlgorithms, listener.result().asJava, Charset.defaultCharset())
         case None =>
