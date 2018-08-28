@@ -78,7 +78,7 @@ object Main {
   }
 
   private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
-    val completeKey = phase + ".compute.complete"
+    val completeKey = "phase." + phase + ".compute.complete"
     val currentPhaseOut = phase + ".json"
     val useKey = phase.substring(phase.lastIndexOf('.') + 1)
     val lOA = p(ListOfAlgorithms)
@@ -126,7 +126,7 @@ object Main {
   }
 
   private[this] def runConsolidation(p: Properties, curr: Path, prevOption: Option[Path], phase: String): Unit = {
-    val completeKey = phase + ".consolidate.complete"
+    val completeKey = "phase." + phase + ".consolidate.complete"
     val currentPhaseOut = phase + ".json"
     if (p.getProperty(completeKey, "false") != "true") {
       Files.createDirectories(curr.resolve(p(DataSubdirectoryConsolidated)))
@@ -157,10 +157,10 @@ object Main {
     stateReader.close()
 
     try {
-      runCompute(state, root, curr, "phase.minimal.min")
+      runCompute(state, root, curr, "minimal.min")
       runMinimalMinCompare(state, curr, prevOption)
-      runConsolidation(state, curr, prevOption, "phase.minimal.min")
-      for (phase <- Seq("phase.minimal.more-d", "phase.minimal.more-n")) {
+      runConsolidation(state, curr, prevOption, "minimal.min")
+      for (phase <- Seq("minimal.more-d", "minimal.more-n")) {
         runCompute(state, root, curr, phase)
         runConsolidation(state, curr, prevOption, phase)
       }
