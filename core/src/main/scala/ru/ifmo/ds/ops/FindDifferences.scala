@@ -95,7 +95,8 @@ object FindDifferences {
 
   def traverse(left: Database, right: Database, categoryKeys: Seq[String],
                valueKey: String, listener: DifferenceListener): Unit = {
-    traverseImpl(left, right, Map.empty, categoryKeys, valueKey, listener)
+    traverseImpl(left.filter(_.contains(valueKey)), right.filter(_.contains(valueKey)),
+                 Map.empty, categoryKeys, valueKey, listener)
   }
 
   def traverse(db: Database, differenceKey: String,
