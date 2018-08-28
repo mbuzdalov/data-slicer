@@ -103,7 +103,7 @@ object Main {
   }
 
   private[this] def runMinimalMinCompare(p: Properties, curr: Path, prevOption: Option[Path]): Unit = {
-    val completeKey = "phase.minimal.min.compare.complete"
+    val completeKey = "phase.minimal-min.compare.complete"
     val currentPhaseOut = "minimal-min.json"
     val listOfAlgorithms = curr.resolve(p(ListOfAlgorithms))
     if (p.getProperty(completeKey, "false") != "true") {
@@ -157,10 +157,10 @@ object Main {
     stateReader.close()
 
     try {
-      runCompute(state, root, curr, "minimal.min")
+      runCompute(state, root, curr, "minimal-min")
       runMinimalMinCompare(state, curr, prevOption)
-      runConsolidation(state, curr, prevOption, "minimal.min")
-      for (phase <- Seq("minimal.more-d", "minimal.more-n")) {
+      runConsolidation(state, curr, prevOption, "minimal-min")
+      for (phase <- Seq("minimal-more-d", "minimal-more-n")) {
         runCompute(state, root, curr, phase)
         runConsolidation(state, curr, prevOption, phase)
       }
