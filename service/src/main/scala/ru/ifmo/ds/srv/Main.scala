@@ -83,6 +83,7 @@ object Main {
     val useKey = phase.substring(phase.lastIndexOf('.') + 1)
     val lOA = p(ListOfAlgorithms)
     if (p.getProperty(completeKey, "false") != "true") {
+      Files.createDirectories(curr.resolve(p(DataSubdirectoryRaw)))
       val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
       val algorithmFile = curr.resolve(lOA)
       val algorithms = if (Files.exists(algorithmFile)) {
@@ -128,6 +129,7 @@ object Main {
     val completeKey = phase + ".consolidate.complete"
     val currentPhaseOut = phase + ".json"
     if (p.getProperty(completeKey, "false") != "true") {
+      Files.createDirectories(curr.resolve(p(DataSubdirectoryConsolidated)))
       prevOption match {
         case None =>
           // no previous runs - just copy a file over
