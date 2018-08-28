@@ -171,7 +171,7 @@ object Main {
 
   private[this] def execute(p: Properties, dir: Path): Unit = {
     val dumps = dir.resolve(p.apply(DataRoot))
-    val children = Files.list(dumps).collect(Collectors.toList).asScala.sorted
+    val children = Files.list(dumps).toArray(Array.ofDim[Path]).sorted
     for (i <- children.indices) {
       executeOne(p, dir, children(i), children.lift.apply(i - 1))
     }
