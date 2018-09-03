@@ -19,3 +19,5 @@ bin/
 /core/project/
 /gui/target/
 /gui/project/
+/service/target/
+/service/project/
