@@ -1,7 +1,8 @@
 package ru.ifmo.ds.cli
 
-import java.io.PrintStream
+import java.io.{File, PrintStream}
 
+import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 import ru.ifmo.ds.{CLI, Database}
 
@@ -9,9 +10,21 @@ object LaTeX extends CLI.Module {
   override def name: String = "latex"
 
   override def apply(args: Array[String]): Unit = {
-    val xAxis: Axis = ???
-    val yAxis: Axis = ???
-    val seriesKey: String = ???
+    val filesOpt = new CommandLineOption("--files", 1)
+    val xAxisOpt = new CommandLineOption("--x-axis", 2, 2)
+    val yAxisOpt = new CommandLineOption("--y-axis", 2, 2)
+    val seriesKeyOpt = new CommandLineOption("--series-key", 1, 1)
+    val categoryKeysOpt = new CommandLineOption("--category-keys")
+
+    CommandLineOption.submit(Seq(xAxisOpt, yAxisOpt, seriesKeyOpt, categoryKeysOpt), args :_*)
+
+    def parseAxis(args: IndexedSeq[String]): Axis = Axis("??", args(0), args(1) == "log")
+
+    val xAxis = parseAxis(xAxisOpt.result())
+    val yAxis = parseAxis(yAxisOpt.result())
+    val seriesKey = seriesKeyOpt.result().head
+    val categoryKeys = categoryKeysOpt.result()
+    val files = filesOpt.result()
 
     def run(db: Database, categoryKeys: IndexedSeq[String], prefix: String): Unit = {
       def processCats(categoryKeys: IndexedSeq[String]): Unit = {
@@ -53,9 +66,15 @@ object LaTeX extends CLI.Module {
       }
       processCats(categoryKeys)
     }
+
+    run(Database.merge(files.map(f => Json.fromFile(new File(f))) :_*), categoryKeys, "")
   }
 
   override def printUsage(out: PrintStream): Unit = {
-
+    out.println(s"  $name --files <database-files...> --x-axis <key> log|lin --y-axis <key> log|lin --series-key <key> --category-keys <keys...>.")
+    out.println("       Creates a LaTeX file with plots read from the given databases.")
+    out.println("       Each plot will have the given keys for the X axis and the Y axis (logarithmic or linear),")
+    out.println("       each line in each plot corresponds to the given series key, and the database will be split")
+    out.println("       into slices (and hence into multiple plots) according to the given category keys.")
   }
 }
