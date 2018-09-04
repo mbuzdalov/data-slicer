@@ -4,16 +4,15 @@ import java.awt.{BorderLayout, Color, Paint}
 
 import javax.swing._
 
-import scala.collection.mutable
-
-import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.chart.labels.XYToolTipGenerator
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.renderer.xy.{DeviationRenderer, XYLineAndShapeRenderer}
+import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
-import ru.ifmo.ds.util.OrderingForStringWithNumbers
+import ru.ifmo.ds.gui.util._
+import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 
 object Extensions {
   def makePresentationTree[T](db: Database, categoryKeys: Seq[String], makeLeaf: Database => T, makeView: T => JComponent): JComponent = {
@@ -83,15 +82,7 @@ object Extensions {
 
     def composeSeries(db: Database): LeafDescription = {
       assert(!SwingUtilities.isEventDispatchThread)
-      val contents = new mutable.HashMap[String, mutable.HashMap[Double, mutable.ArrayBuffer[Double]]]()
-      db foreach { e =>
-        if (e.contains(xAxis.key) && e.contains(yAxis.key) && e.contains(seriesKey)) {
-          val mapForGraphKey = contents.getOrElseUpdate(e(seriesKey), new mutable.HashMap())
-          val mapForXKey = mapForGraphKey.getOrElseUpdate(e(xAxis.key).toDouble, new mutable.ArrayBuffer())
-          mapForXKey += e(yAxis.key).toDouble
-        }
-      }
-
+      val contents = db.groupMap2D(_.get(seriesKey), _.get(xAxis.key).map(_.toDouble), _.get(yAxis.key).map(_.toDouble))
       val sortedContents = contents.toIndexedSeq.sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)
       sortedContents.map { case (plot, map) =>
         val series = new YIntervalSeries(plot)
@@ -123,18 +114,19 @@ object Extensions {
       new ChartPanel(new JFreeChart(plot))
     }
 
+    def tupledOption[A, X, Y](fun1: A => Option[X], fun2: A => Option[Y])(a: A): Option[(X, Y)] = {
+      val vx = fun1(a)
+      val vy = fun2(a)
+      if (vx.nonEmpty && vy.nonEmpty) Some(vx.get -> vy.get) else None
+    }
+
     def composeSeries(db: Database): LeafDescription = {
       assert(!SwingUtilities.isEventDispatchThread)
-      val contents = new mutable.HashMap[(Double, Double), mutable.HashMap[String, mutable.ArrayBuffer[Double]]]()
-      db foreach { e =>
-        if (e.contains(xAxis.key) && e.contains(yAxis.key) && e.contains(seriesKey) && e.contains(compareByKey)) {
-          val mapForPointKey = contents.getOrElseUpdate(e(xAxis.key).toDouble -> e(yAxis.key).toDouble, new mutable.HashMap())
-          val mapForSeriesKey = mapForPointKey.getOrElseUpdate(e(seriesKey), new mutable.ArrayBuffer())
-          mapForSeriesKey += e(compareByKey).toDouble
-        }
-      }
+      val contents = db.groupMap2D(
+        tupledOption(_.get(xAxis.key).map(_.toDouble), _.get(yAxis.key).map(_.toDouble)),
+        _.get(seriesKey), _.get(compareByKey).map(_.toDouble))
 
-      def findSmallestByMedian(arg: mutable.HashMap[String, mutable.ArrayBuffer[Double]]): String = {
+      def findSmallestByMedian(arg: Map[String, Seq[Double]]): String = {
         val medians = arg.mapValues(b => b.sorted.apply(b.size / 2))
         medians.minBy(_._2)._1
       }

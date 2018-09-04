@@ -1,6 +1,8 @@
 package ru.ifmo.ds
 
-abstract class Database {
+import ru.ifmo.ds.util.DatabaseOps
+
+abstract class Database extends DatabaseOps {
   def possibleKeys: Set[String]
   def valuesUnderKey(key: String): Set[Option[String]]
   def entries: Seq[Database.Entry]
