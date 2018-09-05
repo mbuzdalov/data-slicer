@@ -16,7 +16,7 @@ object LaTeX extends CLI.Module {
     val seriesKeyOpt = new CommandLineOption("--series-key", 1, 1)
     val categoryKeysOpt = new CommandLineOption("--category-keys")
 
-    CommandLineOption.submit(Seq(xAxisOpt, yAxisOpt, seriesKeyOpt, categoryKeysOpt), args :_*)
+    CommandLineOption.submit(Seq(filesOpt, xAxisOpt, yAxisOpt, seriesKeyOpt, categoryKeysOpt), args :_*)
 
     def parseAxis(args: IndexedSeq[String]): Axis = Axis("??", args(0), args(1) == "log")
 
@@ -30,19 +30,20 @@ object LaTeX extends CLI.Module {
       def processCats(categoryKeys: IndexedSeq[String]): Unit = {
         if (!db.hasEntries || categoryKeys.isEmpty) {
           val plotData = db.groupMap2D(_.get(seriesKey), _.get(xAxis.key).map(_.toDouble), _.get(yAxis.key).map(_.toDouble))
+          println("%% " + prefix)
           println("\\begin{tikzpicture}[scale=\\picturescale]")
           println(s"\\begin{axis}[xtick=data, ${
             if (xAxis.isLogarithmic) "xmode=log," else ""
-          }, ${
+          } ${
             if (yAxis.isLogarithmic) "ymode=log," else ""
-          } width=\\picturewidth, height=\\pictureheight, legend pos=outer north east, cycle name=\\picturecycle]")
+          } width=\\picturewidth, height=\\pictureheight, legend pos=outer north east, cycle list name=\\picturecycle]")
 
           for ((series, seriesData) <- plotData) {
-            println("\\addplot plot[error bars/.cd, y dir=both, y explicit] table[y error plus=y-max, y error minus=y-min] {")
-            println("    x y y-min y-max")
-            for ((x, ys) <- seriesData) {
+            println("\\addplot table {")
+            println("    x y")
+            for ((x, ys) <- seriesData.toIndexedSeq.sortBy(_._1)) {
               val avg = ys.sum / ys.size
-              println(s"  $x ${ys.min} $avg ${ys.max}")
+              println(s"  $x $avg")
             }
             println("};")
             println(s"\\addlegendentry{$series};")
