@@ -191,7 +191,7 @@ object Main {
         runCompute(state, root, curr, phase)
         runConsolidation(state, curr, prevOption, phase)
       }
-      gzipJson(root)
+      gzipJson(curr)
     } finally {
       val stateWriter = Files.newBufferedWriter(stateFile)
       state.store(stateWriter, null)
