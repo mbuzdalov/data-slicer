@@ -160,7 +160,9 @@ object Main {
     if (Files.isDirectory(root)) {
       // Fetch all children files, then execute recursively.
       // As the list of files will eventually change, I currently feel this is safer.
-      val children = Files.newDirectoryStream(root).iterator().asScala.toIndexedSeq
+      val childrenStream = Files.newDirectoryStream(root)
+      val children = childrenStream.iterator().asScala.toIndexedSeq
+      childrenStream.close()
       children.foreach(gzipJson)
     } else if (root.getFileName.toString.endsWith(".json")) {
       val target = root.resolveSibling(root.getFileName.toString + ".gz")
