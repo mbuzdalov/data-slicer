@@ -155,6 +155,26 @@ object Main {
     }
   }
 
+  private[this] def gzipJson(root: Path): Unit = {
+    if (Files.isDirectory(root)) {
+      // Fetch all children files, then execute recursively.
+      // As the list of files will eventually change, I currently feel this is safer.
+      val children = Files.newDirectoryStream(root).iterator().asScala.toIndexedSeq
+      children.foreach(gzipJson)
+    } else if (root.getFileName.toString.endsWith(".json")) {
+      val target = root.resolveSibling(root.getFileName.toString + ".gz")
+      if (!Files.exists(target)) {
+        println(s"Compressing $root to $target")
+        val db = Json.fromFile(root.toFile)
+        Json.writeToFile(db, target.toFile)
+        println(s"Deleting $root")
+        Files.delete(root)
+      } else {
+        println(s"Warning: both $root and $target exist, will not do anything")
+      }
+    }
+  }
+
   private[this] def executeOne(p: Properties, root: Path, curr: Path, prevOption: Option[Path]): Unit = {
     val state = new Properties(p)
     val stateFile = curr.resolve(p.apply(DataStateFilename))
@@ -170,6 +190,7 @@ object Main {
         runCompute(state, root, curr, phase)
         runConsolidation(state, curr, prevOption, phase)
       }
+      gzipJson(root)
     } finally {
       val stateWriter = Files.newBufferedWriter(stateFile)
       state.store(stateWriter, null)

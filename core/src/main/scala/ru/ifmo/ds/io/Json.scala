@@ -1,6 +1,7 @@
 package ru.ifmo.ds.io
 
 import java.io._
+import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.io.json.{Reading, Writing}
@@ -19,10 +20,37 @@ object Json {
   }
 
   def fromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
-    val reader = new FileReader(file)
-    val result = fromReader(reader, moreKeys)
-    reader.close()
-    result
+    var stream: FileInputStream = null
+    var zip: GZIPInputStream = null
+    var reader: InputStreamReader = null
+    try {
+      // first try to read it as a zip file
+      stream = new FileInputStream(file)
+      zip = new GZIPInputStream(stream)
+      reader = new InputStreamReader(zip)
+      fromReader(reader, moreKeys)
+    } catch {
+      case zipEx: IOException =>
+        tryCloseSuppressed(reader, zipEx)
+        tryCloseSuppressed(zip, zipEx)
+        tryCloseSuppressed(stream, zipEx)
+
+        var directReader: FileReader = null
+        try {
+          directReader = new FileReader(file)
+          fromReader(directReader, moreKeys)
+        } catch {
+          case directEx: IOException =>
+            directEx.addSuppressed(zipEx)
+            throw directEx
+        } finally {
+          tryClose(directReader)
+        }
+    } finally {
+      tryClose(reader)
+      tryClose(zip)
+      tryClose(stream)
+    }
   }
 
   def fromReader(reader: Reader, moreKeys: Map[String, String] = Map.empty): Database = {
@@ -40,10 +68,36 @@ object Json {
   }
 
   def writeToFile(db: Database, file: File): Unit = {
-    val sw = new FileWriter(file)
-    writeToWriter(db, sw)
-    sw.close()
+    if (file.getName.endsWith(".gz")) {
+      val stream = new FileOutputStream(file)
+      val gzip = new GZIPOutputStream(stream)
+      val writer = new OutputStreamWriter(gzip)
+      writeToWriter(db, writer)
+      writer.close()
+      gzip.close()
+      stream.close()
+    } else {
+      val sw = new FileWriter(file)
+      writeToWriter(db, sw)
+      sw.close()
+    }
   }
 
   def writeToWriter(db: Database, writer: Writer): Unit = Writing.write(db, writer, "")
+
+  private[this] def tryClose(what: Closeable): Unit = {
+    try {
+      if (what != null) what.close()
+    } catch {
+      case _: Throwable =>
+    }
+  }
+
+  private[this] def tryCloseSuppressed(what: Closeable, toAdd: Exception): Unit = {
+    try {
+      if (what != null) what.close()
+    } catch {
+      case th: Throwable => toAdd.addSuppressed(th)
+    }
+  }
 }
