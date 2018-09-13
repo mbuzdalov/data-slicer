@@ -79,7 +79,7 @@ object Main {
 
   private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
     val completeKey = "phase." + phase + ".compute.complete"
-    val currentPhaseOut = phase + ".json"
+    val currentPhaseOut = phase + ".json.gz"
     val useKey = phase.substring("minimal-".length)
     val lOA = p(ListOfAlgorithms)
     if (p.getProperty(completeKey, "false") != "true") {
@@ -110,7 +110,7 @@ object Main {
 
   private[this] def runMinimalMinCompare(p: Properties, curr: Path, prevOption: Option[Path]): Unit = {
     val completeKey = "phase.minimal-min.compare.complete"
-    val currentPhaseOut = "minimal-min.json"
+    val currentPhaseOut = "minimal-min.json.gz"
     val listOfAlgorithms = curr.resolve(p(ListOfAlgorithms))
     if (p.getProperty(completeKey, "false") != "true") {
       prevOption match {
@@ -133,7 +133,7 @@ object Main {
 
   private[this] def runConsolidation(p: Properties, curr: Path, prevOption: Option[Path], phase: String): Unit = {
     val completeKey = "phase." + phase + ".consolidate.complete"
-    val currentPhaseOut = phase + ".json"
+    val currentPhaseOut = phase + ".json.gz"
     if (p.getProperty(completeKey, "false") != "true") {
       Files.createDirectories(curr.resolve(p(DataSubdirectoryConsolidated)))
       prevOption match {
