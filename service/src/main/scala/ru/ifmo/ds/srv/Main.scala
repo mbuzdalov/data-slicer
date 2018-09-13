@@ -79,7 +79,7 @@ object Main {
 
   private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
     val completeKey = "phase." + phase + ".compute.complete"
-    val currentPhaseOut = phase + ".json.gz"
+    val currentPhaseOut = phase + ".json"
     val useKey = phase.substring("minimal-".length)
     val lOA = p(ListOfAlgorithms)
     if (p.getProperty(completeKey, "false") != "true") {
@@ -103,6 +103,7 @@ object Main {
         if (exitCode != 0) {
           throw new IOException("Exit code " + exitCode)
         }
+        gzipJson(outputFile)
       }
       setCompleteKey(p, completeKey)
     }
