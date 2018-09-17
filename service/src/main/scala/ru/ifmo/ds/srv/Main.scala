@@ -3,7 +3,7 @@ package ru.ifmo.ds.srv
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
-import java.util.{Collections, Properties}
+import java.util.{Collections, Properties, HashMap => JHashMap}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
@@ -184,6 +184,7 @@ object Main {
     val stateReader = Files.newBufferedReader(stateFile)
     state.load(stateReader)
     stateReader.close()
+    val previousState = new JHashMap(state)
 
     try {
       runCompute(state, root, curr, "minimal-min")
@@ -195,9 +196,12 @@ object Main {
       }
       gzipJson(curr)
     } finally {
-      val stateWriter = Files.newBufferedWriter(stateFile)
-      state.store(stateWriter, null)
-      stateWriter.close()
+      val currentState = new JHashMap(state)
+      if (!previousState.equals(currentState)) {
+        val stateWriter = Files.newBufferedWriter(stateFile)
+        state.store(stateWriter, null)
+        stateWriter.close()
+      }
     }
   }
 
