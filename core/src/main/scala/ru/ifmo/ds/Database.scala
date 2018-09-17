@@ -10,7 +10,7 @@ abstract class Database extends DatabaseOps {
   def hasEntries: Boolean = entries.nonEmpty
 
   def withMoreKeys(map: Map[String, String]): Database = {
-    require(map.keySet.diff(possibleKeys).isEmpty, "New keys should be different from existing ones")
+    require(map.keySet.intersect(possibleKeys).isEmpty, "New keys should be different from existing ones")
     new Database.SimpleKeyAddingWrapper(this, map)
   }
 
