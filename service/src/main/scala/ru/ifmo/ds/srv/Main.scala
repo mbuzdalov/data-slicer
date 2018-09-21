@@ -103,28 +103,28 @@ object Main {
         if (exitCode != 0) {
           throw new IOException("Exit code " + exitCode)
         }
-        gzipJson(outputFile)
       }
+      gzipJson(outputFile)
       setCompleteKey(p, completeKey)
     }
   }
 
   private[this] def runMinimalMinCompare(p: Properties, curr: Path, prevOption: Option[Path]): Unit = {
     val completeKey = "phase.minimal-min.compare.complete"
-    val currentPhaseOut = "minimal-min.json.gz"
+    val currentPhaseIn = "minimal-min.json.gz"
     val listOfAlgorithms = curr.resolve(p(ListOfAlgorithms))
     if (p.getProperty(completeKey, "false") != "true") {
       prevOption match {
         case Some(prev) =>
-          val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut).toFile)
-          val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut).toFile)
+          val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseIn).toFile)
+          val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseIn).toFile)
           val commonAlgorithms = oldDB.valuesUnderKey(KeyAlgorithm).intersect(newDB.valuesUnderKey(KeyAlgorithm))
           val listener = new CompareListener(p(BasicPValue).toDouble / commonAlgorithms.size)
           FindDifferences.traverse(oldDB, newDB, KeyAlgorithm +: KeyCats, KeyValue, listener)
           Files.write(listOfAlgorithms, listener.result().asJava, Charset.defaultCharset())
         case None =>
           // No previous runs detected. Need to write all algorithms to the file
-          val file = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
+          val file = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseIn)
           val allAlgorithms = Json.fromFile(file.toFile).valuesUnderKey(KeyAlgorithm).flatMap(_.iterator).toIndexedSeq.sorted
           Files.write(listOfAlgorithms, allAlgorithms.asJava, Charset.defaultCharset())
       }
@@ -194,7 +194,6 @@ object Main {
         runCompute(state, root, curr, phase)
         runConsolidation(state, curr, prevOption, phase)
       }
-      gzipJson(curr)
     } finally {
       val currentState = new JHashMap(state)
       if (!previousState.equals(currentState)) {
