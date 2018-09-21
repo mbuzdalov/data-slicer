@@ -4,6 +4,7 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
 import java.util.{Collections, Properties, HashMap => JHashMap}
+import java.util.stream.{Stream => JStream}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
@@ -69,12 +70,22 @@ object Main {
 
     override def sliceStatistics(slice: Map[String, Option[String]],
                                  key: String, statistics: Seq[KolmogorovSmirnov.Result]): Unit = {
-      if (slice.keySet == Set(KeyAlgorithm) && slice(KeyAlgorithm).nonEmpty) {
-        if (KolmogorovSmirnov.rankSumOnMultipleOutcomes(statistics) < p) {
-          differingAlgorithms ++= slice(KeyAlgorithm)
+      if (slice.keySet == Set(KeyAlgorithm)) {
+        slice(KeyAlgorithm) match {
+          case None =>
+          case Some(algorithm) =>
+            val stat = KolmogorovSmirnov.rankSumOnMultipleOutcomes(statistics)
+            if (stat < p) {
+              differingAlgorithms += (algorithm + " " + stat)
+            }
         }
       }
     }
+  }
+
+  private[this] def firstToken(s: String): String = {
+    val ws = s.indexOf(' ')
+    if (ws == -1) s else s.substring(0, ws)
   }
 
   private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
@@ -87,7 +98,9 @@ object Main {
       val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
       val algorithmFile = curr.resolve(listOfAlgorithms)
       val algorithms = if (Files.exists(algorithmFile)) {
-        Files.lines(curr.resolve(listOfAlgorithms)).collect(Collectors.joining(",", "--algo=", ""))
+        val fileLines: JStream[String] = Files.lines(curr.resolve(listOfAlgorithms))
+        val firstTokens: JStream[String] = fileLines.map(firstToken)
+        firstTokens.collect(Collectors.joining(",", "--algo=", ""))
       } else ""
       if (algorithms == "--algo=") {
         // When an empty parameter list is given, JMH thinks one shall use the compiled-in parameters, which fails.
@@ -184,7 +197,7 @@ object Main {
     val stateReader = Files.newBufferedReader(stateFile)
     state.load(stateReader)
     stateReader.close()
-    val previousState = new JHashMap(state)
+    val previousState = new JHashMap[AnyRef, AnyRef](state)
 
     try {
       runCompute(state, root, curr, "minimal-min")
@@ -195,7 +208,7 @@ object Main {
         runConsolidation(state, curr, prevOption, phase)
       }
     } finally {
-      val currentState = new JHashMap(state)
+      val currentState = new JHashMap[AnyRef, AnyRef](state)
       if (!previousState.equals(currentState)) {
         val stateWriter = Files.newBufferedWriter(stateFile)
         state.store(stateWriter, null)
