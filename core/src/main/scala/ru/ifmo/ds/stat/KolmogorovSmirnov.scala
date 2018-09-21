@@ -104,7 +104,8 @@ object KolmogorovSmirnov {
     if (stats.isEmpty) 1.0 else {
       val n = stats.head.firstSampleSize
       val m = stats.head.secondSampleSize
-      require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m), "sample sizes must be equal")
+      require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m),
+        "sample sizes in each experiment must be equal on the corresponding sides")
       val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
 
       val statIndices = possibleStats.zipWithIndex.toMap
