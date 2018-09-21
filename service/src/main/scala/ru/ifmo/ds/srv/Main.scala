@@ -81,16 +81,16 @@ object Main {
     val completeKey = "phase." + phase + ".compute.complete"
     val currentPhaseOut = phase + ".json"
     val useKey = phase.substring("minimal-".length)
-    val lOA = p(ListOfAlgorithms)
+    val listOfAlgorithms = p(ListOfAlgorithms)
     if (p.getProperty(completeKey, "false") != "true") {
       Files.createDirectories(curr.resolve(p(DataSubdirectoryRaw)))
       val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
-      val algorithmFile = curr.resolve(lOA)
+      val algorithmFile = curr.resolve(listOfAlgorithms)
       val algorithms = if (Files.exists(algorithmFile)) {
-        Files.lines(curr.resolve(lOA)).collect(Collectors.joining(",", "--algo=", ""))
+        Files.lines(curr.resolve(listOfAlgorithms)).collect(Collectors.joining(",", "--algo=", ""))
       } else ""
       if (algorithms == "--algo=") {
-        // When no algorithms are different, JMH thinks one shall use the compiled-in parameters, which fails.
+        // When an empty parameter list is given, JMH thinks one shall use the compiled-in parameters, which fails.
         // Write an empty JSON file instead.
         Files.write(outputFile, Collections.singletonList("[]"))
       } else {
