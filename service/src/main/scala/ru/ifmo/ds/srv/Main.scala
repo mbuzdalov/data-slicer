@@ -4,16 +4,14 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
 import java.util.{Collections, Properties, HashMap => JHashMap}
-import java.util.stream.{Stream => JStream}
-import java.util.stream.Collectors
-
-import scala.collection.JavaConverters._
 
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.ops.FindDifferences
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
 import ru.ifmo.ds.stat.KolmogorovSmirnov
+
+import scala.collection.JavaConverters._
 
 object Main {
   final val DataRoot = new PropertyKey("data.root")
@@ -88,6 +86,10 @@ object Main {
     if (ws == -1) s else s.substring(0, ws)
   }
 
+  private[this] def readListOfAlgorithms(file: Path): Set[String] = {
+    Files.readAllLines(file).asScala.map(firstToken).toSet
+  }
+
   private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
     val completeKey = "phase." + phase + ".compute.complete"
     val currentPhaseOut = phase + ".json"
@@ -98,9 +100,7 @@ object Main {
       val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
       val algorithmFile = curr.resolve(listOfAlgorithms)
       val algorithms = if (Files.exists(algorithmFile)) {
-        val fileLines: JStream[String] = Files.lines(curr.resolve(listOfAlgorithms))
-        val firstTokens: JStream[String] = fileLines.map(firstToken)
-        firstTokens.collect(Collectors.joining(",", "--algo=", ""))
+        readListOfAlgorithms(curr.resolve(listOfAlgorithms)).mkString(",", "--algo=", "")
       } else ""
       if (algorithms == "--algo=") {
         // When an empty parameter list is given, JMH thinks one shall use the compiled-in parameters, which fails.
@@ -155,11 +155,14 @@ object Main {
           // no previous runs - just copy a file over
           val src = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
           val trg = curr.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut)
-          Files.createLink(trg, src)
+          if (!Files.isSameFile(trg, src)) {
+            Files.deleteIfExists(trg)
+            Files.createLink(trg, src)
+          }
         case Some(prev) =>
           val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut).toFile)
           val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut).toFile)
-          val differingAlgorithms = Files.readAllLines(curr.resolve(p(ListOfAlgorithms))).asScala.map(firstToken).toSet
+          val differingAlgorithms = readListOfAlgorithms(curr.resolve(p(ListOfAlgorithms)))
           val oldDBFiltered = oldDB.filter(e => e.contains(KeyAlgorithm) && !differingAlgorithms.contains(e(KeyAlgorithm)))
           val merged = Database.merge(oldDBFiltered, newDB)
           val trg = curr.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut)
