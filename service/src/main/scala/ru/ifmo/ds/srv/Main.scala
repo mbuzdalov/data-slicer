@@ -159,7 +159,7 @@ object Main {
         case Some(prev) =>
           val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut).toFile)
           val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut).toFile)
-          val differingAlgorithms = Files.readAllLines(curr.resolve(p(ListOfAlgorithms))).asScala.toSet
+          val differingAlgorithms = Files.readAllLines(curr.resolve(p(ListOfAlgorithms))).asScala.map(firstToken).toSet
           val oldDBFiltered = oldDB.filter(e => e.contains(KeyAlgorithm) && !differingAlgorithms.contains(e(KeyAlgorithm)))
           val merged = Database.merge(oldDBFiltered, newDB)
           val trg = curr.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut)
