@@ -228,6 +228,67 @@ object Main {
     }
   }
 
+  private[this] def performSubstitution(string: String, props: Properties): String = {
+    sealed trait State
+    case object JustString extends State
+    case object OpenBuck extends State
+    case object InsideVariableName extends State
+
+    def scanString(index: Int, prefix: StringBuilder, variableName: StringBuilder, state: State): String = {
+      state match {
+        case JustString =>
+          if (index == string.length) {
+            // we have reached the end of the string
+            prefix.toString()
+          } else string(index) match {
+            case '$' =>
+              // opening buck that comes before the variable name
+              scanString(index + 1, prefix, variableName, OpenBuck)
+            case ch: Char =>
+              prefix.append(ch)
+              scanString(index + 1, prefix, variableName, JustString)
+          }
+        case OpenBuck =>
+          if (index == string.length) {
+            // okay, let the string end in a buck, which means there is a buck
+            prefix.append('$').toString()
+          } else string(index) match {
+            case '{' =>
+              // now we are inside the variable name
+              variableName.clear()
+              scanString(index + 1, prefix, variableName, InsideVariableName)
+            case '$' =>
+              prefix.append('$')
+              scanString(index + 1, prefix, variableName, JustString)
+            case ch: Char =>
+              // any other thing that follows a buck is an error
+              throw new IllegalArgumentException(s"Substitution failed: '$$$ch' is contained at index ${index - 1} in text '$string'")
+          }
+        case InsideVariableName =>
+          if (index == string.length) {
+            throw new IllegalArgumentException(s"Unexpected end of string while scanning for variable name in text '$string'")
+          } else string(index) match {
+            case '}' =>
+              val name = variableName.toString()
+              val prop = props.get(name)
+              if (prop == null) {
+                throw new IllegalArgumentException(s"Unknown variable '$name' comes at index $index in text '$string'")
+              } else {
+                prefix.append(prop)
+                variableName.clear()
+                scanString(index + 1, prefix, variableName, JustString)
+              }
+            case ch: Char =>
+              variableName.append(ch)
+              scanString(index + 1, prefix, variableName, InsideVariableName)
+          }
+      }
+    }
+
+    val result = scanString(0, new StringBuilder, new StringBuilder, JustString)
+    if (result == string) result else performSubstitution(result, props)
+  }
+
   def main(args: Array[String]): Unit = {
     if (args.length < 1) {
       usage()
