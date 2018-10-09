@@ -100,7 +100,7 @@ object Main {
       val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
       val algorithmFile = curr.resolve(listOfAlgorithms)
       val algorithms = if (Files.exists(algorithmFile)) {
-        readListOfAlgorithms(curr.resolve(listOfAlgorithms)).mkString(",", "--algo=", "")
+        readListOfAlgorithms(curr.resolve(listOfAlgorithms)).mkString("--algo=", ",", "")
       } else ""
       if (algorithms == "--algo=") {
         // When an empty parameter list is given, JMH thinks one shall use the compiled-in parameters, which fails.
