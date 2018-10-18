@@ -3,7 +3,7 @@ package ru.ifmo.ds.srv
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
-import java.util.{Collections, Properties, HashMap => JHashMap}
+import java.util.Collections
 
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.io.Json
@@ -14,38 +14,21 @@ import ru.ifmo.ds.stat.KolmogorovSmirnov
 import scala.collection.JavaConverters._
 
 object Main {
-  final val DataRoot = new PropertyKey("data.root")
-  final val DataStateFilename = new PropertyKey("data.state.filename")
-  final val DataSubdirectoryRaw = new PropertyKey("data.subdirectory.raw")
-  final val DataSubdirectoryConsolidated = new PropertyKey("data.subdirectory.consolidated")
-  final val ListOfAlgorithms = new PropertyKey("list.of.changed.algorithms")
-  final val BasicPValue = new PropertyKey("p.value.base")
+  val DataRoot = "performance-data"
+  val DataStateFilename = "state.properties"
+  val DataSubdirectoryRaw = "raw"
+  val DataSubdirectoryConsolidated = "merged"
+  val ListOfAlgorithms = "changed.lst"
+  val BasicPValue = 1e-15
 
-  final val KeyValue = "primaryMetric.rawData"
-  final val KeyCats = Seq("benchmark", "params.d", "params.f", "params.n")
-  final val KeyAlgorithm = "params.algorithmId"
-
-  private[this] var terminateOnPhaseCompletion = false
-
-  class PropertyKey(val key: String) extends AnyVal
-  private[this] implicit class PropertiesEx(val p: Properties) extends AnyVal {
-    def apply(key: PropertyKey): String = p.getProperty(key.key)
-  }
-  private[this] class StageTermination(message: String) extends RuntimeException(message)
-
-  private[this] def usage(): Nothing = {
-    sys.error("Usage: ru.ifmo.ds.srv.Main <config-file>")
-  }
-
-  private[this] def setCompleteKey(p: Properties, key: String): Unit = {
-    p.setProperty(key, "true")
-    if (terminateOnPhaseCompletion) throw new StageTermination(key)
-  }
+  val KeyValue = "primaryMetric.rawData"
+  val KeyCats = Seq("benchmark", "params.d", "params.f", "params.n")
+  val KeyAlgorithm = "params.algorithmId"
 
   private[this] class CompareListener(p: Double) extends DifferenceListener {
-    private[this] val differingAlgorithms = IndexedSeq.newBuilder[String]
+    private[this] val differingAlgorithms, nonDifferingAlgorithms = IndexedSeq.newBuilder[String]
 
-    def result(): IndexedSeq[String] = differingAlgorithms.result()
+    def result(): IndexedSeq[String] = differingAlgorithms.result() ++ nonDifferingAlgorithms.result()
 
     override def keyValuesDoNotMatch(slice: Map[String, Option[String]], key: String,
                                      onlyLeft: Set[Option[String]],
@@ -74,33 +57,30 @@ object Main {
           case Some(algorithm) =>
             val stat = KolmogorovSmirnov.rankSumOnMultipleOutcomes(statistics)
             if (stat < p) {
-              differingAlgorithms += (algorithm + " " + stat)
+              differingAlgorithms += s"$algorithm $stat"
+            } else {
+              nonDifferingAlgorithms += s"#$algorithm $stat"
             }
         }
       }
     }
   }
 
-  private[this] def firstToken(s: String): String = {
-    val ws = s.indexOf(' ')
-    if (ws == -1) s else s.substring(0, ws)
-  }
-
   private[this] def readListOfAlgorithms(file: Path): Set[String] = {
-    Files.readAllLines(file).asScala.map(firstToken).toSet
+    def indexOrEnd(i: Int, s: String): Int = if (i < 0) s.length else i
+    def firstToken(s: String): String = s.substring(0, indexOrEnd(s.indexOf(' '), s))
+    Files.readAllLines(file).asScala.filterNot(_.startsWith("#")).map(firstToken).toSet
   }
 
-  private[this] def runCompute(p: Properties, root: Path, curr: Path, phase: String): Unit = {
-    val completeKey = "phase." + phase + ".compute.complete"
-    val currentPhaseOut = phase + ".json"
-    val useKey = phase.substring("minimal-".length)
-    val listOfAlgorithms = p(ListOfAlgorithms)
-    if (p.getProperty(completeKey, "false") != "true") {
-      Files.createDirectories(curr.resolve(p(DataSubdirectoryRaw)))
-      val outputFile = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
-      val algorithmFile = curr.resolve(listOfAlgorithms)
-      val algorithms = if (Files.exists(algorithmFile)) {
-        readListOfAlgorithms(curr.resolve(listOfAlgorithms)).mkString("--algo=", ",", "")
+  class ComputeMinimal(useKey: String) extends Phase(s"phase.minimal-$useKey.compute") {
+    override def execute(curr: Path, prev: Option[Path]): Unit = {
+      val currentPhaseOut = s"minimal-$useKey.json"
+      val rawDir = curr.resolve(DataSubdirectoryRaw)
+      Files.createDirectories(rawDir)
+      val outputFile = rawDir.resolve(currentPhaseOut)
+      val listOfAlgorithms = curr.resolve(ListOfAlgorithms)
+      val algorithms = if (Files.exists(listOfAlgorithms)) {
+        readListOfAlgorithms(listOfAlgorithms).mkString("--algo=", ",", "")
       } else ""
       if (algorithms == "--algo=") {
         // When an empty parameter list is given, JMH thinks one shall use the compiled-in parameters, which fails.
@@ -109,207 +89,93 @@ object Main {
       } else {
         val pb = new ProcessBuilder()
         pb.command("sbt",
-                   "project benchmarking",
-                   s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toAbsolutePath}")
-        pb.inheritIO().directory(root.toFile)
+          "project benchmarking",
+          s"jmh:runMain ru.ifmo.nds.jmh.main.Minimal $algorithms --use=$useKey --out=${outputFile.toAbsolutePath}")
+        pb.inheritIO().directory(curr.toFile)
         val exitCode = pb.start().waitFor()
         if (exitCode != 0) {
           throw new IOException("Exit code " + exitCode)
         }
       }
       gzipJson(outputFile)
-      setCompleteKey(p, completeKey)
     }
   }
 
-  private[this] def runMinimalMinCompare(p: Properties, curr: Path, prevOption: Option[Path]): Unit = {
-    val completeKey = "phase.minimal-min.compare.complete"
-    val currentPhaseIn = "minimal-min.json.gz"
-    val listOfAlgorithms = curr.resolve(p(ListOfAlgorithms))
-    if (p.getProperty(completeKey, "false") != "true") {
+  object CompareMinimal extends Phase("phase.minimal-min.compare") {
+    override def execute(curr: Path, prevOption: Option[Path]): Unit = {
+      val currentPhaseIn = "minimal-min.json.gz"
+      val listOfAlgorithms = curr.resolve(ListOfAlgorithms)
       prevOption match {
         case Some(prev) =>
-          val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseIn).toFile)
-          val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseIn).toFile)
+          val oldDB = Json.fromFile(prev.resolve(DataSubdirectoryConsolidated).resolve(currentPhaseIn).toFile)
+          val newDB = Json.fromFile(curr.resolve(DataSubdirectoryRaw).resolve(currentPhaseIn).toFile)
           val commonAlgorithms = oldDB.valuesUnderKey(KeyAlgorithm).intersect(newDB.valuesUnderKey(KeyAlgorithm))
-          val listener = new CompareListener(p(BasicPValue).toDouble / commonAlgorithms.size)
+          val listener = new CompareListener(BasicPValue / commonAlgorithms.size)
           FindDifferences.traverse(oldDB, newDB, KeyAlgorithm +: KeyCats, KeyValue, listener)
           Files.write(listOfAlgorithms, listener.result().asJava, Charset.defaultCharset())
         case None =>
           // No previous runs detected. Need to write all algorithms to the file
-          val file = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseIn)
+          val file = curr.resolve(DataSubdirectoryRaw).resolve(currentPhaseIn)
           val allAlgorithms = Json.fromFile(file.toFile).valuesUnderKey(KeyAlgorithm).flatMap(_.iterator).toIndexedSeq.sorted
           Files.write(listOfAlgorithms, allAlgorithms.asJava, Charset.defaultCharset())
       }
-      setCompleteKey(p, completeKey)
     }
   }
 
-  private[this] def runConsolidation(p: Properties, curr: Path, prevOption: Option[Path], phase: String): Unit = {
-    val completeKey = "phase." + phase + ".consolidate.complete"
-    val currentPhaseOut = phase + ".json.gz"
-    if (p.getProperty(completeKey, "false") != "true") {
-      Files.createDirectories(curr.resolve(p(DataSubdirectoryConsolidated)))
+  class Consolidate(key: String) extends Phase(s"phase.$key.consolidate") {
+    override def execute(curr: Path, prevOption: Option[Path]): Unit = {
+      val target = curr.resolve(DataSubdirectoryConsolidated)
+      val currentPhaseOut = key + ".json.gz"
+      Files.createDirectories(target)
+      val trg = target.resolve(currentPhaseOut)
       prevOption match {
         case None =>
           // no previous runs - just copy a file over
-          val src = curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut)
-          val trg = curr.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut)
+          val src = curr.resolve(DataSubdirectoryRaw).resolve(currentPhaseOut)
           if (!Files.isSameFile(trg, src)) {
             Files.deleteIfExists(trg)
             Files.createLink(trg, src)
           }
         case Some(prev) =>
-          val oldDB = Json.fromFile(prev.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut).toFile)
-          val newDB = Json.fromFile(curr.resolve(p(DataSubdirectoryRaw)).resolve(currentPhaseOut).toFile)
-          val differingAlgorithms = readListOfAlgorithms(curr.resolve(p(ListOfAlgorithms)))
+          val oldDB = Json.fromFile(prev.resolve(DataSubdirectoryConsolidated).resolve(currentPhaseOut).toFile)
+          val newDB = Json.fromFile(curr.resolve(DataSubdirectoryRaw).resolve(currentPhaseOut).toFile)
+          val differingAlgorithms = readListOfAlgorithms(curr.resolve(ListOfAlgorithms))
           val oldDBFiltered = oldDB.filter(e => e.contains(KeyAlgorithm) && !differingAlgorithms.contains(e(KeyAlgorithm)))
           val merged = Database.merge(oldDBFiltered, newDB)
-          val trg = curr.resolve(p(DataSubdirectoryConsolidated)).resolve(currentPhaseOut)
           Json.writeToFile(merged, trg.toFile)
       }
-      setCompleteKey(p, completeKey)
     }
   }
 
   private[this] def gzipJson(root: Path): Unit = {
-    if (Files.isDirectory(root)) {
-      // Fetch all children files, then execute recursively.
-      // As the list of files will eventually change, I currently feel this is safer.
-      val childrenStream = Files.newDirectoryStream(root)
-      val children = childrenStream.iterator().asScala.toIndexedSeq
-      childrenStream.close()
-      children.foreach(gzipJson)
-    } else if (root.getFileName.toString.endsWith(".json")) {
-      val target = root.resolveSibling(root.getFileName.toString + ".gz")
-      if (!Files.exists(target)) {
-        println(s"Compressing $root to $target")
-        val db = Json.fromFile(root.toFile)
-        Json.writeToFile(db, target.toFile)
-        println(s"Deleting $root")
-        Files.delete(root)
-      } else {
-        println(s"Warning: both $root and $target exist, will not do anything")
-      }
+    val target = root.resolveSibling(root.getFileName.toString + ".gz")
+    if (!Files.exists(target)) {
+      println(s"Compressing $root to $target")
+      val db = Json.fromFile(root.toFile)
+      Json.writeToFile(db, target.toFile)
+      println(s"Deleting $root")
+      Files.delete(root)
+    } else {
+      println(s"Warning: both $root and $target exist, will not do anything")
     }
-  }
-
-  private[this] def executeOne(p: Properties, root: Path, curr: Path, prevOption: Option[Path]): Unit = {
-    val state = new Properties(p)
-    val stateFile = curr.resolve(p.apply(DataStateFilename))
-    val stateReader = Files.newBufferedReader(stateFile)
-    state.load(stateReader)
-    stateReader.close()
-    val previousState = new JHashMap[AnyRef, AnyRef](state)
-
-    try {
-      runCompute(state, root, curr, "minimal-min")
-      runMinimalMinCompare(state, curr, prevOption)
-      runConsolidation(state, curr, prevOption, "minimal-min")
-      for (phase <- Seq("minimal-more-d", "minimal-more-n")) {
-        runCompute(state, root, curr, phase)
-        runConsolidation(state, curr, prevOption, phase)
-      }
-    } finally {
-      val currentState = new JHashMap[AnyRef, AnyRef](state)
-      if (!previousState.equals(currentState)) {
-        val stateWriter = Files.newBufferedWriter(stateFile)
-        state.store(stateWriter, null)
-        stateWriter.close()
-      }
-    }
-  }
-
-  private[this] def execute(p: Properties, dir: Path): Unit = {
-    val dumps = dir.resolve(p.apply(DataRoot))
-    val children = Files.list(dumps).toArray(Array.ofDim[Path]).sorted
-    for (i <- children.indices) {
-      executeOne(p, dir, children(i), children.lift.apply(i - 1))
-    }
-  }
-
-  private[this] def performSubstitution(string: String, props: Properties): String = {
-    sealed trait State
-    case object JustString extends State
-    case object OpenBuck extends State
-    case object InsideVariableName extends State
-
-    def scanString(index: Int, prefix: StringBuilder, variableName: StringBuilder, state: State): String = {
-      state match {
-        case JustString =>
-          if (index == string.length) {
-            // we have reached the end of the string
-            prefix.toString()
-          } else string(index) match {
-            case '$' =>
-              // opening buck that comes before the variable name
-              scanString(index + 1, prefix, variableName, OpenBuck)
-            case ch: Char =>
-              prefix.append(ch)
-              scanString(index + 1, prefix, variableName, JustString)
-          }
-        case OpenBuck =>
-          if (index == string.length) {
-            // okay, let the string end in a buck, which means there is a buck
-            prefix.append('$').toString()
-          } else string(index) match {
-            case '{' =>
-              // now we are inside the variable name
-              variableName.clear()
-              scanString(index + 1, prefix, variableName, InsideVariableName)
-            case '$' =>
-              prefix.append('$')
-              scanString(index + 1, prefix, variableName, JustString)
-            case ch: Char =>
-              // any other thing that follows a buck is an error
-              throw new IllegalArgumentException(s"Substitution failed: '$$$ch' is contained at index ${index - 1} in text '$string'")
-          }
-        case InsideVariableName =>
-          if (index == string.length) {
-            throw new IllegalArgumentException(s"Unexpected end of string while scanning for variable name in text '$string'")
-          } else string(index) match {
-            case '}' =>
-              val name = variableName.toString()
-              val prop = props.get(name)
-              if (prop == null) {
-                throw new IllegalArgumentException(s"Unknown variable '$name' comes at index $index in text '$string'")
-              } else {
-                prefix.append(prop)
-                variableName.clear()
-                scanString(index + 1, prefix, variableName, JustString)
-              }
-            case ch: Char =>
-              variableName.append(ch)
-              scanString(index + 1, prefix, variableName, InsideVariableName)
-          }
-      }
-    }
-
-    val result = scanString(0, new StringBuilder, new StringBuilder, JustString)
-    if (result == string) result else performSubstitution(result, props)
   }
 
   def main(args: Array[String]): Unit = {
     if (args.length < 1) {
-      usage()
+      sys.error("Usage: ru.ifmo.ds.srv.Main <project root>")
     } else {
-      val file = Paths.get(args(0))
-      if (!Files.exists(file)) {
-        sys.error(s"Error: File '${args(0)}' does not exist")
-        usage()
-      }
-      if (args.contains("--single-step")) {
-        terminateOnPhaseCompletion = true
-      }
-      val reader = Files.newBufferedReader(file)
-      val config = new Properties()
-      config.load(reader)
-      reader.close()
-      try {
-        execute(config, file.getParent)
-      } catch {
-        case e: StageTermination => println(e.getMessage)
-      }
+      val currentDir = Paths.get(args(0))
+      val singleStep = args.contains("--single-step")
+      val phases = Seq(
+        new ComputeMinimal("min"),
+        CompareMinimal,
+        new Consolidate("minimal-min"),
+        new ComputeMinimal("more-d"),
+        new Consolidate("minimal-more-d"),
+        new ComputeMinimal("more-n"),
+        new Consolidate("minimal-more-n")
+      )
+      PhaseExecutor.run(phases, currentDir.resolve(DataRoot), DataStateFilename, singleStep)
     }
   }
 }

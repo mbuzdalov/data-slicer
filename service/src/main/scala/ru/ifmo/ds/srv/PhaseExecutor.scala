@@ -8,15 +8,20 @@ object PhaseExecutor {
     def processPhase(index: Int, props: Properties, propsChanged: Boolean, curr: Path, prev: Option[Path]): (Boolean, Option[Throwable]) = {
       if (index >= phases.size) (propsChanged, None) else {
         val phase = phases(index)
-        if (props.getProperty(phase.key, "false") != "true") {
+        val completeKey = phase.key + ".complete"
+        val printPrefix = s"Path ${root.relativize(curr)}, phase ${phase.key}"
+        if (props.getProperty(completeKey, "false") != "true") {
           try {
+            println(s"$printPrefix: running...")
             phase.execute(curr, prev)
-            props.setProperty(phase.key, "true")
+            println(s"$printPrefix: complete!")
+            props.setProperty(completeKey, "true")
             if (singleStep) (true, None) else processPhase(index + 1, props, propsChanged = true, curr, prev)
           } catch {
             case th: Throwable => (propsChanged, Some(th))
           }
         } else {
+          println(s"$printPrefix: already complete")
           processPhase(index + 1, props, propsChanged, curr, prev)
         }
       }
