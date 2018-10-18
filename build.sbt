@@ -47,4 +47,6 @@ lazy val service = project
   .in(file("service"))
   .dependsOn(core)
   .settings(commonSettings :_*)
-  .settings(name := "data-slicer-service")
+  .settings(
+    name := "data-slicer-service",
+    libraryDependencies ++= Seq(scalaCompiler))
