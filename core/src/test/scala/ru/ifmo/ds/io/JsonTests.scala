@@ -1,7 +1,7 @@
-package ru.ifmo.ds
+package ru.ifmo.ds.io
 
 import org.scalatest.{FlatSpec, Matchers}
-import ru.ifmo.ds.io.Json
+import ru.ifmo.ds.{Database, HierarchicDatabase}
 
 class JsonTests extends FlatSpec with Matchers {
   private[this] def load(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
@@ -15,7 +15,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
   
   "an empty JSON" should "fail to be read" in {
-    a [Json.ParseException] should be thrownBy {
+    a [TextInputOutput.ParseException] should be thrownBy {
       load("")
     }
   }
@@ -180,7 +180,7 @@ class JsonTests extends FlatSpec with Matchers {
   }
 
   "a JSON with repeated keys on one level" should "fail to be read" in {
-    a [Json.ParseException] should be thrownBy {
+    a [TextInputOutput.ParseException] should be thrownBy {
       load("""{"key":"value1","key":"value2"}""")
     }
   }

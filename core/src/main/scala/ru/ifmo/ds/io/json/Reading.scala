@@ -6,7 +6,7 @@ import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap, HashSet => M
 
 import com.google.gson.stream.{JsonReader, JsonToken}
 
-import ru.ifmo.ds.io.Json.ParseException
+import ru.ifmo.ds.io.TextInputOutput.ParseException
 import ru.ifmo.ds.{Database, HierarchicDatabase}
 
 object Reading {
