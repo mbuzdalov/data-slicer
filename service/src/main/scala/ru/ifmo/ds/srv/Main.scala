@@ -46,7 +46,7 @@ object Main {
       source.close()
       loop.interpret(lines)
 
-      PhaseExecutor.run(vars.phases, root.resolve(vars.dataRoot), vars.stateFileName, vars.singleStep)
+      PhaseExecutor.run(vars.phases, root, root.resolve(vars.dataRoot), vars.stateFileName, vars.singleStep)
     }
   }
 }
