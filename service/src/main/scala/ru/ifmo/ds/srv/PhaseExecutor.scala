@@ -4,16 +4,16 @@ import java.nio.file.{Files, Path}
 import java.util.Properties
 
 object PhaseExecutor {
-  def run(phases: Seq[Phase], root: Path, stateFileName: String, singleStep: Boolean): Unit = {
+  def run(phases: Seq[Phase], projectRoot: Path, phaseRoot: Path, stateFileName: String, singleStep: Boolean): Unit = {
     def processPhase(index: Int, props: Properties, propsChanged: Boolean, curr: Path, prev: Option[Path]): (Boolean, Option[Throwable]) = {
       if (index >= phases.size) (propsChanged, None) else {
         val phase = phases(index)
         val completeKey = phase.key + ".complete"
-        val printPrefix = s"Path ${root.relativize(curr)}, phase ${phase.key}"
+        val printPrefix = s"Path ${phaseRoot.relativize(curr)}, phase ${phase.key}"
         if (props.getProperty(completeKey, "false") != "true") {
           try {
             println(s"$printPrefix: running...")
-            phase.execute(curr, prev)
+            phase.execute(projectRoot, curr, prev)
             println(s"$printPrefix: complete!")
             props.setProperty(completeKey, "true")
             if (singleStep) (true, None) else processPhase(index + 1, props, propsChanged = true, curr, prev)
@@ -27,7 +27,7 @@ object PhaseExecutor {
       }
     }
 
-    val workingSet = Files.list(root)
+    val workingSet = Files.list(phaseRoot)
       .filter(f => Files.exists(f.resolve(stateFileName)))
       .toArray[Path](Array.ofDim[Path])
       .sorted
