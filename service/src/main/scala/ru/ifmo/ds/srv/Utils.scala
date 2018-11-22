@@ -1,5 +1,6 @@
 package ru.ifmo.ds.srv
 
+import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path}
 
@@ -28,5 +29,12 @@ object Utils {
     def indexOrEnd(i: Int, s: String): Int = if (i < 0) s.length else i
     def firstToken(s: String): String = s.substring(0, indexOrEnd(s.indexOf(' '), s))
     Files.readAllLines(file).asScala.filterNot(_.startsWith("#")).map(firstToken).toSet
+  }
+
+  def runProcess(directory: Path, command: String*): Unit = {
+    val exitCode = new ProcessBuilder(command: _*).inheritIO().directory(directory.toFile).start().waitFor()
+    if (exitCode != 0) {
+      throw new IOException("Exit code " + exitCode)
+    }
   }
 }
