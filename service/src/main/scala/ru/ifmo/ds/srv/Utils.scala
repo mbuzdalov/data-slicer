@@ -1,7 +1,9 @@
 package ru.ifmo.ds.srv
 
+import java.nio.charset.Charset
 import java.nio.file.{Files, Path}
 
+import scala.collection.JavaConverters._
 import ru.ifmo.ds.io.Json
 
 object Utils {
@@ -16,5 +18,15 @@ object Utils {
     } else {
       println(s"Warning: both $root and $target exist, will not do anything")
     }
+  }
+
+  def writeLines(file: Path, lines: Iterable[String]): Unit = {
+    Files.write(file, lines.asJava, Charset.defaultCharset())
+  }
+
+  def firstTokensOfUncommentedLines(file: Path): Set[String] = {
+    def indexOrEnd(i: Int, s: String): Int = if (i < 0) s.length else i
+    def firstToken(s: String): String = s.substring(0, indexOrEnd(s.indexOf(' '), s))
+    Files.readAllLines(file).asScala.filterNot(_.startsWith("#")).map(firstToken).toSet
   }
 }
