@@ -4,6 +4,7 @@ import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
 import ru.ifmo.ds.stat.KolmogorovSmirnov
 
 class CompareListener(p: Double, key: String) extends DifferenceListener {
+  private val singleKeySet = Set(key)
   private val differingKeys, sameKeys = IndexedSeq.newBuilder[String]
   override def keyValuesDoNotMatch(slice: Map[String, Option[String]], key: String,
                                    onlyLeft: Set[Option[String]],
@@ -22,7 +23,7 @@ class CompareListener(p: Double, key: String) extends DifferenceListener {
                                        result: KolmogorovSmirnov.Result): Unit = {}
   override def sliceStatistics(slice: Map[String, Option[String]],
                                key: String, statistics: Seq[KolmogorovSmirnov.Result]): Unit = {
-    if (slice.keySet == Set(key)) {
+    if (slice.keySet == singleKeySet) {
       slice(key) match {
         case None =>
         case Some(value) =>
