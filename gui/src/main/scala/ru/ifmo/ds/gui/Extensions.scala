@@ -73,7 +73,7 @@ object Extensions {
         jFreeData.addSeries(series)
       }
 
-      val plot = new XYPlot(jFreeData, xAxis.toJFreeChartAxis, yAxis.toJFreeChartAxis, CustomDeviationRenderer)
+      val plot = new XYPlot(jFreeData, xAxis.toJFreeChartAxis, yAxis.toJFreeChartAxis, new CustomDeviationRenderer)
       plot.setOrientation(PlotOrientation.VERTICAL)
       makeUpPlot(plot)
 
@@ -146,7 +146,7 @@ object Extensions {
     makePresentationTree(db, categoryKeys, composeSeries, createJFreeChart)
   }
 
-  private object CustomDeviationRenderer extends DeviationRenderer {
+  private class CustomDeviationRenderer extends DeviationRenderer {
     setAlpha(0.5f)
     setDefaultToolTipGenerator(ExtendedTooltipGenerator)
     override def lookupSeriesFillPaint(series: Int): Paint = {
