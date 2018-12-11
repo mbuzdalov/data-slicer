@@ -1,6 +1,7 @@
 package ru.ifmo.ds.io
 
 import java.io._
+import java.nio.file.Path
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import ru.ifmo.ds.Database
@@ -15,6 +16,8 @@ trait TextInputOutput {
     reader.close()
     result
   }
+
+  def fromPath(path: Path, moreKeys: Map[String, String] = Map.empty): Database = fromFile(path.toFile, moreKeys)
 
   def fromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
     var stream: FileInputStream = null
@@ -55,6 +58,8 @@ trait TextInputOutput {
     writeToWriter(db, sw)
     sw.toString
   }
+
+  def writeToPath(db: Database, path: Path): Unit = writeToFile(db, path.toFile)
 
   def writeToFile(db: Database, file: File): Unit = {
     if (file.getName.endsWith(".gz")) {
