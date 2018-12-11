@@ -5,24 +5,28 @@ import java.util.Properties
 
 object PhaseExecutor {
   def run(phases: Seq[Phase], projectRoot: Path, phaseRoot: Path, stateFileName: String, singleStep: Boolean): Unit = {
-    def processPhase(index: Int, props: Properties, propsChanged: Boolean, curr: Path, prev: Option[Path]): (Boolean, Option[Throwable]) = {
+    def processPhase(index: Int, props: Properties, propsChanged: Boolean, curr: Path, prev: Option[Path], statePath: Path): Unit = {
       if (index >= phases.size) (propsChanged, None) else {
         val phase = phases(index)
         val completeKey = phase.key + ".complete"
         val printPrefix = s"Path ${phaseRoot.relativize(curr)}, phase ${phase.key}"
         if (props.getProperty(completeKey, "false") != "true") {
-          try {
-            println(s"$printPrefix: running...")
-            phase.execute(projectRoot, curr, prev)
-            println(s"$printPrefix: complete!")
-            props.setProperty(completeKey, "true")
-            if (singleStep) (true, None) else processPhase(index + 1, props, propsChanged = true, curr, prev)
-          } catch {
-            case th: Throwable => (propsChanged, Some(th))
+          println(s"$printPrefix: running...")
+          phase.execute(projectRoot, curr, prev)
+          println(s"$printPrefix: complete!")
+          props.setProperty(completeKey, "true")
+
+          // the properties have changed, flush them immediately
+          val stateWriter = Files.newBufferedWriter(statePath)
+          props.store(stateWriter, null)
+          stateWriter.close()
+
+          if (!singleStep) {
+            processPhase(index + 1, props, propsChanged = true, curr, prev, statePath)
           }
         } else {
           println(s"$printPrefix: already complete")
-          processPhase(index + 1, props, propsChanged, curr, prev)
+          processPhase(index + 1, props, propsChanged, curr, prev, statePath)
         }
       }
     }
@@ -41,14 +45,7 @@ object PhaseExecutor {
       props.load(stateReader)
       stateReader.close()
 
-      val (changed, optionalException) = processPhase(0, props, propsChanged = false, curr, prev)
-      if (changed) {
-        val stateWriter = Files.newBufferedWriter(statePath)
-        props.store(stateWriter, null)
-        stateWriter.close()
-      }
-
-      optionalException.foreach(ex => throw ex)
+      processPhase(0, props, propsChanged = false, curr, prev, statePath)
       processIndex(index + 1)
     }
     processIndex(0)
