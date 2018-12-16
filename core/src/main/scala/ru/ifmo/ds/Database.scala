@@ -21,6 +21,19 @@ abstract class Database extends DatabaseOps {
     entries.map(e => keys.flatMap(k => e.get(k).map(v => k -> v)).toMap)
   }
 
+  def withRenamedValue(key: String, oldValue: String, newValue: String): Database = {
+    val oldPair = key -> oldValue
+    val newPair = key -> newValue
+    def convert(oldEntry: Database.Entry): Database.Entry = {
+      val mapBuilder = Map.newBuilder[String, String]
+      oldEntry.foreach(kv => mapBuilder += (if (kv == oldPair) newPair else kv))
+      Database.entry(mapBuilder.result())
+    }
+    val entryBuilder = IndexedSeq.newBuilder[Database.Entry]
+    foreach(e => entryBuilder += convert(e))
+    Database(entryBuilder.result() :_*)
+  }
+
   def withRenamedKey(oldKey: String, newKey: String): Database = {
     def convert(oldEntry: Database.Entry): Database.Entry = {
       val mapBuilder = Map.newBuilder[String, String]
