@@ -34,8 +34,10 @@ object KolmogorovSmirnov {
       u(0) = 1.0
       for (i <- 0 to m) {
         val im = Rational(i, m)
-        val jMin = math.max(0, ((im - stat) * n).ceil.toInt)
-        val jMax = math.min(n, ((im + stat) * n).floor.toInt)
+        val jMinRaw = (im - stat) * n
+        val jMaxRaw = (im + stat) * n
+        val jMin = math.max(0, if (jMinRaw.isWhole()) jMinRaw.toInt + 1 else jMinRaw.ceil.toInt)
+        val jMax = math.min(n, if (jMaxRaw.isWhole()) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
         for (j <- jMin to jMax) {
           val rowMul = (n - j).toDouble / (n - j + m - i)
           if (jMax > j) {

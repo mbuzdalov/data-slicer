@@ -46,7 +46,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
 
     def checkRandomBounded(bound: Int) = {
       val n, m = 1 + rng.nextInt(bound)
-      val p = rng.nextDouble()
+      val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
       val v2x = KolmogorovSmirnov.pSmirnov2x(p, n, m)
       val v2y = KolmogorovSmirnov.pSmirnov2y(p, n, m)
       v2y shouldBe (v2x +- 1e-9)
