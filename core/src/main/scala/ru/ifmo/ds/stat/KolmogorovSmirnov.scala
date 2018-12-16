@@ -9,26 +9,28 @@ object KolmogorovSmirnov {
   case class Result(p: Double, d: Rational, firstSampleSize: Int, secondSampleSize: Int)
 
   // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
-  final def pSmirnov2x(stat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnov2x(stat, n, m) else {
-      val r = Array.tabulate(n + 1)(j => Rational(j, n))
-      val u = Array.tabulate(n + 1)(j => if (r(j) >= stat) 0.0 else 1.0)
+  private[stat] object R {
+    final def pSmirnov2x(stat: Rational, m: Int, n: Int): Double = {
+      if (m > n) pSmirnov2x(stat, n, m) else {
+        val r = Array.tabulate(n + 1)(j => Rational(j, n))
+        val u = Array.tabulate(n + 1)(j => if (r(j) >= stat) 0.0 else 1.0)
 
-      for (i <- 1 to m) {
-        val im = Rational(i, m)
-        val w = i / (i.toDouble + n)
-        u(0) = if (im >= stat) 0 else w * u(0)
-        for (j <- 1 to n) {
-          u(j) = if ((im - r(j)).abs >= stat) 0 else w * u(j) + u(j - 1)
+        for (i <- 1 to m) {
+          val im = Rational(i, m)
+          val w = i / (i.toDouble + n)
+          u(0) = if (im >= stat) 0 else w * u(0)
+          for (j <- 1 to n) {
+            u(j) = if ((im - r(j)).abs >= stat) 0 else w * u(j) + u(j - 1)
+          }
         }
-      }
 
-      u(n)
+        u(n)
+      }
     }
   }
 
-  final def pSmirnov2y(stat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnov2y(stat, n, m) else {
+  final def pSmirnovDoesNotExceedTwoSided(stat: Rational, m: Int, n: Int): Double = {
+    if (m > n) pSmirnovDoesNotExceedTwoSided(stat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
 
       u(0) = 1.0
@@ -93,7 +95,7 @@ object KolmogorovSmirnov {
 
     val statistic = go(0, 0, 0)
     val p = if (strict) {
-      1 - pSmirnov2x(statistic, asSize, bsSize)
+      1 - pSmirnovDoesNotExceedTwoSided(statistic, asSize, bsSize)
     } else {
       approx(statistic.toDouble * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
     }
@@ -114,7 +116,7 @@ object KolmogorovSmirnov {
       val inputRankSum = stats.map(s => statIndices(s.d)).sum
 
       val dpArray = sizeCache.getOrElseUpdate(n -> m, {
-        val possiblePVals = possibleStats.map(s => 1 - pSmirnov2x(s, n, m))
+        val possiblePVals = possibleStats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, n, m))
         val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
         require(math.abs(possibleProbs.sum - 1) < 1e-9)
 

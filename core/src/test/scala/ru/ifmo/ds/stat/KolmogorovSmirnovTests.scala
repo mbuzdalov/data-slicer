@@ -41,14 +41,14 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     checkNonStrict(1 to 11 by 2, 6 to 16 by 2, RefResult(0.4413, 0.5))
   }
 
-  "Two implementations of pSmirnov2x" should "agree on randomly generated tests" in {
+  "Two implementations of the two-sided KS probability computation" should "agree on randomly generated tests" in {
     val rng = new Random(7284368346522214L)
 
     def checkRandomBounded(bound: Int) = {
       val n, m = 1 + rng.nextInt(bound)
       val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
-      val v2x = KolmogorovSmirnov.pSmirnov2x(p, n, m)
-      val v2y = KolmogorovSmirnov.pSmirnov2y(p, n, m)
+      val v2x = KolmogorovSmirnov.R.pSmirnov2x(p, n, m)
+      val v2y = KolmogorovSmirnov.pSmirnovDoesNotExceedTwoSided(p, n, m)
       v2y shouldBe (v2x +- 1e-9)
     }
 
