@@ -166,7 +166,8 @@ object Extensions {
     (tableModel, tableSorter)
   }
 
-  private def wrapInControllableSplitter(left: JComponent, leftButtonText: String, right: JComponent, rightButtonText: String): JComponent = {
+  private def wrapInControllableSplitter(left: JComponent, leftButtonTooltip: String, leftButtonText: String,
+                                         right: JComponent, rightButtonTooltip: String, rightButtonText: String): JComponent = {
     val split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, left, right)
     split.setDividerLocation(0.5)
     var lastHorizontalRelativeLocation = 0.5
@@ -183,6 +184,7 @@ object Extensions {
     }
 
     val buttonRightOnly = new JButton(rightButtonText)
+    buttonRightOnly.setToolTipText(rightButtonTooltip)
     buttonRightOnly.addActionListener(_ => {
       saveLocation()
       right.setVisible(true)
@@ -190,6 +192,7 @@ object Extensions {
       split.revalidate()
     })
     val buttonLeftOnly = new JButton(leftButtonText)
+    buttonLeftOnly.setToolTipText(leftButtonTooltip)
     buttonLeftOnly.addActionListener(_ => {
       saveLocation()
       right.setVisible(false)
@@ -197,6 +200,7 @@ object Extensions {
       split.revalidate()
     })
     val buttonH = new JButton("|")
+    buttonH.setToolTipText("Show both side-to-side")
     buttonH.addActionListener(_ => {
       saveLocation()
       right.setVisible(true)
@@ -206,6 +210,7 @@ object Extensions {
       split.revalidate()
     })
     val buttonV = new JButton("<html>&minus;</html>")
+    buttonV.setToolTipText("Show both atop one another")
     buttonV.addActionListener(_ => {
       saveLocation()
       right.setVisible(true)
@@ -260,7 +265,8 @@ object Extensions {
       table.setRowSorter(data.tableRowSorter)
       table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
       val tableScroll = new JScrollPane(table)
-      wrapInControllableSplitter(chartPanel, "C", tableScroll, "T")
+      wrapInControllableSplitter(chartPanel, "Show the chart only", "C",
+                                 tableScroll, "Show the table only", "T")
     }
 
     def composeSeries(db: Database): LeafDescription = {
