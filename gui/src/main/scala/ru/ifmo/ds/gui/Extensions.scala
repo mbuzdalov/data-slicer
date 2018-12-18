@@ -9,10 +9,11 @@ import javax.swing.table._
 
 import scala.collection.{mutable => mu}
 
+import org.jfree.chart.entity.LegendItemEntity
 import org.jfree.chart.labels.XYToolTipGenerator
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.renderer.xy.{DeviationRenderer, XYLineAndShapeRenderer}
-import org.jfree.chart.{ChartPanel, JFreeChart}
+import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel, JFreeChart}
 import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
@@ -253,6 +254,46 @@ object Extensions {
     rv
   }
 
+  private val toggleListener = new ChartMouseListener {
+    override def chartMouseClicked(event: ChartMouseEvent): Unit = {
+      event.getEntity match {
+        case l: LegendItemEntity =>
+          val ds = l.getDataset.asInstanceOf[XYDataset]
+          val index = ds.indexOf(l.getSeriesKey)
+          val plot = event.getChart.getXYPlot
+          val renderer = plot.getRenderer
+          val oldVisible = renderer.getSeriesVisible(index)
+          renderer.setSeriesVisible(index, if (oldVisible == null) false else !oldVisible, true)
+          val legendItems = plot.getFixedLegendItems
+          for (i <- 0 until legendItems.getItemCount) {
+            val legendItem = legendItems.get(i)
+            if (legendItem.getDataset == ds && legendItem.getSeriesIndex == index) {
+              val oldFont0 = legendItem.getLabelFont
+              val oldFont = if (oldFont0 == null) new Font(Font.SANS_SERIF, Font.PLAIN, 12) else oldFont0
+              if (oldFont.isPlain) {
+                legendItem.setLabelFont(oldFont.deriveFont(Font.ITALIC))
+                legendItem.setLabelPaint(Color.GRAY)
+              } else {
+                legendItem.setLabelFont(oldFont.deriveFont(Font.PLAIN))
+                legendItem.setLabelPaint(Color.BLACK)
+              }
+            }
+          }
+        case _ =>
+      }
+    }
+
+    override def chartMouseMoved(event: ChartMouseEvent): Unit = {}
+  }
+
+  private def augmentWithTogglingPlotsByClickingOnLegend(panel: ChartPanel): Unit = {
+    val plot = panel.getChart.getXYPlot
+    // Fix the legend, so that making a plot invisible does not hide it from the legend
+    val legend = plot.getLegendItems
+    plot.setFixedLegendItems(legend)
+    panel.addChartMouseListener(toggleListener)
+  }
+
   def makeXY(db: Database, categoryKeys: Seq[String], xAxis: Axis, yAxis: Axis, seriesKey: String): JComponent = {
     case class LeafDescription(plot: XYPlot,
                                tableModel: TableModel,
@@ -261,6 +302,7 @@ object Extensions {
     def createJFreeChart(data: LeafDescription): JComponent = {
       assert(SwingUtilities.isEventDispatchThread)
       val chartPanel = new ChartPanel(new JFreeChart(data.plot))
+      augmentWithTogglingPlotsByClickingOnLegend(chartPanel)
       val table = new JTable(data.tableModel)
       table.setRowSorter(data.tableRowSorter)
       table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
