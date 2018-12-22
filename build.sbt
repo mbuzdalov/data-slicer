@@ -1,4 +1,4 @@
-val theScalaVersion = "2.12.7"
+val theScalaVersion = "2.12.8"
 
 lazy val commonSettings = Seq(
   organization := "ru.ifmo",
@@ -41,7 +41,7 @@ lazy val gui = project
   .settings(commonSettings :_*)
   .settings(
     name    := "data-slicer-gui",
-    libraryDependencies ++= Seq(scalaCompiler, jFreeChart))
+    libraryDependencies ++= Seq(jFreeChart))
 
 lazy val service = project
   .in(file("service"))
