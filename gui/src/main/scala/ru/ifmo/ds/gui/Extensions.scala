@@ -9,6 +9,7 @@ import javax.swing.table._
 
 import scala.collection.{mutable => mu}
 
+import org.jfree.chart.axis.{LogarithmicAxis, NumberAxis, ValueAxis}
 import org.jfree.chart.entity.LegendItemEntity
 import org.jfree.chart.labels.XYToolTipGenerator
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
@@ -17,10 +18,17 @@ import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel, JFreeCh
 import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
-import ru.ifmo.ds.gui.util._
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 
 object Extensions {
+  private implicit class AxisOps(val axis: Axis) extends AnyVal {
+    def toJFreeChartAxis: ValueAxis = if (axis.isLogarithmic) {
+      new LogarithmicAxis(axis.name)
+    } else {
+      new NumberAxis(axis.name)
+    }
+  }
+
   def makePresentationTree[T](db: Database, categoryKeys: Seq[String], makeLeaf: Database => T, makeView: T => JComponent): JComponent = {
     type WorkerResult = Either[(Seq[String], Seq[(String, Database)]), T]
     val result = new JPanel(new BorderLayout())

@@ -1,15 +1,27 @@
 package ru.ifmo.ds
 
-import java.awt.{BorderLayout, Dimension, Frame}
+import java.awt.{Frame, GridLayout}
 
 import javax.swing._
-import ru.ifmo.ds.gui.ConsolePane.Builder
+
+import ru.ifmo.ds.gui.{EntityContainer, DisplayedEntity}
 
 object MainGUI {
-  private[this] def designMainPane(): JPanel = {
-    val editablePane = new JPanel(true)
-    editablePane.setMinimumSize(new Dimension(400, 300))
-    editablePane
+  private class TestDisplay(parents: Seq[DisplayedEntity], context: EntityContainer, text: String)
+    extends DisplayedEntity(parents, context, DisplayedEntity.chartIcon, text) {
+    override protected def makeMainUI(): JComponent = {
+      val rv = new JLabel(text)
+      rv.setHorizontalAlignment(SwingConstants.CENTER)
+      rv.setVerticalAlignment(SwingConstants.CENTER)
+      rv.setFont(rv.getFont.deriveFont(28.0f))
+      rv
+    }
+    override protected def recomputeContents(): Unit = {
+      System.out.println(text + ".recomputeContents() called")
+    }
+    override protected def invalidateContents(): Unit = {
+      System.out.println(text + ".invalidateContents() called")
+    }
   }
 
   def main(args: Array[String]): Unit = {
@@ -17,17 +29,15 @@ object MainGUI {
     System.setProperty("swing.aatext", "true")
 
     SwingUtilities.invokeLater(() => {
-      val frame = new JFrame("DataSlicer Graphical Console")
-      val editablePane = designMainPane()
+      val context = new EntityContainer
+      val t0 = new TestDisplay(Seq.empty, context, "Test!")
+      for (i <- 1 to 10) {
+        new TestDisplay(Seq(t0), context, "Dependent!" + i)
+      }
 
-      val split = new Builder()
-        .addBinding("args", "Array[String]", args)
-        .addFieldHelp("args: Array[String] -- the arguments to the application")
-        .resultBoundTo(editablePane)
-
-      frame.setLayout(new BorderLayout())
-      frame.add(split, BorderLayout.CENTER)
-      frame.setSize(800, 600)
+      val frame = new JFrame("DataSlicer")
+      frame.setLayout(new GridLayout(1, 1))
+      frame.add(context.root)
       frame.setExtendedState(Frame.MAXIMIZED_BOTH)
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
       frame.setVisible(true)
