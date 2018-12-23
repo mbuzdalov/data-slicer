@@ -52,6 +52,8 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
 
   protected def makeMainUI(): JComponent /* called from Swing */
 
+  def derive(newEntities: Seq[DisplayedEntity]): DisplayedEntity /* called from Swing */
+
   override protected def notifyWaitingForDependencies(): Unit = {
     super.notifyWaitingForDependencies()
     if (isAfterVariableInitialization) {

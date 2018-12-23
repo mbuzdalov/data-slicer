@@ -20,6 +20,10 @@ object MainGUI {
     override protected def runEvaluation(): Unit = {
       Thread.sleep(2000)
     }
+
+    override def derive(newEntities: Seq[DisplayedEntity]): DisplayedEntity = {
+      new TestDisplay(newEntities, context, getName)
+    }
   }
 
   def main(args: Array[String]): Unit = {
