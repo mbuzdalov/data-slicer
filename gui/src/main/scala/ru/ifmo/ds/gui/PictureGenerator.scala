@@ -20,13 +20,13 @@ object PictureGenerator {
 
   private def makeReload(g: Graphics2D): Unit = {
     g.setColor(Color.BLUE)
-    g.drawArc(3, 3, 26, 22, 60, -150)
-    g.drawArc(3, 3, 26, 22, -120, -150)
-    g.drawArc(4, 4, 24, 20, 60, -150)
-    g.drawArc(4, 4, 24, 20, -120, -150)
+    g.drawArc(3, 3, 24, 22, 60, -150)
+    g.drawArc(3, 3, 24, 22, -120, -150)
+    g.drawArc(4, 4, 22, 20, 60, -150)
+    g.drawArc(4, 4, 22, 20, -120, -150)
 
-    g.fillPolygon(Array(19, 10, 10), Array(5, 10, 0), 3)
-    g.fillPolygon(Array(14, 21, 21), Array(24, 19, 29), 3)
+    g.fillPolygon(Array(18, 9, 9), Array(5, 10, 0), 3)
+    g.fillPolygon(Array(13, 20, 20), Array(24, 19, 29), 3)
   }
 
   private def makeChart(g: Graphics2D): Unit = {
