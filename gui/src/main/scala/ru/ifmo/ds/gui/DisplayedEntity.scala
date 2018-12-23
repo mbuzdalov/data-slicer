@@ -123,8 +123,6 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
 }
 
 object DisplayedEntity {
-  // Free Mono Icon Set is distributed under Creative Commons Attribution-Noncommercial Works 3.0 Unported license.
-  // Attribution link: gentleface.com
   val reloadIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("reload.png")))
   val removeIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("remove.png")))
   val chartIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("chart.png")))
