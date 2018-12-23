@@ -1,24 +1,24 @@
 package ru.ifmo.ds.gui
 
+import java.awt._
 import java.awt.event._
-import java.awt.{BorderLayout, Color, GridLayout, Insets}
-import java.beans.PropertyChangeEvent
 
 import javax.imageio.ImageIO
 import javax.swing._
 
-import scala.collection.mutable
-
 abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
                                container: EntityContainer,
                                icon: Icon,
-                               initialName: String) { self =>
+                               initialName: String) extends AsyncEvaluationDAGNode(inputEntities) { self =>
   require(SwingUtilities.isEventDispatchThread,
           "The DisplayedEntity constructor shall be called on an AWT dispatch thread")
 
-  private val listeners = new mutable.ArrayBuffer[DisplayedEntity.StateListener]()
-  private val children = new mutable.HashSet[DisplayedEntity]()
-  private var mainUI: JComponent = _
+  private val mainUILayout = new CardLayout()
+  private val mainUILayoutDependencies = "Dependencies"
+  private val mainUILayoutEvaluating = "Evaluating"
+  private val mainUILayoutReady = "Ready"
+  private val mainUI = new JPanel(mainUILayout)
+  private val isAfterVariableInitialization = true
   private var isAlive = true
   private val displayUI = new JPanel(new BorderLayout(3, 3))
   private val nameLabel = new EditableLabel(initialName)
@@ -26,51 +26,57 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   private val displayOnPressListener = new MouseAdapter {
     override def mousePressed(e: MouseEvent): Unit = container.show(self)
   }
+  private val evaluatingLabel = DisplayedEntity.makeLargeLabel("Evaluating...")
+  private val dependenciesLabel = DisplayedEntity.makeLargeLabel("Waiting for dependencies...")
 
-  private val inputUpdateListener: DisplayedEntity.StateListener = new DisplayedEntity.StateListener {
-    private val invalidatedSet = new mutable.HashSet[DisplayedEntity]()
+  /* intentionally no init, is initialized before the constructor runs */
+  private var areDependenciesReadyInConstructor: Boolean = _
 
-    override def nameChanged(entity: DisplayedEntity, newName: String): Unit = {}
-    override def contentsInvalidated(entity: DisplayedEntity): Unit = {
-      if (invalidatedSet.isEmpty) {
-        invalidateContents()
-      }
-      invalidatedSet += entity
-    }
+  mainUI.add(evaluatingLabel, mainUILayoutEvaluating)
+  mainUI.add(dependenciesLabel, mainUILayoutDependencies)
+  mainUI.add(makeMainUI(), mainUILayoutReady)
 
-    override def contentsReady(entity: DisplayedEntity): Unit = {
-      invalidatedSet -= entity
-      if (invalidatedSet.isEmpty) {
-        recomputeContents()
-      }
-    }
-  }
-
-  nameLabel.addPropertyChangeListener(EditableLabel.NameProperty, (evt: PropertyChangeEvent) => {
-    val name = evt.getNewValue.toString
-    listeners.foreach(_.nameChanged(this, name))
-  })
+  mainUILayout.show(mainUI, if (areDependenciesReadyInConstructor) mainUILayoutEvaluating else mainUILayoutDependencies)
 
   displayUI.addMouseListener(displayOnPressListener)
   nameLabel.addMouseListener(displayOnPressListener)
 
-  reloadRemovePane.add(DisplayedEntity.makeSmallButton(DisplayedEntity.reloadIcon, _ => {invalidateContents(); recomputeContents()}))
+  reloadRemovePane.add(DisplayedEntity.makeSmallButton(DisplayedEntity.reloadIcon, _ => initiateReloading()))
   reloadRemovePane.add(DisplayedEntity.makeSmallButton(DisplayedEntity.removeIcon, _ => tryDispose()))
 
   displayUI.add(new JLabel(icon), BorderLayout.LINE_START)
   displayUI.add(nameLabel, BorderLayout.CENTER)
   displayUI.add(reloadRemovePane, BorderLayout.LINE_END)
 
-  for (e <- inputEntities) {
-    e.children += this
-    e.listeners += inputUpdateListener
-  }
-
   container.add(this)
 
-  protected def invalidateContents(): Unit /* called from Swing */
-  protected def recomputeContents(): Unit /* called from Swing */
   protected def makeMainUI(): JComponent /* called from Swing */
+
+  override protected def notifyWaitingForDependencies(): Unit = {
+    super.notifyWaitingForDependencies()
+    if (isAfterVariableInitialization) {
+      ensureIsAlive()
+      mainUILayout.show(mainUI, mainUILayoutDependencies)
+    } else {
+      areDependenciesReadyInConstructor = false
+    }
+  }
+
+  override protected def notifyEvaluationStarting(): Unit = {
+    super.notifyEvaluationStarting()
+    if (isAfterVariableInitialization) {
+      ensureIsAlive()
+      mainUILayout.show(mainUI, mainUILayoutEvaluating)
+    } else {
+      areDependenciesReadyInConstructor = true
+    }
+  }
+
+  override protected def notifyEvaluationFinished(): Unit = {
+    super.notifyEvaluationFinished()
+    ensureIsAlive()
+    mainUILayout.show(mainUI, mainUILayoutReady)
+  }
 
   final def getName: String = {
     ensureIsAlive()
@@ -84,19 +90,18 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
 
   final def getMainUI: JComponent = {
     ensureIsAlive()
-    mainUI = makeMainUI()
     mainUI
   }
 
   def dispose(): Unit = {
     ensureIsAlive()
-    inputEntities.foreach(_.children -= this)
+    disconnectFromInputs()
     container.remove(this)
     isAlive = false
   }
 
   private def tryDispose(): Unit = {
-    if (children.isEmpty) {
+    if (getChildren.isEmpty) {
       if (container.confirmRemoval(this)) {
         dispose()
       }
@@ -127,6 +132,14 @@ object DisplayedEntity {
   val removeIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("remove.png")))
   val chartIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("chart.png")))
 
+  private def makeLargeLabel(text: String): JLabel = {
+    val rv = new JLabel(text)
+    rv.setHorizontalAlignment(SwingConstants.CENTER)
+    rv.setVerticalAlignment(SwingConstants.CENTER)
+    rv.setFont(rv.getFont.deriveFont(28.0f))
+    rv
+  }
+
   private def makeSmallButton(icon: Icon, action: ActionListener): JButton = {
     val rv = new JButton(icon)
     rv.addActionListener(action)
@@ -137,10 +150,4 @@ object DisplayedEntity {
   }
 
   private val fadingOutRedColors = (0 until 100).map(i => new Color(255, i * 2, i * 2))
-
-  trait StateListener {
-    def nameChanged(entity: DisplayedEntity, newName: String): Unit
-    def contentsInvalidated(entity: DisplayedEntity): Unit
-    def contentsReady(entity: DisplayedEntity): Unit
-  }
 }

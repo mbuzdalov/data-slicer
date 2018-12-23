@@ -16,11 +16,9 @@ object MainGUI {
       rv.setFont(rv.getFont.deriveFont(28.0f))
       rv
     }
-    override protected def recomputeContents(): Unit = {
-      System.out.println(text + ".recomputeContents() called")
-    }
-    override protected def invalidateContents(): Unit = {
-      System.out.println(text + ".invalidateContents() called")
+
+    override protected def runEvaluation(): Unit = {
+      Thread.sleep(2000)
     }
   }
 
