@@ -51,6 +51,19 @@ object PictureGenerator {
     draw(Color.GREEN, f2)
   }
 
+  private def makeDatabase(g: Graphics2D): Unit = {
+    g.setColor(Color.GRAY)
+    g.fillRect(4, 2, 24, 28)
+    for (l <- 5 to 25 by 5) {
+      g.setColor(if (l == 5) Color.RED else Color.BLUE)
+      g.drawLine(6, l, 8, l)
+      g.setColor(if (l == 5) Color.RED else Color.BLACK)
+      for (x <- 10 to 22 by 4) {
+        g.drawLine(x, l, x + 2, l)
+      }
+    }
+  }
+
   private def write(dir: File, name: String, size: Int)(fun: Graphics2D => Any): Unit = {
     val image = new BufferedImage(size, size, BufferedImage.TYPE_4BYTE_ABGR)
     val graphics = image.createGraphics()
@@ -73,6 +86,8 @@ object PictureGenerator {
     println("Generating to " + root)
     write(root, "remove.png", 30)(makeRedCross)
     write(root, "reload.png", 30)(makeReload)
+
     write(root, "chart.png", 32)(makeChart)
+    write(root, "database.png", 32)(makeDatabase)
   }
 }

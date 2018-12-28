@@ -133,6 +133,7 @@ object DisplayedEntity {
   val reloadIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("reload.png")))
   val removeIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("remove.png")))
   val chartIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("chart.png")))
+  val dbIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("database.png")))
 
   private def makeLargeLabel(text: String): JLabel = {
     val rv = new JLabel(text)

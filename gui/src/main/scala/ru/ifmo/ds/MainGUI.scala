@@ -8,7 +8,9 @@ import ru.ifmo.ds.gui.{EntityContainer, DisplayedEntity}
 
 object MainGUI {
   private class TestDisplay(parents: Seq[DisplayedEntity], context: EntityContainer, text: String)
-    extends DisplayedEntity(parents, context, DisplayedEntity.chartIcon, text) {
+    extends DisplayedEntity(parents, context,
+                            if (parents.isEmpty) DisplayedEntity.dbIcon else DisplayedEntity.chartIcon,
+                            text) {
     override protected def makeMainUI(): JComponent = {
       val rv = new JLabel(text)
       rv.setHorizontalAlignment(SwingConstants.CENTER)
