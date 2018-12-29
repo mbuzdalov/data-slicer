@@ -11,15 +11,10 @@ abstract class AsyncEvaluationDAGNode(inputs: Seq[AsyncEvaluationDAGNode]) {
   import AsyncEvaluationDAGNode._
 
   private val children = new mutable.HashSet[AsyncEvaluationDAGNode]
-  private[this] var _state: State = NotEvaluated
-  private var nInputsWaitedFor = inputs.count(_.state != Evaluated)
+  private[this] var state: State = NotEvaluated
+  private var nInputsWaitedFor = inputs.count(_.getState != Evaluated)
 
-  private def state: State = _state
-  //noinspection ScalaUnusedSymbol: the plugin highlights the usages but does not count them somehow
-  private def state_=(newState: State): Unit = {
-    if (DEBUG) println(toString + ": " + _state + " => " + newState)
-    _state = newState
-  }
+  private def getState: State = state
 
   inputs.foreach(_.children += this)
 
@@ -37,15 +32,22 @@ abstract class AsyncEvaluationDAGNode(inputs: Seq[AsyncEvaluationDAGNode]) {
     state = Evaluating
     notifyEvaluationStarting()
     new Thread(() => {
-      runEvaluation()
-      SwingUtilities.invokeLater(() => {
-        notifyEvaluationFinished()
-        notifyEvaluationComplete()
-      })
+      try {
+        runEvaluation()
+        SwingUtilities.invokeLater(() => {
+          notifyEvaluationFinished()
+          notifyEvaluationComplete()
+        })
+      } catch {
+        case th: Throwable =>
+          SwingUtilities.invokeLater(() => {
+            notifyEvaluationFailed(th)
+            notifyEvaluationCrashed()
+          })
+      }
     }).start()
   }
 
-  //noinspection ScalaUnusedSymbol: in fact, used in this method just below
   private def notifyParentIsNotEvaluated(): Unit = {
     ensureInSwing()
     assert(nInputsWaitedFor < inputs.size)
@@ -86,6 +88,26 @@ abstract class AsyncEvaluationDAGNode(inputs: Seq[AsyncEvaluationDAGNode]) {
     }
   }
 
+  private def notifyEvaluationCrashed(): Unit = {
+    ensureInSwing()
+    if (DEBUG) println(toString + ".notifyEvaluationCrashed() called")
+    state match {
+      case NotEvaluated =>
+        throw new AssertionError("Illegal state: NotEvaluated")
+      case Evaluated =>
+        throw new AssertionError("Illegal state: Evaluated")
+      case EvaluatingWhileReceivingRequest =>
+        state = NotEvaluated
+        if (nInputsWaitedFor == 0) {
+          initiateEvaluation()
+        } else {
+          notifyWaitingForDependencies()
+        }
+      case Evaluating =>
+        state = NotEvaluated
+    }
+  }
+
   private def notifyEvaluationComplete(): Unit = {
     ensureInSwing()
     if (DEBUG) println(toString + ".notifyEvaluationComplete() called")
@@ -110,6 +132,7 @@ abstract class AsyncEvaluationDAGNode(inputs: Seq[AsyncEvaluationDAGNode]) {
   protected def notifyWaitingForDependencies(): Unit = {} /* will be called in Swing */
   protected def notifyEvaluationStarting(): Unit = {} /* will be called in Swing */
   protected def notifyEvaluationFinished(): Unit = {} /* will be called in Swing */
+  protected def notifyEvaluationFailed(throwable: Throwable): Unit = {} /* will be called in Swing */
 
   protected def getChildren: GeneralSet[AsyncEvaluationDAGNode] = children
   protected def runEvaluation(): Unit /* will be called in a dedicated thread */
@@ -118,7 +141,11 @@ abstract class AsyncEvaluationDAGNode(inputs: Seq[AsyncEvaluationDAGNode]) {
     if (DEBUG) println(toString + ".initiateReloading() called")
     state match {
       case NotEvaluated =>
-        // do nothing
+        if (nInputsWaitedFor == 0) {
+          initiateEvaluation()
+        } else {
+          notifyWaitingForDependencies()
+        }
       case Evaluated =>
         state = NotEvaluated
         children.foreach(_.notifyParentIsNotEvaluated())

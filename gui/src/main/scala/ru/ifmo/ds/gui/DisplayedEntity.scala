@@ -2,6 +2,7 @@ package ru.ifmo.ds.gui
 
 import java.awt._
 import java.awt.event._
+import java.io.{PrintWriter, StringWriter}
 
 import javax.imageio.ImageIO
 import javax.swing._
@@ -17,6 +18,7 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   private val mainUILayoutDependencies = "Dependencies"
   private val mainUILayoutEvaluating = "Evaluating"
   private val mainUILayoutReady = "Ready"
+  private val mainUILayoutFailed = "Failed"
   private val mainUI = new JPanel(mainUILayout)
   private val isAfterVariableInitialization = true
   private var isAlive = true
@@ -28,6 +30,7 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   }
   private val evaluatingLabel = DisplayedEntity.makeLargeLabel("Evaluating...")
   private val dependenciesLabel = DisplayedEntity.makeLargeLabel("Waiting for dependencies...")
+  private val exceptionTextArea = new JTextArea()
 
   /* intentionally no init, is initialized before the constructor runs */
   private var areDependenciesReadyInConstructor: Boolean = _
@@ -35,6 +38,7 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   mainUI.add(evaluatingLabel, mainUILayoutEvaluating)
   mainUI.add(dependenciesLabel, mainUILayoutDependencies)
   mainUI.add(makeMainUI(), mainUILayoutReady)
+  mainUI.add(exceptionTextArea, mainUILayoutFailed)
 
   mainUILayout.show(mainUI, if (areDependenciesReadyInConstructor) mainUILayoutEvaluating else mainUILayoutDependencies)
 
@@ -78,6 +82,18 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
     super.notifyEvaluationFinished()
     ensureIsAlive()
     mainUILayout.show(mainUI, mainUILayoutReady)
+  }
+
+
+  override protected def notifyEvaluationFailed(throwable: Throwable): Unit = {
+    super.notifyEvaluationFailed(throwable)
+    ensureIsAlive()
+    val string = new StringWriter()
+    val stream = new PrintWriter(string)
+    throwable.printStackTrace(stream)
+    stream.close()
+    exceptionTextArea.setText(string.toString)
+    mainUILayout.show(mainUI, mainUILayoutFailed)
   }
 
   final def getName: String = {
