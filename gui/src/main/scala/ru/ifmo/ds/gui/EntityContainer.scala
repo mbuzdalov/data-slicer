@@ -6,20 +6,37 @@ import javax.swing._
 
 import scala.collection.mutable
 
+import ru.ifmo.ds.gui.parts.DatabaseEntity
+
 class EntityContainer {
   require(SwingUtilities.isEventDispatchThread,
           "The Context constructor shall be called on an AWT dispatch thread")
 
   private val mainPaneLayout = new CardLayout()
   private val mainPane = new JPanel(mainPaneLayout)
+  private val leftPane = new JPanel(new VerticalFlowLayout)
   private val displayPane = new JPanel(new VerticalFlowLayout)
-  private val rootComponent = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, displayPane, mainPane)
+  private val rootComponent = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPane, mainPane)
   private val entities = new mutable.ArrayBuffer[DisplayedEntity]()
 
   private val nothingToShowString = "###"
   private val nothingToShow = new JLabel("Click on an entry on the left to see its contents")
   nothingToShow.setHorizontalAlignment(SwingConstants.CENTER)
   nothingToShow.setVerticalAlignment(SwingConstants.CENTER)
+
+  private val openFileChooser = new JFileChooser()
+  openFileChooser.setMultiSelectionEnabled(false)
+
+  private val openFile = new JButton("Open file")
+  openFile.addActionListener(_ => {
+    val chooserResult = openFileChooser.showOpenDialog(mainPane)
+    if (chooserResult == JFileChooser.APPROVE_OPTION) {
+      val file = openFileChooser.getSelectedFile
+      add(DatabaseEntity.fromFile(this, file))
+    }
+  })
+  leftPane.add(displayPane)
+  leftPane.add(openFile)
 
   mainPane.add(nothingToShow, nothingToShowString)
 
