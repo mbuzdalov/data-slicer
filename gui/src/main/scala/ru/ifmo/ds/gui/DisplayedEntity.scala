@@ -11,7 +11,7 @@ import ru.ifmo.ds.gui.util.EditableLabel
 abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
                                container: EntityContainer,
                                icon: Icon,
-                               initialName: String) extends AsyncEvaluationDAGNode(inputEntities) { self =>
+                               initialName: String) extends AsyncEvaluationDAGNode(inputEntities, initialName) { self =>
   require(SwingUtilities.isEventDispatchThread,
           "The DisplayedEntity constructor shall be called on an AWT dispatch thread")
 
