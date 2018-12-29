@@ -25,14 +25,15 @@ class EntityContainer {
   nothingToShow.setVerticalAlignment(SwingConstants.CENTER)
 
   private val openFileChooser = new JFileChooser()
-  openFileChooser.setMultiSelectionEnabled(false)
+  openFileChooser.setMultiSelectionEnabled(true)
+  openFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY)
 
   private val openFile = new JButton("Open file")
   openFile.addActionListener(_ => {
     val chooserResult = openFileChooser.showOpenDialog(mainPane)
     if (chooserResult == JFileChooser.APPROVE_OPTION) {
-      val file = openFileChooser.getSelectedFile
-      add(DatabaseEntity.fromFile(this, file))
+      val files = openFileChooser.getSelectedFiles
+      add(DatabaseEntity.fromFiles(this, files.toIndexedSeq, "filename"))
     }
   })
   leftPane.add(displayPane)

@@ -52,6 +52,29 @@ object DatabaseEntity {
   def fromFile(container: EntityContainer, file: File, moreKeys: Map[String, String] = Map.empty): DatabaseEntity = {
     new DatabaseEntity(Seq.empty, container, file.getName, _ => TextInputOutput.fromFile(file, moreKeys))
   }
+  def fromFiles(container: EntityContainer, files: Seq[File], filenameKey: String, moreKeys: Map[String, String] = Map.empty): DatabaseEntity = {
+    var commonName: String = null
+    for (f <- files) {
+      val name = f.getAbsolutePath
+      if (commonName == null) {
+        commonName = name
+      } else {
+        var idx = 0
+        while (idx < commonName.length && idx < name.length && commonName(idx) == name(idx)) {
+          idx += 1
+        }
+        commonName = commonName.substring(0, idx)
+      }
+    }
+    if (commonName == null) {
+      commonName = "???"
+    } else if (commonName.isEmpty) {
+      commonName = "<merged>"
+    }
+
+    def load() = Database.merge(files.map(f => TextInputOutput.fromFile(f, moreKeys + (filenameKey -> f.getName))) :_*)
+    new DatabaseEntity(Seq.empty, container, commonName, _ => load())
+  }
   def merge(container: EntityContainer, sources: Seq[DatabaseEntity], name: String): DatabaseEntity = {
     new DatabaseEntity(sources, container, name, Database.merge)
   }
@@ -102,6 +125,9 @@ object DatabaseEntity {
       val builder = new StringBuilder
       def work(index: Int): String = {
         if (index == data.size) builder.result() else {
+          if (index > 0) {
+            builder.append(", ")
+          }
           builder.append(data(index))
           if (builder.length > 500) {
             builder.setLength(500)
