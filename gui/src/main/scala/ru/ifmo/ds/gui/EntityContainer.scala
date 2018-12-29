@@ -6,6 +6,7 @@ import javax.swing._
 
 import scala.collection.mutable
 import ru.ifmo.ds.gui.actions.{EntityAction, OpenDatabaseFiles}
+import ru.ifmo.ds.gui.util.VerticalFlowLayout
 
 class EntityContainer {
   require(SwingUtilities.isEventDispatchThread,

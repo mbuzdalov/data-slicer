@@ -6,6 +6,7 @@ import java.io.{PrintWriter, StringWriter}
 
 import javax.imageio.ImageIO
 import javax.swing._
+import ru.ifmo.ds.gui.util.EditableLabel
 
 abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
                                container: EntityContainer,

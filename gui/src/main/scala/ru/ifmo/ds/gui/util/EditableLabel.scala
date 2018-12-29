@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui
+package ru.ifmo.ds.gui.util
 
 import java.awt.CardLayout
 import java.awt.event.{MouseAdapter, MouseEvent, MouseListener}
