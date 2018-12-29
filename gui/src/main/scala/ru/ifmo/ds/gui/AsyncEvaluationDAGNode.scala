@@ -5,9 +5,9 @@ import javax.swing.SwingUtilities
 import scala.collection.{Set => GeneralSet}
 import scala.collection.mutable
 
-abstract class AsyncEvaluationDAGNode protected (inputs: Seq[AsyncEvaluationDAGNode],
-                                                 private val name: String,
-                                                 watcher: AsyncEvaluationDAGNode.Watcher) {
+abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationDAGNode],
+                                                    private[gui] val name: String,
+                                                    watcher: AsyncEvaluationDAGNode.Watcher) {
   def this(inputs: Seq[AsyncEvaluationDAGNode], name: String) {
     this(inputs, name, AsyncEvaluationDAGNode.defaultWatcher)
   }
@@ -22,9 +22,11 @@ abstract class AsyncEvaluationDAGNode protected (inputs: Seq[AsyncEvaluationDAGN
 
   private def getState: State = state
   private def setState(newState: State): Unit = {
-    val oldState = state
-    state = newState
-    watcher.stateTransition(this, oldState, newState)
+    if (state != newState) {
+      val oldState = state
+      state = newState
+      watcher.stateTransition(this, oldState, newState)
+    }
   }
 
   inputs.foreach(_.children += this)
@@ -149,7 +151,8 @@ abstract class AsyncEvaluationDAGNode protected (inputs: Seq[AsyncEvaluationDAGN
 
   protected def getChildren: GeneralSet[AsyncEvaluationDAGNode] = children
   protected def runEvaluation(): Unit /* will be called in a dedicated thread */
-  protected def initiateReloading(): Unit = {
+
+  def initiateReloading(): Unit = {
     ensureInSwing()
     watcher.initiateReloading(this)
     state match {
@@ -178,7 +181,7 @@ abstract class AsyncEvaluationDAGNode protected (inputs: Seq[AsyncEvaluationDAGN
 }
 
 object AsyncEvaluationDAGNode {
-  protected trait Watcher {
+  private[gui] trait Watcher {
     def created(node: AsyncEvaluationDAGNode, waitsForDependencies: Boolean): Unit
     def stateTransition(node: AsyncEvaluationDAGNode, oldState: State, newState: State): Unit
     def initiateEvaluation(node: AsyncEvaluationDAGNode): Unit
@@ -234,9 +237,9 @@ object AsyncEvaluationDAGNode {
     if (System.getProperty("slicer.gui.node.debug", "false") == "true") stdoutWatcher else emptyWatcher
   }
 
-  private sealed trait State
-  private case object NotEvaluated extends State
-  private case object Evaluating extends State
-  private case object EvaluatingWhileReceivingRequest extends State
-  private case object Evaluated extends State
+  private[gui] sealed abstract class State(val id: Int)
+  private[gui] case object NotEvaluated extends State(0)
+  private[gui] case object Evaluating extends State(1)
+  private[gui] case object EvaluatingWhileReceivingRequest extends State(2)
+  private[gui] case object Evaluated extends State(3)
 }
