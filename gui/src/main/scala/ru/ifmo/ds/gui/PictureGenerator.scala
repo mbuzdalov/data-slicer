@@ -51,6 +51,38 @@ object PictureGenerator {
     draw(Color.GREEN, f2)
   }
 
+  private def makeTable(g: Graphics2D): Unit = {
+    g.setColor(Color.GRAY)
+    g.drawPolygon(Array(0, 31, 31, 0), Array(31, 31, 0, 0), 4)
+    g.setColor(Color.BLACK)
+    for (y <- 2 to 29 by 3) {
+      g.drawLine(3, y, 28, y)
+    }
+    for (x <- 3 to 28 by 5) {
+      g.drawLine(x, 2, x, 29)
+    }
+  }
+
+  private def makeChartTableV(g: Graphics2D): Unit = {
+    g.setClip(0, 0, 16, 32)
+    makeChart(g)
+    g.setClip(16, 0, 16, 32)
+    makeTable(g)
+    g.setClip(0, 0, 32, 32)
+    g.setColor(Color.GRAY)
+    g.drawLine(16, 0, 16, 31)
+  }
+
+  private def makeChartTableH(g: Graphics2D): Unit = {
+    g.setClip(0, 0, 32, 16)
+    makeChart(g)
+    g.setClip(0, 16, 32, 16)
+    makeTable(g)
+    g.setClip(0, 0, 32, 32)
+    g.setColor(Color.GRAY)
+    g.drawLine(0, 16, 31, 16)
+  }
+
   private def makeDatabase(g: Graphics2D): Unit = {
     g.setColor(Color.GRAY)
     g.fillRect(4, 2, 24, 28)
@@ -126,6 +158,9 @@ object PictureGenerator {
     write(root, "reload.png", 30, 30)(makeReload)
 
     write(root, "parts/chart.png", 32, 32)(makeChart)
+    write(root, "parts/table.png", 32, 32)(makeTable)
+    write(root, "parts/chart-table-v.png", 32, 32)(makeChartTableV)
+    write(root, "parts/chart-table-h.png", 32, 32)(makeChartTableH)
     write(root, "parts/database.png", 32, 32)(makeDatabase)
 
     write(root, "actions/open-database-files.png", 72, 32)(makeOpenDatabaseFiles)
