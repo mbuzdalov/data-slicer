@@ -35,11 +35,16 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
   }
 
   override protected def runEvaluation(): Unit = {
+    def toDisplayable(value: Option[String]) = value match {
+      case None => "<none>"
+      case Some(s) => if (s.length > 100) s.take(100) + "..." else s
+    }
+
     val db = constructionProcedure(parentEntities.map(_.database.get))
     database = Some(db)
     val keysValues = db.possibleKeys.map(k => k -> db.valuesUnderKey(k)).toIndexedSeq.sortBy(_._1)
     val (singletons, others) = keysValues.partition(_._2.size == 1)
-    table.setData((singletons ++ others).map(p => (p._1, p._2.map(_.getOrElse("<none>")).toIndexedSeq.sorted(OrderingForStringWithNumbers.NoSpecialDotTreatment))))
+    table.setData((singletons ++ others).map(p => (p._1, p._2.map(toDisplayable).toIndexedSeq.sorted(OrderingForStringWithNumbers.NoSpecialDotTreatment))))
   }
 }
 
@@ -78,12 +83,12 @@ object DatabaseEntity {
   }
 
   private class MyTableModel(theTable: JTable) extends TableModel {
-    private var data: Seq[(String, Seq[String])] = Seq.empty
+    private var data: Seq[(String, Seq[String], String)] = Seq.empty
     private val listeners = new ArrayBuffer[TableModelListener]
     private val columnNames = Seq("Key", "Value count", "Values")
 
     def setData(data: Seq[(String, Seq[String])]): Unit = synchronized {
-      this.data = data
+      this.data = data.map(p => (p._1, p._2, generateDisplayableString(p._2)))
 
       val listCopy = listeners.synchronized(IndexedSeq(listeners :_*))
       val ev = new TableModelEvent(this, 0, data.size)
@@ -91,6 +96,23 @@ object DatabaseEntity {
         listCopy.foreach(_.tableChanged(ev))
         alignTable(theTable)
       })
+    }
+
+    private def generateDisplayableString(data: Seq[String]): String = {
+      val builder = new StringBuilder
+      def work(index: Int): String = {
+        if (index == data.size) builder.result() else {
+          builder.append(data(index))
+          if (builder.length > 500) {
+            builder.setLength(500)
+            builder.append("...")
+            builder.result()
+          } else {
+            work(index + 1)
+          }
+        }
+      }
+      work(0)
     }
 
     override def getRowCount: Int = synchronized(data.size)
@@ -102,7 +124,7 @@ object DatabaseEntity {
       columnIndex match {
         case 0 => data(rowIndex)._1
         case 1 => data(rowIndex)._2.size.toString
-        case 2 => data(rowIndex)._2.mkString(", ")
+        case 2 => data(rowIndex)._3
       }
     }
     override def setValueAt(aValue: Any, rowIndex: Int, columnIndex: Int): Unit = throw new UnsupportedOperationException("This table is unmodifiable")
