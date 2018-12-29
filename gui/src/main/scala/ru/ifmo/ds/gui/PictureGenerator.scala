@@ -64,8 +64,46 @@ object PictureGenerator {
     }
   }
 
-  private def write(dir: File, name: String, size: Int)(fun: Graphics2D => Any): Unit = {
-    val image = new BufferedImage(size, size, BufferedImage.TYPE_4BYTE_ABGR)
+  private def makeFileInFolder(g: Graphics2D): Unit = {
+    val verySlantedX = Array(2, 6, 30, 26)
+    val verySlantedY = Array(12, 29, 29, 12)
+    val slightlySlantedX = Array(4, 6, 30, 28)
+    val slightlySlantedY = Array(7, 29, 29, 7)
+
+    g.setColor(Color.YELLOW)
+    g.fillRect(6, 2, 24, 25)
+    g.setColor(Color.BLACK)
+    g.drawRect(6, 2, 24, 25)
+    g.setColor(Color.WHITE)
+    g.fillPolygon(slightlySlantedX, slightlySlantedY, 4)
+    g.setColor(Color.BLACK)
+    g.drawPolygon(slightlySlantedX, slightlySlantedY, 4)
+    g.setColor(Color.YELLOW)
+    g.fillPolygon(verySlantedX, verySlantedY, 4)
+    g.setColor(Color.BLACK)
+    g.drawPolygon(verySlantedX, verySlantedY, 4)
+  }
+
+  private def makeArrow(g: Graphics2D): Unit = {
+    val x = Array(0, 4, 4, 9, 4, 4, 0)
+    val y = Array(14, 14, 11, 16, 21, 18, 18)
+    g.setColor(Color.BLUE)
+    g.fillPolygon(x, y, x.length)
+    g.setColor(Color.BLACK)
+    g.drawPolygon(x, y, x.length)
+  }
+
+  private def makeOpenDatabaseFiles(g: Graphics2D): Unit = {
+    val left = g.create(0, 0, 32, 32).asInstanceOf[Graphics2D]
+    makeFileInFolder(left)
+    val right = g.create(40, 0, 32, 32).asInstanceOf[Graphics2D]
+    makeDatabase(right)
+    val arrow = g.create(32, 0, 10, 32).asInstanceOf[Graphics2D]
+    makeArrow(arrow)
+  }
+
+  private def write(dir: File, name: String, width: Int, height: Int)(fun: Graphics2D => Any): Unit = {
+    val image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
     val graphics = image.createGraphics()
     graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HBGR)
@@ -84,10 +122,12 @@ object PictureGenerator {
     if (!root.canWrite) sys.error(s"The target of picture generation, $root, is not writable")
 
     println("Generating to " + root)
-    write(root, "remove.png", 30)(makeRedCross)
-    write(root, "reload.png", 30)(makeReload)
+    write(root, "remove.png", 30, 30)(makeRedCross)
+    write(root, "reload.png", 30, 30)(makeReload)
 
-    write(root, "chart.png", 32)(makeChart)
-    write(root, "database.png", 32)(makeDatabase)
+    write(root, "parts/chart.png", 32, 32)(makeChart)
+    write(root, "parts/database.png", 32, 32)(makeDatabase)
+
+    write(root, "actions/open-database-files.png", 72, 32)(makeOpenDatabaseFiles)
   }
 }

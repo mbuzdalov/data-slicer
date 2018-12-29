@@ -146,10 +146,8 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
 }
 
 object DisplayedEntity {
-  val reloadIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("reload.png")))
-  val removeIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("remove.png")))
-  val chartIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("chart.png")))
-  val dbIcon = new ImageIcon(ImageIO.read(classOf[DisplayedEntity].getResource("database.png")))
+  private val reloadIcon = new ImageIcon(ImageIO.read(getClass.getResource("reload.png")))
+  private val removeIcon = new ImageIcon(ImageIO.read(getClass.getResource("remove.png")))
 
   private def makeLargeLabel(text: String): JLabel = {
     val rv = new JLabel(text)

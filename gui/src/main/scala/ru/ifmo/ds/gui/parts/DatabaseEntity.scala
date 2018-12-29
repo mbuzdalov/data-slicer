@@ -2,12 +2,12 @@ package ru.ifmo.ds.gui.parts
 
 import java.io.File
 
+import javax.imageio.ImageIO
 import javax.swing._
 import javax.swing.event.{TableModelEvent, TableModelListener}
 import javax.swing.table.TableModel
 
 import scala.collection.mutable.ArrayBuffer
-
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
 import ru.ifmo.ds.io.TextInputOutput
@@ -15,7 +15,7 @@ import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityContainer,
                      initialName: String, constructionProcedure: Seq[Database] => Database)
-  extends DisplayedEntity(parentEntities, container, DisplayedEntity.dbIcon, initialName) {
+  extends DisplayedEntity(parentEntities, container, DatabaseEntity.dbIcon, initialName) {
 
   private var database: Option[Database] = None
   private var table: DatabaseEntity.MyTableModel = _
@@ -49,6 +49,8 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
 }
 
 object DatabaseEntity {
+  private val dbIcon = new ImageIcon(ImageIO.read(getClass.getResource("database.png")))
+
   def fromFile(container: EntityContainer, file: File, moreKeys: Map[String, String] = Map.empty): DatabaseEntity = {
     new DatabaseEntity(Seq.empty, container, file.getName, _ => TextInputOutput.fromFile(file, moreKeys))
   }

@@ -1,12 +1,11 @@
 package ru.ifmo.ds.gui
 
-import java.awt.CardLayout
+import java.awt.{CardLayout, FlowLayout}
 
 import javax.swing._
 
 import scala.collection.mutable
-
-import ru.ifmo.ds.gui.parts.DatabaseEntity
+import ru.ifmo.ds.gui.actions.{EntityAction, OpenDatabaseFiles}
 
 class EntityContainer {
   require(SwingUtilities.isEventDispatchThread,
@@ -16,6 +15,7 @@ class EntityContainer {
   private val mainPane = new JPanel(mainPaneLayout)
   private val leftPane = new JPanel(new VerticalFlowLayout)
   private val displayPane = new JPanel(new VerticalFlowLayout)
+  private val actionPane = new JPanel(new FlowLayout)
   private val rootComponent = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPane, mainPane)
   private val entities = new mutable.ArrayBuffer[DisplayedEntity]()
 
@@ -24,20 +24,12 @@ class EntityContainer {
   nothingToShow.setHorizontalAlignment(SwingConstants.CENTER)
   nothingToShow.setVerticalAlignment(SwingConstants.CENTER)
 
-  private val openFileChooser = new JFileChooser()
-  openFileChooser.setMultiSelectionEnabled(true)
-  openFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY)
+  val openDatabaseFilesAction: EntityAction = new OpenDatabaseFiles(this)
 
-  private val openFile = new JButton("Open file")
-  openFile.addActionListener(_ => {
-    val chooserResult = openFileChooser.showOpenDialog(mainPane)
-    if (chooserResult == JFileChooser.APPROVE_OPTION) {
-      val files = openFileChooser.getSelectedFiles
-      add(DatabaseEntity.fromFiles(this, files.toIndexedSeq, "filename"))
-    }
-  })
+  actionPane.add(openDatabaseFilesAction.makeButton())
+
   leftPane.add(displayPane)
-  leftPane.add(openFile)
+  leftPane.add(actionPane)
 
   mainPane.add(nothingToShow, nothingToShowString)
 
