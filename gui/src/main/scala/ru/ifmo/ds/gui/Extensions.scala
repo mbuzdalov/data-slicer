@@ -3,6 +3,7 @@ package ru.ifmo.ds.gui
 import java.awt._
 import java.util.{Arrays, Comparator, Locale}
 
+import javax.imageio.ImageIO
 import javax.swing._
 import javax.swing.event.TableModelListener
 import javax.swing.table._
@@ -18,9 +19,15 @@ import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel, JFreeCh
 import org.jfree.data.xy._
 
 import ru.ifmo.ds.Database
+import ru.ifmo.ds.gui.util.ManagedSplitter
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 
 object Extensions {
+  private val chartIcon = new ImageIcon(ImageIO.read(getClass.getResource("parts/chart.png")))
+  private val tableIcon = new ImageIcon(ImageIO.read(getClass.getResource("parts/table.png")))
+  private val chartTableVIcon = new ImageIcon(ImageIO.read(getClass.getResource("parts/chart-table-v.png")))
+  private val chartTableHIcon = new ImageIcon(ImageIO.read(getClass.getResource("parts/chart-table-h.png")))
+
   private implicit class AxisOps(val axis: Axis) extends AnyVal {
     def toJFreeChartAxis: ValueAxis = if (axis.isLogarithmic) {
       new LogarithmicAxis(axis.name)
@@ -175,93 +182,6 @@ object Extensions {
     (tableModel, tableSorter)
   }
 
-  private def wrapInControllableSplitter(left: JComponent, leftButtonTooltip: String, leftButtonText: String,
-                                         right: JComponent, rightButtonTooltip: String, rightButtonText: String): JComponent = {
-    val split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, left, right)
-    split.setDividerLocation(0.5)
-    var lastHorizontalRelativeLocation = 0.5
-    var lastVerticalRelativeLocation = 0.5
-
-    def saveLocation(): Unit = {
-      if (left.isVisible && right.isVisible) {
-        if (split.getOrientation == JSplitPane.HORIZONTAL_SPLIT) {
-          lastHorizontalRelativeLocation = split.getDividerLocation.toDouble / (split.getWidth - split.getDividerSize)
-        } else {
-          lastVerticalRelativeLocation = split.getDividerLocation.toDouble / (split.getHeight - split.getDividerSize)
-        }
-      }
-    }
-
-    val buttonRightOnly = new JButton(rightButtonText)
-    buttonRightOnly.setToolTipText(rightButtonTooltip)
-    buttonRightOnly.addActionListener(_ => {
-      saveLocation()
-      right.setVisible(true)
-      left.setVisible(false)
-      split.revalidate()
-    })
-    val buttonLeftOnly = new JButton(leftButtonText)
-    buttonLeftOnly.setToolTipText(leftButtonTooltip)
-    buttonLeftOnly.addActionListener(_ => {
-      saveLocation()
-      right.setVisible(false)
-      left.setVisible(true)
-      split.revalidate()
-    })
-    val buttonH = new JButton("|")
-    buttonH.setToolTipText("Show both side-to-side")
-    buttonH.addActionListener(_ => {
-      saveLocation()
-      right.setVisible(true)
-      left.setVisible(true)
-      split.setOrientation(JSplitPane.HORIZONTAL_SPLIT)
-      split.setDividerLocation(lastHorizontalRelativeLocation)
-      split.revalidate()
-    })
-    val buttonV = new JButton("<html>&minus;</html>")
-    buttonV.setToolTipText("Show both atop one another")
-    buttonV.addActionListener(_ => {
-      saveLocation()
-      right.setVisible(true)
-      left.setVisible(true)
-      split.setOrientation(JSplitPane.VERTICAL_SPLIT)
-      split.setDividerLocation(lastVerticalRelativeLocation)
-      split.revalidate()
-    })
-
-    val buttonPane = new JPanel()
-    val buttonPaneLayout = new GroupLayout(buttonPane)
-    buttonPaneLayout.setAutoCreateGaps(true)
-    buttonPaneLayout.setAutoCreateContainerGaps(true)
-    buttonPane.setLayout(buttonPaneLayout)
-
-    buttonPaneLayout.setVerticalGroup(buttonPaneLayout
-                                        .createSequentialGroup()
-                                        .addGroup(buttonPaneLayout
-                                                    .createParallelGroup()
-                                                    .addComponent(buttonLeftOnly)
-                                                    .addComponent(buttonRightOnly))
-                                        .addGroup(buttonPaneLayout
-                                                    .createParallelGroup()
-                                                    .addComponent(buttonH)
-                                                    .addComponent(buttonV)))
-    buttonPaneLayout.setHorizontalGroup(buttonPaneLayout
-                                          .createSequentialGroup()
-                                          .addGroup(buttonPaneLayout
-                                                      .createParallelGroup()
-                                                      .addComponent(buttonLeftOnly)
-                                                      .addComponent(buttonH))
-                                          .addGroup(buttonPaneLayout
-                                                      .createParallelGroup()
-                                                      .addComponent(buttonRightOnly)
-                                                      .addComponent(buttonV)))
-
-    val rv = new JPanel(new BorderLayout())
-    rv.add(split, BorderLayout.CENTER)
-    rv.add(buttonPane, BorderLayout.LINE_START)
-    rv
-  }
-
   private val toggleListener = new ChartMouseListener {
     override def chartMouseClicked(event: ChartMouseEvent): Unit = {
       event.getEntity match {
@@ -315,8 +235,9 @@ object Extensions {
       table.setRowSorter(data.tableRowSorter)
       table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
       val tableScroll = new JScrollPane(table)
-      wrapInControllableSplitter(chartPanel, "Show the chart only", "C",
-                                 tableScroll, "Show the table only", "T")
+      new ManagedSplitter(chartPanel, chartIcon, "Show the chart only",
+        tableScroll, tableIcon, "Show the table only",
+        chartTableVIcon, chartTableHIcon)
     }
 
     def composeSeries(db: Database): LeafDescription = {
