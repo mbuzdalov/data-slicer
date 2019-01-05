@@ -72,6 +72,19 @@ object DatabaseEntity {
       commonName = "???"
     } else if (commonName.isEmpty) {
       commonName = "<merged>"
+    } else {
+      try {
+        val f = new File(commonName)
+        val pf = f.getParentFile
+        if (pf != null) {
+          val pff = pf.getParentFile
+          commonName = (if (pff == null) "" else pff.getName) + "/" +
+            pf.getName + "/" + f.getName + (if (f.exists()) "" else "*")
+        }
+      } catch {
+        case th: Throwable =>
+          th.printStackTrace()
+      }
     }
 
     def load() = Database.merge(files.map(f => TextInputOutput.fromFile(f, moreKeys + (filenameKey -> f.getName))) :_*)
