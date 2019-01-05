@@ -93,6 +93,17 @@ class EntityContainer {
     queryResult == JOptionPane.OK_OPTION
   }
 
+  def getEntitiesByClass[T <: DisplayedEntity](clazz: Class[T]): Seq[T] = {
+    ensureInSwing()
+    val builder = IndexedSeq.newBuilder[T]
+    for (e <- entities) {
+      if (clazz.isAssignableFrom(e.getClass)) {
+        builder += clazz.cast(e)
+      }
+    }
+    builder.result()
+  }
+
   private def ensureInSwing(): Unit = {
     require(SwingUtilities.isEventDispatchThread,
             "The Context methods shall be called on an AWT dispatch thread")
