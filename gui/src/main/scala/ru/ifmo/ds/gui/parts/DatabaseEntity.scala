@@ -20,6 +20,8 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
   private var database: Option[Database] = None
   private var table: DatabaseEntity.MyTableModel = _
 
+  def getDatabase: Database = database.get
+
   override protected def makeMainUI(): JComponent = {
     val jTable = new JTable()
     if (table == null) {
