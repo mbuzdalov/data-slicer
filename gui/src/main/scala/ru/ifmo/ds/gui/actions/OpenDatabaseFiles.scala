@@ -14,7 +14,8 @@ class OpenDatabaseFiles(container: EntityContainer) extends EntityAction("Open d
     val chooserResult = openFileChooser.showOpenDialog(container.root)
     if (chooserResult == JFileChooser.APPROVE_OPTION) {
       val files = openFileChooser.getSelectedFiles
-      container.add(DatabaseEntity.fromFiles(container, files.toIndexedSeq, "filename"))
+      // will add itself to the container
+      DatabaseEntity.fromFiles(container, files.toIndexedSeq, "filename")
     }
   }
 }
