@@ -11,7 +11,7 @@ import ru.ifmo.ds.gui.util.VerticalFlowLayout
 
 class EntityContainer {
   require(SwingUtilities.isEventDispatchThread,
-          "The Context constructor shall be called on an AWT dispatch thread")
+          s"The EntityContainer constructor shall be called on an AWT dispatch thread")
 
   private val mainPaneLayout = new CardLayout()
   private val mainPane = new JPanel(mainPaneLayout)
@@ -109,7 +109,7 @@ class EntityContainer {
 
   private def ensureInSwing(): Unit = {
     require(SwingUtilities.isEventDispatchThread,
-            "The Context methods shall be called on an AWT dispatch thread")
+            "The EntityContainer methods shall be called on an AWT dispatch thread")
   }
 
   private def identifyingString(entity: DisplayedEntity): String = {
