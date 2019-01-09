@@ -1,6 +1,6 @@
 package ru.ifmo.ds.gui
 
-import java.awt.{CardLayout, FlowLayout}
+import java.awt._
 
 import javax.swing._
 
@@ -40,6 +40,24 @@ class EntityContainer {
   def root: JComponent = {
     ensureInSwing()
     rootComponent
+  }
+
+  def dialogAlignmentSet: EntityContainer.DialogAlignmentInfo = {
+    ensureInSwing()
+
+    def process(current: Container, x: Int, y: Int): EntityContainer.DialogAlignmentInfo = {
+      current.getParent match {
+        case null =>
+          val rp = JOptionPane.getRootFrame
+          EntityContainer.DialogAlignmentInfo(rp, rp.getWidth / 2, rp.getHeight / 2)
+        case f: Frame =>
+          EntityContainer.DialogAlignmentInfo(f, x + current.getX, y + current.getY)
+        case p: Container =>
+          process(p, x + current.getX, y + current.getY)
+      }
+    }
+
+    process(rootComponent, rootComponent.getWidth / 2, rootComponent.getHeight / 2)
   }
 
   def add(entity: DisplayedEntity): Unit = {
@@ -115,4 +133,8 @@ class EntityContainer {
   private def identifyingString(entity: DisplayedEntity): String = {
     entity.getClass.getName + "@" + System.identityHashCode(entity)
   }
+}
+
+object EntityContainer {
+  case class DialogAlignmentInfo(frame: Frame, centerX: Int, centerY: Int)
 }

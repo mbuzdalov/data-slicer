@@ -20,8 +20,7 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
     if (dbEntities.isEmpty) {
       JOptionPane.showMessageDialog(container.root, "No database entities found!", "Cannot create a chart", JOptionPane.ERROR_MESSAGE)
     } else {
-      val options = new ChartOptionsComponent(dbEntities)
-      options.pack()
+      val options = new ChartOptionsComponent(dbEntities, container.dialogAlignmentSet)
       options.setVisible(true)
       if (options.isOK) {
         // will add itself to the container
@@ -38,7 +37,8 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
 object CreateChart {
   private val createChart = new ImageIcon(ImageIO.read(getClass.getResource("create-chart.png")))
 
-  private class ChartOptionsComponent(entities: Seq[DatabaseEntity]) extends JDialog(null: Frame, "Create a chart", true) {
+  private class ChartOptionsComponent(entities: Seq[DatabaseEntity], alignmentSet: EntityContainer.DialogAlignmentInfo)
+    extends JDialog(alignmentSet.frame, "Create a chart", true) {
     private var database = Database()
     private var keySet: Set[String] = Set.empty
     private val entitySelectors = entities.map(e => new JCheckBox(e.getName))
@@ -114,6 +114,9 @@ object CreateChart {
     setLayout(new BorderLayout())
     add(midPane, BorderLayout.CENTER)
     add(okCancelPane, BorderLayout.PAGE_END)
+
+    pack()
+    setLocation(alignmentSet.centerX - getWidth / 2, alignmentSet.centerY - getHeight / 2)
 
     def isOK: Boolean = isOkay
     def getSelectedEntities: Seq[DatabaseEntity] = entities.indices.filter(i => entitySelectors(i).isSelected).map(entities)
