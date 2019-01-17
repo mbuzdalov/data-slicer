@@ -49,16 +49,18 @@ class TableDoubleValueDisplay(val median: Double,
 
 object TableDoubleValueDisplay {
   final val NaN = new TableDoubleValueDisplay(Double.NaN, Double.NaN, Double.NaN, true)
-  final val CellRenderer = new TableCellRenderer {
+  final val CellRenderer = new JLabel with TableCellRenderer {
     override def getTableCellRendererComponent(table: JTable, value: Any,
                                                isSelected: Boolean, hasFocus: Boolean,
                                                row: Int, column: Int): Component = {
       value match {
         case v: TableDoubleValueDisplay if !v.min.isNaN && !v.max.isNaN =>
-          val rv = new JLabel(v.toString)
-          rv.setToolTipText(s"<html>median = ${v.medText}<br/>min = ${v.minText}<br/>max = ${v.maxText}</html>")
-          rv
-        case _ => new JLabel(value.toString)
+          setText(v.toString)
+          setToolTipText(s"<html>median = ${v.medText}<br/>min = ${v.minText}<br/>max = ${v.maxText}</html>")
+          this
+        case _ =>
+          setText(value.toString)
+          this
       }
     }
   }
