@@ -9,14 +9,12 @@ import javax.swing.event.TableModelListener
 import javax.swing.table.{TableModel, TableRowSorter}
 
 import scala.collection.{mutable => mu}
-
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
-
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
-import ru.ifmo.ds.gui.util.{JFreeUtils, ManagedSplitter, PartitionTreeUtils, TableDoubleValueDisplay}
+import ru.ifmo.ds.gui.util._
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 
@@ -64,6 +62,7 @@ object ChartEntity {
       val table = new JTable(tableModel)
       table.setRowSorter(tableRowSorter)
       table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
+      TableUtils.alignTable(table)
       val tableScroll = new JScrollPane(table)
       new ManagedSplitter(chartPanel, chartIcon, "Show the chart only",
                           tableScroll, tableIcon, "Show the table only",

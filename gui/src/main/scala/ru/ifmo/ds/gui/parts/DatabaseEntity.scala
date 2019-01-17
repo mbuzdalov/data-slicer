@@ -9,6 +9,7 @@ import javax.swing.table.TableModel
 
 import scala.collection.mutable.ArrayBuffer
 import ru.ifmo.ds.Database
+import ru.ifmo.ds.gui.util.TableUtils
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
 import ru.ifmo.ds.io.TextInputOutput
 import ru.ifmo.ds.util.OrderingForStringWithNumbers
@@ -96,32 +97,6 @@ object DatabaseEntity {
     new DatabaseEntity(sources, container, name, Database.merge)
   }
 
-  private def alignTable(table: JTable): Unit = {
-    val colModel = table.getColumnModel
-    val spacing = table.getIntercellSpacing.width + 5
-    for (columnIndex <- 0 until table.getColumnCount) {
-      val column = colModel.getColumn(columnIndex)
-      val renderer0 = column.getHeaderRenderer
-      val renderer = if (renderer0 == null) table.getTableHeader.getDefaultRenderer else renderer0
-      var width = renderer
-        .getTableCellRendererComponent(table, column.getHeaderValue, false, false, -1, columnIndex)
-        .getPreferredSize
-        .width
-      for (rowIndex <- 0 until table.getRowCount) {
-        val rowWidth = table
-          .prepareRenderer(table.getCellRenderer(rowIndex, columnIndex), rowIndex, columnIndex)
-          .getPreferredSize
-          .width
-        width = math.max(width, rowWidth)
-      }
-      width += spacing
-      if (width < column.getMaxWidth) {
-        table.getTableHeader.setResizingColumn(column)
-        column.setWidth(width)
-      }
-    }
-  }
-
   private class MyTableModel(theTable: JTable) extends TableModel {
     private var data: Seq[(String, Seq[String], String)] = Seq.empty
     private val listeners = new ArrayBuffer[TableModelListener]
@@ -134,7 +109,7 @@ object DatabaseEntity {
       val ev = new TableModelEvent(this, 0, data.size)
       SwingUtilities.invokeLater(() => {
         listCopy.foreach(_.tableChanged(ev))
-        alignTable(theTable)
+        TableUtils.alignTable(theTable)
       })
     }
 
