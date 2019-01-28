@@ -17,6 +17,7 @@ class ManagedSplitter(left: JComponent, leftButtonIcon: Icon, leftButtonTooltip:
   private val buttonPane = new JPanel()
   private val buttonPaneLayout = new GroupLayout(buttonPane)
 
+  split.setResizeWeight(0.5)
   split.setDividerLocation(0.5)
 
   private def saveLocation(): Unit = {
