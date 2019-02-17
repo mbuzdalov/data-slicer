@@ -45,10 +45,10 @@ object KolmogorovSmirnov {
           val mi = (m - i).toDouble
           var j = jMin
           while (j < jMax) {
-            val rowMul = (n - j) / (n - j + mi)
-            u(j + 1) += u(j) * rowMul
-            u(j) *= 1 - rowMul
+            val movPart = u(j) * (n - j) / (n - j + mi)
+            u(j) -= movPart
             j += 1
+            u(j) += movPart
           }
           u(j) = u(j) * mi / (n - j + mi)
         } else {
