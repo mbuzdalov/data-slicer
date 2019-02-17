@@ -34,27 +34,6 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
     stats.indices.map(i => stats(i) -> diff(i))
   }
 
-  // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
-  private[stat] object R {
-    final def pSmirnov2x(stat: Rational, m: Int, n: Int): Double = {
-      if (m > n) pSmirnov2x(stat, n, m) else {
-        val r = Array.tabulate(n + 1)(j => Rational(j, n))
-        val u = Array.tabulate(n + 1)(j => if (r(j) >= stat) 0.0 else 1.0)
-
-        for (i <- 1 to m) {
-          val im = Rational(i, m)
-          val w = i / (i.toDouble + n)
-          u(0) = if (im >= stat) 0 else w * u(0)
-          for (j <- 1 to n) {
-            u(j) = if ((im - r(j)).abs >= stat) 0 else w * u(j) + u(j - 1)
-          }
-        }
-
-        u(n)
-      }
-    }
-  }
-
   /**
     * Compute the exact one-minus-p-value for the two-sided Kolmogorov-Smirnov test.
     *
