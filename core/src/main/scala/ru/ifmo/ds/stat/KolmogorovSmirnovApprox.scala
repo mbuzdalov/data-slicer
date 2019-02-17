@@ -6,7 +6,7 @@ import spire.math.Rational
   * The approximate version of the Kolmogorov-Smirnov test to be used while detecting differences
   */
 object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
-  private[this] def approx(stat: Double): Double = {
+  private def approx(stat: Double): Double = {
     val atZero = math.exp(-2 * stat * stat)
     def impl(soFar: Double, k: Double): Double = {
       val addend = 2 * math.pow(atZero, k * k) * (2 * (k % 2) - 1)
@@ -15,7 +15,7 @@ object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
     impl(0, 1)
   }
 
-  def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
+  override def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
     val as = a.toIndexedSeq.sorted
     val bs = b.toIndexedSeq.sorted
     val asSize = as.size
@@ -47,7 +47,11 @@ object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
 
     val statistic = go(0, 0, 0)
     val p = approx(statistic.toDouble * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
-    TestResult(statistic = statistic, p = math.min(1, p), test = this, firstSampleSize = asSize, secondSampleSize = bsSize)
+    TestResult(statistic = statistic,
+               p = math.min(1, p),
+               test = this,
+               firstSampleSize = asSize,
+               secondSampleSize = bsSize)
   }
 
   /**
@@ -74,9 +78,8 @@ object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
     val pvals = stats.map(s => approx(s.toDouble))
     val size = stats.size
 
-    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i - 1)
+    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i + 1)
 
     stats.indices.map(i => stats(i) -> diff(i))
-
   }
 }

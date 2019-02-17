@@ -3,7 +3,7 @@ package ru.ifmo.ds.srv
 import spire.math.Rational
 
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
-import ru.ifmo.ds.stat.{KolmogorovSmirnov, TestResult}
+import ru.ifmo.ds.stat.{RankSumResultJoiner, TestResult}
 
 class CompareListener(p: Double, comparedEntityKey: String) extends DifferenceListener {
   private val singleKeySet = Set(comparedEntityKey)
@@ -29,7 +29,7 @@ class CompareListener(p: Double, comparedEntityKey: String) extends DifferenceLi
       slice(comparedEntityKey) match {
         case None =>
         case Some(value) =>
-          val stat = KolmogorovSmirnov.rankSumOnMultipleOutcomes(statistics)
+          val stat = RankSumResultJoiner.join(statistics)
           if (stat < p) {
             differingKeys += s"$value $stat"
           } else {

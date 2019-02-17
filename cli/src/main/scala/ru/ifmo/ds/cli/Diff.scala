@@ -4,11 +4,11 @@ import java.io.{File, PrintStream}
 
 import spire.math.Rational
 
-import ru.ifmo.ds.{CLI, Database}
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.ops.FindDifferences
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
-import ru.ifmo.ds.stat.{KolmogorovSmirnov, TestResult}
+import ru.ifmo.ds.stat.{RankSumResultJoiner, TestResult}
+import ru.ifmo.ds.{CLI, Database}
 
 object Diff extends CLI.Module {
   override def name: String = "diff"
@@ -75,8 +75,8 @@ object Diff extends CLI.Module {
                     |
                     |    If --report-single option is specified, every single comparison below the threshold is reported.
                     |    If --report-cats option is specified, for slices consisting only of the given keys ([cat-key-1],
-                    |    [cat-key-2] etc) the KolmogorovSmirnov.rankSumOnMultipleOutcomes procedure will be run,
-                    |    and if the result is below the threshold, this slice will be reported.
+                    |    [cat-key-2] etc) the RankSumResultJoiner.join procedure will be run on the Kolmogorov-Smirnov
+                    |    outcomes, and if the result is below the threshold, this slice will be reported.
                     |
                     |    The <DB defining args> are either:
                     |      <filename 1> <filename 2>
@@ -148,7 +148,7 @@ object Diff extends CLI.Module {
             dumpSlice(slice)
           case None =>
             // all sizes are equal
-            val p = KolmogorovSmirnov.rankSumOnMultipleOutcomes(statistics)
+            val p = RankSumResultJoiner.join(statistics)
             if (p < this.p) {
               println(s"Significant difference found in multiple comparisons for key '$key':")
               dumpSlice(slice)

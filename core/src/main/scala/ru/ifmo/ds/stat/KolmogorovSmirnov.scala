@@ -29,7 +29,7 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
     val pvals = stats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, firstSampleSize, secondSampleSize))
     val size = stats.size
 
-    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i - 1)
+    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i + 1)
 
     stats.indices.map(i => stats(i) -> diff(i))
   }
@@ -120,7 +120,7 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
     }
   }
 
-  def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
+  override def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
     val as = a.toIndexedSeq.sorted
     val bs = b.toIndexedSeq.sorted
     val asSize = as.size
@@ -152,46 +152,10 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
 
     val statistic = go(0, 0, 0)
     val p = 1 - pSmirnovDoesNotExceedTwoSided(statistic, asSize, bsSize)
-    TestResult(statistic = statistic, p = math.min(1, p), test = this, firstSampleSize = asSize, secondSampleSize = bsSize)
-  }
-
-  def rankSumOnMultipleOutcomes(stats: Seq[TestResult[Rational]]): Double = {
-    if (stats.isEmpty) 1.0 else {
-      val n = stats.head.firstSampleSize
-      val m = stats.head.secondSampleSize
-      require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m),
-        "sample sizes in each experiment must be equal on the corresponding sides")
-      val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
-      val statIndices = possibleStats.zipWithIndex.toMap
-      val inputRankSum = stats.map(s => statIndices(s.statistic)).sum
-
-      val dpArray = {
-        val possiblePVals = possibleStats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, n, m))
-        val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
-        require(math.abs(possibleProbs.sum - 1) < 1e-9)
-
-        val dpCurr, dpNext = Array.ofDim[Double](stats.size * (possibleProbs.size - 1) + 1)
-        dpCurr(0) = 1.0
-        for (_ <- stats.indices) {
-          java.util.Arrays.fill(dpNext, 0.0)
-          var i = dpCurr.length - 1
-          while (i >= 0) {
-            if (dpCurr(i) > 0) {
-              var j = 0
-              val jMax = possibleProbs.size
-              while (j < jMax) {
-                dpNext(i + j) += dpCurr(i) * possibleProbs(j)
-                j += 1
-              }
-            }
-            i -= 1
-          }
-          System.arraycopy(dpNext, 0, dpCurr, 0, dpCurr.length)
-        }
-        dpCurr
-      }
-
-      (0 to inputRankSum).view.map(dpArray).sum
-    }
+    TestResult(statistic = statistic,
+               p = math.min(1, p),
+               test = this,
+               firstSampleSize = asSize,
+               secondSampleSize = bsSize)
   }
 }
