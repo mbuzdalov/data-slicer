@@ -142,8 +142,6 @@ object KolmogorovSmirnov {
     Result(p = math.min(1, p), d = statistic, firstSampleSize = asSize, secondSampleSize = bsSize)
   }
 
-  private[this] val sizeCache = new scala.collection.mutable.HashMap[(Int, Int), Array[Double]]
-
   def rankSumOnMultipleOutcomes(stats: Seq[Result]): Double = {
     if (stats.isEmpty) 1.0 else {
       val n = stats.head.firstSampleSize
@@ -151,11 +149,10 @@ object KolmogorovSmirnov {
       require(stats.forall(s => s.firstSampleSize == n && s.secondSampleSize == m),
         "sample sizes in each experiment must be equal on the corresponding sides")
       val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
-
       val statIndices = possibleStats.zipWithIndex.toMap
       val inputRankSum = stats.map(s => statIndices(s.d)).sum
 
-      val dpArray = sizeCache.getOrElseUpdate(n -> m, {
+      val dpArray = {
         val possiblePVals = possibleStats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, n, m))
         val possibleProbs = possiblePVals.indices.map(i => possiblePVals(i) - (if (i > 0) possiblePVals(i - 1) else 0))
         require(math.abs(possibleProbs.sum - 1) < 1e-9)
@@ -179,7 +176,7 @@ object KolmogorovSmirnov {
           System.arraycopy(dpNext, 0, dpCurr, 0, dpCurr.length)
         }
         dpCurr
-      })
+      }
 
       (0 to inputRankSum).view.map(dpArray).sum
     }
