@@ -49,12 +49,11 @@ object KolmogorovSmirnov {
             u(j) *= 1 - rowMul
             j += 1
           }
-          u(j) *= 1 - (n - j).toDouble / (n - j + m - i)
+          u(j) *= (m - i).toDouble / (n - j + m - i)
         } else {
           var j = jMin
           while (j < jMax) {
-            val rowMul = (n - j).toDouble / (n - j + m - i)
-            u(j + 1) += u(j) * rowMul
+            u(j + 1) += u(j) * (n - j) / (n - j + m - i)
             j += 1
           }
         }
@@ -152,11 +151,5 @@ object KolmogorovSmirnov {
 
       (0 to inputRankSum).view.map(dpArray).sum
     }
-  }
-
-  def main(args: Array[String]): Unit = {
-    val t0 = System.currentTimeMillis()
-    println(pSmirnovDoesNotExceedTwoSided(Rational(1, 10), 30000, 30000))
-    println("Time: " + (System.currentTimeMillis() - t0))
   }
 }
