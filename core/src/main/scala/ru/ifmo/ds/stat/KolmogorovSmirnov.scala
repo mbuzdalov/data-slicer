@@ -40,13 +40,22 @@ object KolmogorovSmirnov {
         val jMaxRaw = (im + stat) * n
         val jMin = math.max(0, if (jMinRaw.isWhole()) jMinRaw.toInt + 1 else jMinRaw.ceil.toInt)
         val jMax = math.min(n, if (jMaxRaw.isWhole()) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
-        for (j <- jMin to jMax) {
-          val rowMul = (n - j).toDouble / (n - j + m - i)
-          if (jMax > j) {
+
+        if (m > i) {
+          var j = jMin
+          while (j < jMax) {
+            val rowMul = (n - j).toDouble / (n - j + m - i)
             u(j + 1) += u(j) * rowMul
-          }
-          if (m > i) {
             u(j) *= 1 - rowMul
+            j += 1
+          }
+          u(j) *= 1 - (n - j).toDouble / (n - j + m - i)
+        } else {
+          var j = jMin
+          while (j < jMax) {
+            val rowMul = (n - j).toDouble / (n - j + m - i)
+            u(j + 1) += u(j) * rowMul
+            j += 1
           }
         }
       }
@@ -143,5 +152,11 @@ object KolmogorovSmirnov {
 
       (0 to inputRankSum).view.map(dpArray).sum
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    val t0 = System.currentTimeMillis()
+    println(pSmirnovDoesNotExceedTwoSided(Rational(1, 10), 30000, 30000))
+    println("Time: " + (System.currentTimeMillis() - t0))
   }
 }
