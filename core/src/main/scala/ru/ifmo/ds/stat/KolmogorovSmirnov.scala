@@ -42,18 +42,19 @@ object KolmogorovSmirnov {
         val jMax = math.min(n, if (jMaxRaw.isWhole()) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
 
         if (m > i) {
+          val mi = (m - i).toDouble
           var j = jMin
           while (j < jMax) {
-            val rowMul = (n - j).toDouble / (n - j + m - i)
+            val rowMul = (n - j) / (n - j + mi)
             u(j + 1) += u(j) * rowMul
             u(j) *= 1 - rowMul
             j += 1
           }
-          u(j) *= (m - i).toDouble / (n - j + m - i)
+          u(j) = u(j) * mi / (n - j + mi)
         } else {
           var j = jMin
           while (j < jMax) {
-            u(j + 1) += u(j) * (n - j) / (n - j + m - i)
+            u(j + 1) += u(j)
             j += 1
           }
         }
