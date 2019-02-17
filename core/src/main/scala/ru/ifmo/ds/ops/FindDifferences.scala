@@ -1,7 +1,9 @@
 package ru.ifmo.ds.ops
 
+import spire.math.Rational
+
 import ru.ifmo.ds.Database
-import ru.ifmo.ds.stat.KolmogorovSmirnov
+import ru.ifmo.ds.stat.{KolmogorovSmirnov, TestResult}
 import ru.ifmo.ds.util.OrderingForStringWithNumbers
 
 object FindDifferences {
@@ -12,9 +14,9 @@ object FindDifferences {
                                  leftValues: Seq[String], rightValues: Seq[String], exception: Throwable): Unit
     def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                 leftValues: Seq[Double], rightValues: Seq[Double],
-                                result: KolmogorovSmirnov.Result): Unit
+                                result: TestResult[Rational]): Unit
     def sliceStatistics(slice: Map[String, Option[String]], key: String,
-                        statistics: Seq[KolmogorovSmirnov.Result]): Unit
+                        statistics: Seq[TestResult[Rational]]): Unit
   }
 
   sealed trait Result
@@ -25,14 +27,14 @@ object FindDifferences {
                                       exception: Throwable) extends Result
   case class KolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                      leftValues: Seq[Double], rightValues: Seq[Double],
-                                     result: KolmogorovSmirnov.Result) extends Result
+                                     result: TestResult[Rational]) extends Result
 
   private[this] implicit val optionStringOrdering: Ordering[Option[String]] =
     Ordering.Option(OrderingForStringWithNumbers.SpecialDotTreatment)
 
   private[this] def traverseImpl(left: Database, right: Database, slice: Map[String, Option[String]],
                                  categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener
-                                ): IndexedSeq[KolmogorovSmirnov.Result] = {
+                                ): IndexedSeq[TestResult[Rational]] = {
     if (categoryKeys.isEmpty) {
       val rawLeft = left.entries.map(_(valueKey))
       val rawRight = right.entries.map(_(valueKey))
@@ -74,7 +76,7 @@ object FindDifferences {
     private[this] val builder = IndexedSeq.newBuilder[Result]
 
     override def sliceStatistics(slice: Map[String, Option[String]], key: String,
-                                 statistics: Seq[KolmogorovSmirnov.Result]): Unit = {}
+                                 statistics: Seq[TestResult[Rational]]): Unit = {}
 
     override def keyValuesDoNotMatch(slice: Map[String, Option[String]], key: String,
                                      onlyLeft: Set[Option[String]], onlyRight: Set[Option[String]]): Unit =
@@ -86,7 +88,7 @@ object FindDifferences {
     }
 
     override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String, leftValues: Seq[Double],
-                                         rightValues: Seq[Double], result: KolmogorovSmirnov.Result): Unit = {
+                                         rightValues: Seq[Double], result: TestResult[Rational]): Unit = {
       builder += KolmogorovSmirnovResult(slice, key, leftValues, rightValues, result)
     }
 

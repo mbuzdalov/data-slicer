@@ -5,8 +5,34 @@ import spire.math.Rational
 /**
   * The Kolmogorov-Smirnov test to be used while detecting differences
   */
-object KolmogorovSmirnov {
-  case class Result(p: Double, d: Rational, firstSampleSize: Int, secondSampleSize: Int)
+object KolmogorovSmirnov extends StatisticalTest[Rational] {
+  /**
+    * Returns the name of the statistical test.
+    * @return the name of the statistical test.
+    */
+  override def name: String = "Two-sided Kolmogorov-Smirnov test"
+
+  /**
+    * Returns an iterable over all possible statistic values with the given sample sizes,
+    * along with their probabilities.
+    *
+    * The probability of a statistic to appear will generally be its corresponding
+    * p-value minus the p-value of the next extreme statistic.
+    *
+    * @return statistics and their probabilities for the given sample sizes.
+    */
+  override def statisticValuesWithProbabilities(firstSampleSize: Int,
+                                                secondSampleSize: Int): Iterable[(Rational, Double)] = {
+    val firstR = (0 to firstSampleSize).map(x => Rational(x, firstSampleSize))
+    val secondR = (0 to secondSampleSize).map(x => Rational(x, secondSampleSize))
+    val stats = (for (f <- firstR; s <- secondR) yield (f - s).abs).distinct.sorted
+    val pvals = stats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, firstSampleSize, secondSampleSize))
+    val size = stats.size
+
+    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i - 1)
+
+    stats.indices.map(i => stats(i) -> diff(i))
+  }
 
   // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
   private[stat] object R {
@@ -94,16 +120,7 @@ object KolmogorovSmirnov {
     }
   }
 
-  private[this] def approx(stat: Double): Double = {
-    val atZero = math.exp(-2 * stat * stat)
-    def impl(soFar: Double, k: Double): Double = {
-      val addend = 2 * math.pow(atZero, k * k) * (2 * (k % 2) - 1)
-      if (addend == 0) soFar else impl(soFar + addend, k + 1)
-    }
-    impl(0, 1)
-  }
-
-  def apply[T : Ordering](a: Iterable[T], b: Iterable[T], strict: Boolean = true): Result = {
+  def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
     val as = a.toIndexedSeq.sorted
     val bs = b.toIndexedSeq.sorted
     val asSize = as.size
@@ -134,15 +151,11 @@ object KolmogorovSmirnov {
     }
 
     val statistic = go(0, 0, 0)
-    val p = if (strict) {
-      1 - pSmirnovDoesNotExceedTwoSided(statistic, asSize, bsSize)
-    } else {
-      approx(statistic.toDouble * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
-    }
-    Result(p = math.min(1, p), d = statistic, firstSampleSize = asSize, secondSampleSize = bsSize)
+    val p = 1 - pSmirnovDoesNotExceedTwoSided(statistic, asSize, bsSize)
+    TestResult(statistic = statistic, p = math.min(1, p), test = this, firstSampleSize = asSize, secondSampleSize = bsSize)
   }
 
-  def rankSumOnMultipleOutcomes(stats: Seq[Result]): Double = {
+  def rankSumOnMultipleOutcomes(stats: Seq[TestResult[Rational]]): Double = {
     if (stats.isEmpty) 1.0 else {
       val n = stats.head.firstSampleSize
       val m = stats.head.secondSampleSize
@@ -150,7 +163,7 @@ object KolmogorovSmirnov {
         "sample sizes in each experiment must be equal on the corresponding sides")
       val possibleStats = (for (x <- 0 to n; y <- 0 to m) yield (Rational(x, n) - Rational(y, m)).abs).distinct.sortBy(-_)
       val statIndices = possibleStats.zipWithIndex.toMap
-      val inputRankSum = stats.map(s => statIndices(s.d)).sum
+      val inputRankSum = stats.map(s => statIndices(s.statistic)).sum
 
       val dpArray = {
         val possiblePVals = possibleStats.map(s => 1 - pSmirnovDoesNotExceedTwoSided(s, n, m))

@@ -1,7 +1,9 @@
 package ru.ifmo.ds.srv
 
+import spire.math.Rational
+
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
-import ru.ifmo.ds.stat.KolmogorovSmirnov
+import ru.ifmo.ds.stat.{KolmogorovSmirnov, TestResult}
 
 class CompareListener(p: Double, comparedEntityKey: String) extends DifferenceListener {
   private val singleKeySet = Set(comparedEntityKey)
@@ -20,9 +22,9 @@ class CompareListener(p: Double, comparedEntityKey: String) extends DifferenceLi
                                         exception: Throwable): Unit = throw exception
   override def kolmogorovSmirnovResult(slice: Map[String, Option[String]],
                                        key: String, leftValues: Seq[Double], rightValues: Seq[Double],
-                                       result: KolmogorovSmirnov.Result): Unit = {}
+                                       result: TestResult[Rational]): Unit = {}
   override def sliceStatistics(slice: Map[String, Option[String]],
-                               key: String, statistics: Seq[KolmogorovSmirnov.Result]): Unit = {
+                               key: String, statistics: Seq[TestResult[Rational]]): Unit = {
     if (slice.keySet == singleKeySet) {
       slice(comparedEntityKey) match {
         case None =>

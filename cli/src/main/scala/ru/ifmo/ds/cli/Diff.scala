@@ -2,11 +2,13 @@ package ru.ifmo.ds.cli
 
 import java.io.{File, PrintStream}
 
+import spire.math.Rational
+
 import ru.ifmo.ds.{CLI, Database}
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.ops.FindDifferences
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
-import ru.ifmo.ds.stat.KolmogorovSmirnov
+import ru.ifmo.ds.stat.{KolmogorovSmirnov, TestResult}
 
 object Diff extends CLI.Module {
   override def name: String = "diff"
@@ -119,7 +121,7 @@ object Diff extends CLI.Module {
 
     override def kolmogorovSmirnovResult(slice: Map[String, Option[String]], key: String,
                                          leftValues: Seq[Double], rightValues: Seq[Double],
-                                         result: KolmogorovSmirnov.Result): Unit = {
+                                         result: TestResult[Rational]): Unit = {
       if (reportSingle && result.p < p) {
         println(s"Significant difference found for key '$key':")
         dumpSlice(slice)
@@ -130,10 +132,10 @@ object Diff extends CLI.Module {
     }
 
     override def sliceStatistics(slice: Map[String, Option[String]], key: String,
-                                 statistics: Seq[KolmogorovSmirnov.Result]): Unit = {
+                                 statistics: Seq[TestResult[Rational]]): Unit = {
       if (statistics.nonEmpty && slice.keySet == reportCats) {
         val first = statistics.head
-        def sameSize(s1: KolmogorovSmirnov.Result, s2: KolmogorovSmirnov.Result) = {
+        def sameSize(s1: TestResult[Rational], s2: TestResult[Rational]) = {
           s1.firstSampleSize == s2.firstSampleSize && s1.secondSampleSize == s2.secondSampleSize
         }
         statistics.find(v => !sameSize(first, v)) match {

@@ -8,8 +8,8 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   private[this] case class RefResult(p: Double, d: Double)
 
   private[this] def check(a: Seq[Int], b: Seq[Int], strict: Boolean, expected: RefResult): Unit = {
-    val result = KolmogorovSmirnov(a, b, strict)
-    result.d.toDouble shouldBe (expected.d +- 1e-4)
+    val result = if (strict) KolmogorovSmirnov(a, b) else KolmogorovSmirnovApprox(a, b)
+    result.statistic.toDouble shouldBe (expected.d +- 1e-4)
     result.p shouldBe (expected.p +- 1e-4)
   }
 
