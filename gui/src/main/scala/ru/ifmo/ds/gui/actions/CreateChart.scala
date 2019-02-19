@@ -1,6 +1,6 @@
 package ru.ifmo.ds.gui.actions
 
-import java.awt.{BorderLayout, FlowLayout, Frame}
+import java.awt.{BorderLayout, FlowLayout}
 
 import javax.imageio.ImageIO
 import javax.swing._
@@ -18,7 +18,8 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
   override protected def performImpl(): Unit = {
     val dbEntities = container.getEntitiesByClass(classOf[DatabaseEntity])
     if (dbEntities.isEmpty) {
-      JOptionPane.showMessageDialog(container.root, "No database entities found!", "Cannot create a chart", JOptionPane.ERROR_MESSAGE)
+      JOptionPane.showMessageDialog(container.root, "No database entities found!",
+                                    "Cannot create a chart", JOptionPane.ERROR_MESSAGE)
     } else {
       val options = new ChartOptionsComponent(dbEntities, container.dialogAlignmentSet)
       options.setVisible(true)
@@ -37,19 +38,54 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
 object CreateChart {
   private val createChart = new ImageIcon(ImageIO.read(getClass.getResource("create-chart.png")))
 
+  private case class Selector(combo: JComboBox[CountedOption], wantsMassiveEntries: Boolean) {
+    def sortOptions(options: Seq[CountedOption]): Seq[CountedOption] = {
+      if (options.isEmpty) options else {
+        val (singletons, others) = options.sortBy(_.id).partition(_.count == 1)
+        if (wantsMassiveEntries) {
+          val threshold = options.sortBy(_.count).takeRight(3).head.count
+          val (coolest, average) = others.partition(_.count >= threshold)
+          coolest.sortBy(-_.count) ++ average ++ singletons
+        } else {
+          others ++ singletons
+        }
+      }
+    }
+
+    def selectSimilar(previous: Option[CountedOption]): Unit = {
+      combo.setSelectedIndex(previous flatMap { v =>
+        val model = combo.getModel
+        (0 until model.getSize).find(i => model.getElementAt(i).id == v.id)
+      } getOrElse -1)
+    }
+
+    def get(index: Int): CountedOption = combo.getModel.getElementAt(index)
+    def getSelected: CountedOption = get(combo.getSelectedIndex)
+  }
+
+  private case class CountedOption(id: String, count: Int) {
+    override def toString: String = if (count % 10 == 1 && count % 100 != 11) {
+      s"$id ($count value)"
+    } else {
+      s"$id ($count values)"
+    }
+  }
+
   private class ChartOptionsComponent(entities: Seq[DatabaseEntity], alignmentSet: EntityContainer.DialogAlignmentInfo)
     extends JDialog(alignmentSet.frame, "Create a chart", true) {
     private var database = Database()
-    private var keySet: Set[String] = Set.empty
+    private var keySet: Set[CountedOption] = Set.empty
     private val entitySelectors = entities.map(e => new JCheckBox(e.getName))
-    private val xAxisSelector, yAxisSelector, seriesKeySelector = createAndConfigureComboBox()
-    private val allSelectors = new mutable.ArrayBuffer[JComboBox[String]]()
+    private val xAxisSelector, seriesKeySelector = createAndConfigureComboBox(false)
+    private val yAxisSelector = createAndConfigureComboBox(true)
+    private val allSelectors = new mutable.ArrayBuffer[Selector]()
     private val addNewSelectorButtonPanel = new JPanel(new BorderLayout())
     private val addNewSelectorButton = new JButton("+")
     private val okButton = new JButton("OK")
     private val cancelButton = new JButton("Cancel")
     private val okCancelPane = new JPanel(new FlowLayout())
     private var isOkay = false
+    private var previousWidth = 0
     private val midPane = new JPanel(new VerticalFlowLayout)
 
     okButton.addActionListener(_ => {
@@ -61,11 +97,11 @@ object CreateChart {
       setVisible(false)
     })
 
-    private def createAndConfigureComboBox(): JComboBox[String] = {
-      val rv = new JComboBox[String]()
+    private def createAndConfigureComboBox(wantMassiveEntries: Boolean): Selector = {
+      val rv = new JComboBox[CountedOption]()
       rv.setSelectedIndex(-1)
       rv.addActionListener(_ => updateWithUpToDateDatabase())
-      rv
+      Selector(rv, wantMassiveEntries)
     }
 
     allSelectors ++= Seq(xAxisSelector, yAxisSelector, seriesKeySelector)
@@ -73,23 +109,23 @@ object CreateChart {
     midPane.add(new JLabel("Choose databases"))
     entitySelectors.foreach(midPane.add)
     midPane.add(new JLabel("Choose a key for the X axis"))
-    midPane.add(xAxisSelector)
+    midPane.add(xAxisSelector.combo)
     midPane.add(new JLabel("Choose a key for the Y axis"))
-    midPane.add(yAxisSelector)
+    midPane.add(yAxisSelector.combo)
     midPane.add(new JLabel("Choose a series key"))
-    midPane.add(seriesKeySelector)
+    midPane.add(seriesKeySelector.combo)
     midPane.add(new JLabel("Choose category keys"))
 
     addNewSelectorButtonPanel.add(addNewSelectorButton, BorderLayout.LINE_START)
     midPane.add(addNewSelectorButtonPanel)
 
     addNewSelectorButton.addActionListener(_ => {
-      val newSelector = createAndConfigureComboBox()
+      val newSelector = createAndConfigureComboBox(false)
       allSelectors += newSelector
       val button = new JButton("<html>&minus;</html>")
       val panel = new JPanel(new BorderLayout())
       panel.add(button, BorderLayout.LINE_START)
-      panel.add(newSelector, BorderLayout.CENTER)
+      panel.add(newSelector.combo, BorderLayout.CENTER)
       midPane.add(panel, midPane.getComponentCount - 1)
       midPane.revalidate()
       pack()
@@ -120,49 +156,47 @@ object CreateChart {
 
     def isOK: Boolean = isOkay
     def getSelectedEntities: Seq[DatabaseEntity] = entities.indices.filter(i => entitySelectors(i).isSelected).map(entities)
-    def getXAxisKey: String = xAxisSelector.getModel.getElementAt(xAxisSelector.getSelectedIndex)
-    def getYAxisKey: String = yAxisSelector.getModel.getElementAt(yAxisSelector.getSelectedIndex)
-    def getSeriesKey: String = seriesKeySelector.getModel.getElementAt(seriesKeySelector.getSelectedIndex)
+    def getXAxisKey: String = xAxisSelector.getSelected.id
+    def getYAxisKey: String = yAxisSelector.getSelected.id
+    def getSeriesKey: String = seriesKeySelector.getSelected.id
     def getCategoryKeys: Seq[String] = allSelectors.drop(3).flatMap(s => {
-      val i = s.getSelectedIndex
-      if (i >= 0) Some(s.getModel.getElementAt(i)) else None
+      val i = s.combo.getSelectedIndex
+      if (i >= 0) Some(s.combo.getModel.getElementAt(i).id) else None
     })
 
     private def updateWithDatabaseChange(): Unit = {
       database = Database.merge(entities.indices.filter(i => entitySelectors(i).isSelected).map(i => entities(i).getDatabase) :_*)
-      keySet = database.possibleKeys
+      val keys = database.possibleKeys
+      keySet = keys.map(k => CountedOption(k, database.valuesUnderKey(k).size))
+      val width = if (keySet.isEmpty) 0 else keySet.view.map(_.toString.length).max
       updateWithUpToDateDatabase()
+      if (width != previousWidth) {
+        previousWidth = width
+        midPane.revalidate()
+        pack()
+        midPane.repaint()
+      }
     }
 
     private def updateWithUpToDateDatabase(): Unit = {
-      val retained = new mutable.HashSet[String]
+      val retained = new mutable.HashSet[CountedOption]
       retained ++= keySet
       for (s <- allSelectors) {
-        val availableStrings = retained.toIndexedSeq.sorted
-        val index = s.getSelectedIndex
-        val oldSelected = if (index < 0) None else Some(s.getModel.getElementAt(index))
-        s.setModel(new DefaultComboBoxModel[String](availableStrings.toArray))
-        oldSelected match {
-          case Some(v) =>
-            val newIndex = availableStrings.indexOf(v)
-            if (newIndex >= 0) {
-              s.setSelectedIndex(newIndex)
-            } else {
-              s.setSelectedIndex(-1)
-            }
-          case None =>
-            s.setSelectedIndex(-1)
-        }
-        val newSelectedIndex = s.getSelectedIndex
+        val availableStrings = s.sortOptions(retained.toIndexedSeq)
+        val index = s.combo.getSelectedIndex
+        val oldSelected = if (index < 0) None else Some(s.combo.getModel.getElementAt(index))
+        s.combo.setModel(new DefaultComboBoxModel[CountedOption](availableStrings.toArray))
+        s.selectSimilar(oldSelected)
+        val newSelectedIndex = s.combo.getSelectedIndex
         if (newSelectedIndex >= 0) {
-          retained -= s.getModel.getElementAt(newSelectedIndex)
+          retained -= s.combo.getModel.getElementAt(newSelectedIndex)
         }
       }
 
       okButton.setEnabled(database.hasEntries &&
-                            xAxisSelector.getSelectedIndex >= 0 &&
-                            yAxisSelector.getSelectedIndex >= 0 &&
-                            seriesKeySelector.getSelectedIndex >= 0)
+                            xAxisSelector.combo.getSelectedIndex >= 0 &&
+                            yAxisSelector.combo.getSelectedIndex >= 0 &&
+                            seriesKeySelector.combo.getSelectedIndex >= 0)
     }
   }
 }
