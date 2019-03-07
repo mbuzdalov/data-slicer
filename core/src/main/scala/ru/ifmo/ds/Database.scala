@@ -76,7 +76,7 @@ object Database {
       builder.result()
     }
 
-    override def entries: Seq[Entry] = myEntries
+    override val entries: Seq[Entry] = myEntries
     override def foreach[T](fun: Entry => T): Unit = myEntries.foreach(fun)
   }
 
@@ -92,12 +92,12 @@ object Database {
     }
     private val wrap: Entry => Entry = e => new WrapperEntry(e)
 
-    override val hasEntries: Boolean = base.hasEntries
-    override def possibleKeys: Set[String] = base.possibleKeys ++ newMap.keySet
+    override lazy val hasEntries: Boolean = base.hasEntries
+    override lazy val possibleKeys: Set[String] = base.possibleKeys ++ newMap.keySet
     override def valuesUnderKey(key: String): Set[Option[String]] = {
       if (newMap.contains(key)) Set(newMap.get(key)) else base.valuesUnderKey(key)
     }
-    override def entries: Seq[Entry] = base.entries.map(wrap)
+    override lazy val entries: Seq[Entry] = base.entries.map(wrap)
     override def foreach[T](fun: Entry => T): Unit = base.foreach(wrap.andThen(fun))
   }
 
