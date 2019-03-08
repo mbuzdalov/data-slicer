@@ -88,6 +88,8 @@ object CreateChart {
     private var previousWidth = 0
     private val midPane = new JPanel(new VerticalFlowLayout)
 
+    private var comboUpdateIsHappening = false // is read and written in Swing thread only
+
     okButton.addActionListener(_ => {
       isOkay = true
       setVisible(false)
@@ -100,7 +102,7 @@ object CreateChart {
     private def createAndConfigureComboBox(wantMassiveEntries: Boolean): Selector = {
       val rv = new JComboBox[CountedOption]()
       rv.setSelectedIndex(-1)
-      rv.addActionListener(_ => updateWithUpToDateDatabase())
+      rv.addActionListener(_ => if (!comboUpdateIsHappening) updateWithUpToDateDatabase())
       Selector(rv, wantMassiveEntries)
     }
 
@@ -140,7 +142,7 @@ object CreateChart {
       updateWithUpToDateDatabase()
     })
 
-    entitySelectors.foreach(_.addActionListener(_ => updateWithDatabaseChange()))
+    entitySelectors.foreach(_.addActionListener(_ => if (!comboUpdateIsHappening) updateWithDatabaseChange()))
 
     okButton.setEnabled(false)
 
@@ -179,6 +181,8 @@ object CreateChart {
     }
 
     private def updateWithUpToDateDatabase(): Unit = {
+      assert(!comboUpdateIsHappening)
+      comboUpdateIsHappening = true
       val retained = new mutable.HashSet[CountedOption]
       retained ++= keySet
       for (s <- allSelectors) {
@@ -197,6 +201,8 @@ object CreateChart {
                             xAxisSelector.combo.getSelectedIndex >= 0 &&
                             yAxisSelector.combo.getSelectedIndex >= 0 &&
                             seriesKeySelector.combo.getSelectedIndex >= 0)
+      assert(comboUpdateIsHappening)
+      comboUpdateIsHappening = false
     }
   }
 }
