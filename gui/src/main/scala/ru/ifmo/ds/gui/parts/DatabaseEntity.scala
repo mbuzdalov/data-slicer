@@ -18,19 +18,14 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
                      initialName: String, constructionProcedure: Seq[Database] => Database)
   extends DisplayedEntity(parentEntities, container, DatabaseEntity.dbIcon, initialName) {
 
-  private var database: Option[Database] = None
-  private var table: DatabaseEntity.MyTableModel = _
+  private[this] var database: Option[Database] = None
+  private[this] val table = new JTable()
+  private[this] val model = new DatabaseEntity.MyTableModel(table)
+
+  table.setModel(model)
+  theUI.add(new JScrollPane(table))
 
   def getDatabase: Database = database.get
-
-  override protected def makeMainUI(): JComponent = {
-    val jTable = new JTable()
-    if (table == null) {
-      table = new DatabaseEntity.MyTableModel(jTable)
-    }
-    jTable.setModel(table)
-    new JScrollPane(jTable)
-  }
 
   override def derive(newEntities: Seq[DisplayedEntity]): DisplayedEntity = {
     val newParents = newEntities.map(_.asInstanceOf[DatabaseEntity])
@@ -43,11 +38,11 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
       case Some(s) => if (s.length > 100) s.take(100) + "..." else s
     }
 
-    val db = constructionProcedure(parentEntities.map(_.database.get))
+    val db = constructionProcedure(parentEntities.map(_.getDatabase))
     database = Some(db)
     val keysValues = db.possibleKeys.map(k => k -> db.valuesUnderKey(k)).toIndexedSeq.sortBy(_._1)
     val (singletons, others) = keysValues.partition(_._2.size == 1)
-    table.setData((singletons ++ others).map(p => (p._1, p._2.map(toDisplayable).toIndexedSeq.sorted(OrderingForStringWithNumbers.NoSpecialDotTreatment))))
+    model.setData((singletons ++ others).map(p => (p._1, p._2.map(toDisplayable).toIndexedSeq.sorted(OrderingForStringWithNumbers.NoSpecialDotTreatment))))
   }
 }
 

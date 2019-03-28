@@ -1,6 +1,5 @@
 package ru.ifmo.ds.gui.parts
 
-import java.awt.GridLayout
 import java.util.{Arrays, Comparator}
 
 import javax.imageio.ImageIO
@@ -8,27 +7,21 @@ import javax.swing._
 import javax.swing.event.TableModelListener
 import javax.swing.table.{TableModel, TableRowSorter}
 
-import scala.collection.{mutable => mu}
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
+
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
 import ru.ifmo.ds.gui.util._
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 
+import scala.collection.{mutable => mu}
+
 class ChartEntity(inputs: Seq[DatabaseEntity], container: EntityContainer,
                   categoryKeys: Seq[String], seriesKey: String, xAxis: Axis, yAxis: Axis)
   extends DisplayedEntity(inputs, container, ChartEntity.chartIcon, inputs.view.map(_.getName).mkString("[", "+", "]")) {
-
-  private var panel: JPanel = _
-  override protected def makeMainUI(): JComponent = {
-    if (panel == null) {
-      panel = new JPanel(new GridLayout(1, 1))
-    }
-    panel
-  }
 
   override def derive(newEntities: Seq[DisplayedEntity]): DisplayedEntity = {
     val newParents = newEntities.map(_.asInstanceOf[DatabaseEntity])
@@ -39,10 +32,10 @@ class ChartEntity(inputs: Seq[DatabaseEntity], container: EntityContainer,
     val dbs = Database.merge(inputs.map(_.getDatabase) :_*)
     val tree = ChartEntity.makeTree(dbs, categoryKeys, seriesKey, xAxis, yAxis)
     SwingUtilities.invokeAndWait(() => {
-      panel.removeAll()
-      panel.add(PartitionTreeUtils.createTabbedPanes[ChartEntity.LeafDescription](tree, _.makeUI()))
-      panel.revalidate()
-      panel.repaint()
+      theUI.removeAll()
+      theUI.add(PartitionTreeUtils.createTabbedPanes[ChartEntity.LeafDescription](tree, _.makeUI()))
+      theUI.revalidate()
+      theUI.repaint()
     })
   }
 }

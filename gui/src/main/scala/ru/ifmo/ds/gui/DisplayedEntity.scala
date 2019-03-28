@@ -31,10 +31,15 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   }
   private val exceptionTextArea = new JTextArea()
 
+  /**
+    * This is the panel which the descending classes shall use to put their main UIs.
+    */
+  protected val theUI: JPanel = new JPanel(new GridLayout(1, 1))
+
   mainUI.add(DisplayedEntity.makeLargeLabel("Constructor is executed..."), mainUILayoutConstructor)
   mainUI.add(DisplayedEntity.makeLargeLabel("Evaluating..."), mainUILayoutEvaluating)
   mainUI.add(DisplayedEntity.makeLargeLabel("Waiting for dependencies..."), mainUILayoutDependencies)
-  mainUI.add(makeMainUI(), mainUILayoutReady)
+  mainUI.add(theUI, mainUILayoutReady)
   mainUI.add(exceptionTextArea, mainUILayoutFailed)
 
   mainUILayout.show(mainUI, mainUILayoutConstructor)
@@ -50,8 +55,6 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   displayUI.add(reloadRemovePane, BorderLayout.LINE_END)
 
   container.add(this)
-
-  protected def makeMainUI(): JComponent /* called from Swing */
 
   def derive(newEntities: Seq[DisplayedEntity]): DisplayedEntity /* called from Swing */
 
