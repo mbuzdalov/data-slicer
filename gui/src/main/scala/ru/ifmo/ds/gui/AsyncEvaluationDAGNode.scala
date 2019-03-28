@@ -2,7 +2,7 @@ package ru.ifmo.ds.gui
 
 import javax.swing.SwingUtilities
 
-import scala.collection.{Set => GeneralSet}
+import scala.collection.Set
 import scala.collection.mutable
 
 abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationDAGNode],
@@ -18,10 +18,11 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
 
   private val children = new mutable.HashSet[AsyncEvaluationDAGNode]
   private[this] var state: State = NotEvaluated
-  private var nInputsWaitedFor = inputs.count(_.getState != Evaluated)
+  private[this] var nInputsWaitedFor = inputs.count(_.getState != Evaluated)
 
   private def getState: State = state
-  private def setState(newState: State): Unit = {
+
+  private[this] def setState(newState: State): Unit = {
     if (state != newState) {
       val oldState = state
       state = newState
@@ -51,19 +52,19 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
         runEvaluation()
         SwingUtilities.invokeLater(() => {
           notifyEvaluationFinished()
-          notifyEvaluationComplete()
+          onEvaluationComplete()
         })
       } catch {
         case th: Throwable =>
           SwingUtilities.invokeLater(() => {
             notifyEvaluationFailed(th)
-            notifyEvaluationCrashed()
+            onEvaluationCrashed()
           })
       }
     }).start()
   }
 
-  private def notifyParentIsNotEvaluated(): Unit = {
+  private def onParentIsNotEvaluated(): Unit = {
     ensureInSwing()
     assert(nInputsWaitedFor < inputs.size)
     watcher.notifyParentIsNotEvaluated(this)
@@ -72,7 +73,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
         case Evaluated =>
           setState(NotEvaluated)
           notifyWaitingForDependencies()
-          children.foreach(_.notifyParentIsNotEvaluated())
+          children.foreach(_.onParentIsNotEvaluated())
         case Evaluating =>
           setState(EvaluatingWhileReceivingRequest)
         case NotEvaluated | EvaluatingWhileReceivingRequest =>
@@ -84,7 +85,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
     nInputsWaitedFor += 1
   }
 
-  private def notifyParentIsEvaluated(): Unit = {
+  private def onParentIsEvaluated(): Unit = {
     ensureInSwing()
     assert(nInputsWaitedFor > 0)
     watcher.notifyParentIsEvaluated(this)
@@ -103,7 +104,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
     }
   }
 
-  private def notifyEvaluationCrashed(): Unit = {
+  private def onEvaluationCrashed(): Unit = {
     ensureInSwing()
     watcher.notifyEvaluationCrashed(this)
     state match {
@@ -123,7 +124,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
     }
   }
 
-  private def notifyEvaluationComplete(): Unit = {
+  private def onEvaluationComplete(): Unit = {
     ensureInSwing()
     watcher.notifyEvaluationComplete(this)
     state match {
@@ -140,7 +141,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
         }
       case Evaluating =>
         setState(Evaluated)
-        children.foreach(_.notifyParentIsEvaluated())
+        children.foreach(_.onParentIsEvaluated())
     }
   }
 
@@ -149,7 +150,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
   protected def notifyEvaluationFinished(): Unit = {} /* will be called in Swing */
   protected def notifyEvaluationFailed(throwable: Throwable): Unit = {} /* will be called in Swing */
 
-  protected def getChildren: GeneralSet[AsyncEvaluationDAGNode] = children
+  protected def getChildren: Set[AsyncEvaluationDAGNode] = children
   protected def runEvaluation(): Unit /* will be called in a dedicated thread */
 
   def initiateReloading(): Unit = {
@@ -164,7 +165,7 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
         }
       case Evaluated =>
         setState(NotEvaluated)
-        children.foreach(_.notifyParentIsNotEvaluated())
+        children.foreach(_.onParentIsNotEvaluated())
         initiateEvaluation()
       case Evaluating | EvaluatingWhileReceivingRequest =>
         setState(EvaluatingWhileReceivingRequest)
@@ -216,16 +217,16 @@ object AsyncEvaluationDAGNode {
       println(s"${dump(node)}.initiateEvaluation() called")
     }
     override def notifyParentIsNotEvaluated(node: AsyncEvaluationDAGNode): Unit = {
-      println(s"${dump(node)}.notifyParentIsNotEvaluated() called")
+      println(s"${dump(node)}.onParentIsNotEvaluated() called")
     }
     override def notifyParentIsEvaluated(node: AsyncEvaluationDAGNode): Unit = {
-      println(s"${dump(node)}.notifyParentIsEvaluated() called")
+      println(s"${dump(node)}.onParentIsEvaluated() called")
     }
     override def notifyEvaluationCrashed(node: AsyncEvaluationDAGNode): Unit = {
-      println(s"${dump(node)}.notifyEvaluationCrashed() called")
+      println(s"${dump(node)}.onEvaluationCrashed() called")
     }
     override def notifyEvaluationComplete(node: AsyncEvaluationDAGNode): Unit = {
-      println(s"${dump(node)}.notifyEvaluationComplete() called")
+      println(s"${dump(node)}.onEvaluationComplete() called")
     }
     override def initiateReloading(node: AsyncEvaluationDAGNode): Unit = {
       println(s"${dump(node)}.initiateReloading() called")
