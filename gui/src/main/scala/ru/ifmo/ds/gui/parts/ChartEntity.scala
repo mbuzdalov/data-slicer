@@ -2,15 +2,12 @@ package ru.ifmo.ds.gui.parts
 
 import java.util.{Arrays, Comparator}
 
-import javax.imageio.ImageIO
 import javax.swing._
 import javax.swing.event.TableModelListener
 import javax.swing.table.{TableModel, TableRowSorter}
-
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
-
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
 import ru.ifmo.ds.gui.util._
@@ -40,11 +37,11 @@ class ChartEntity(inputs: Seq[DatabaseEntity], container: EntityContainer,
   }
 }
 
-object ChartEntity {
-  private val chartIcon = new ImageIcon(ImageIO.read(getClass.getResource("chart.png")))
-  private val tableIcon = new ImageIcon(ImageIO.read(getClass.getResource("table.png")))
-  private val chartTableVIcon = new ImageIcon(ImageIO.read(getClass.getResource("chart-table-v.png")))
-  private val chartTableHIcon = new ImageIcon(ImageIO.read(getClass.getResource("chart-table-h.png")))
+object ChartEntity extends ImageLoadingFacilities {
+  private val chartIcon = imageFromResource("chart.png")
+  private val tableIcon = imageFromResource("table.png")
+  private val chartTableVIcon = imageFromResource("chart-table-v.png")
+  private val chartTableHIcon = imageFromResource("chart-table-h.png")
 
   private case class LeafDescription(plot: XYPlot,
                                      tableModel: TableModel,

@@ -1,9 +1,9 @@
 package ru.ifmo.ds.gui.actions
 
-import javax.imageio.ImageIO
-import javax.swing.{ImageIcon, JFileChooser}
+import javax.swing.JFileChooser
 import ru.ifmo.ds.gui.EntityContainer
 import ru.ifmo.ds.gui.parts.DatabaseEntity
+import ru.ifmo.ds.gui.util.ImageLoadingFacilities
 
 class OpenDatabaseFiles(container: EntityContainer) extends EntityAction("Open database files", OpenDatabaseFiles.dbOpenFilesIcon) {
   private val openFileChooser = new JFileChooser()
@@ -20,6 +20,6 @@ class OpenDatabaseFiles(container: EntityContainer) extends EntityAction("Open d
   }
 }
 
-object OpenDatabaseFiles {
-  val dbOpenFilesIcon = new ImageIcon(ImageIO.read(getClass.getResource("open-database-files.png")))
+object OpenDatabaseFiles extends ImageLoadingFacilities {
+  private val dbOpenFilesIcon = imageFromResource("open-database-files.png")
 }

@@ -4,9 +4,8 @@ import java.awt._
 import java.awt.event._
 import java.io.{PrintWriter, StringWriter}
 
-import javax.imageio.ImageIO
 import javax.swing._
-import ru.ifmo.ds.gui.util.EditableLabel
+import ru.ifmo.ds.gui.util.{EditableLabel, ImageLoadingFacilities}
 
 abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
                                container: EntityContainer,
@@ -137,9 +136,9 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   }
 }
 
-object DisplayedEntity {
-  private val reloadIcon = new ImageIcon(ImageIO.read(getClass.getResource("reload.png")))
-  private val removeIcon = new ImageIcon(ImageIO.read(getClass.getResource("remove.png")))
+object DisplayedEntity extends ImageLoadingFacilities {
+  private val reloadIcon = imageFromResource("reload.png")
+  private val removeIcon = imageFromResource("remove.png")
 
   private def makeLargeLabel(text: String): JLabel = {
     val rv = new JLabel(text)

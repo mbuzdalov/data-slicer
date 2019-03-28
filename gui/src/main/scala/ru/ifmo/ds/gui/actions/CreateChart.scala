@@ -2,17 +2,15 @@ package ru.ifmo.ds.gui.actions
 
 import java.awt.{BorderLayout, FlowLayout}
 
-import javax.imageio.ImageIO
 import javax.swing._
-
-import scala.collection.mutable
-
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.EntityContainer
 import ru.ifmo.ds.gui.actions.CreateChart.ChartOptionsComponent
 import ru.ifmo.ds.gui.parts.{ChartEntity, DatabaseEntity}
-import ru.ifmo.ds.gui.util.VerticalFlowLayout
+import ru.ifmo.ds.gui.util.{ImageLoadingFacilities, VerticalFlowLayout}
 import ru.ifmo.ds.util.Axis
+
+import scala.collection.mutable
 
 class CreateChart(container: EntityContainer) extends EntityAction("Create chart", CreateChart.createChart) {
   override protected def performImpl(): Unit = {
@@ -35,8 +33,8 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
   }
 }
 
-object CreateChart {
-  private val createChart = new ImageIcon(ImageIO.read(getClass.getResource("create-chart.png")))
+object CreateChart extends ImageLoadingFacilities {
+  private val createChart = imageFromResource("create-chart.png")
 
   private case class Selector(combo: JComboBox[CountedOption], wantsMassiveEntries: Boolean) {
     def sortOptions(options: Seq[CountedOption]): Seq[CountedOption] = {
