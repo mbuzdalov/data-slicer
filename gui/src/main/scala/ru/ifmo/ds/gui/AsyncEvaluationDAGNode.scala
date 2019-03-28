@@ -34,10 +34,11 @@ abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationD
 
   watcher.created(this, nInputsWaitedFor != 0)
 
+  // invokeLater is used here to fire the methods strictly after the constructor is completed
   if (nInputsWaitedFor == 0) {
-    initiateEvaluation()
+    SwingUtilities.invokeLater(() => initiateEvaluation())
   } else {
-    notifyWaitingForDependencies()
+    SwingUtilities.invokeLater(() => notifyWaitingForDependencies())
   }
 
   private def initiateEvaluation(): Unit = {

@@ -16,12 +16,12 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
           "The DisplayedEntity constructor shall be called on an AWT dispatch thread")
 
   private val mainUILayout = new CardLayout()
+  private val mainUILayoutConstructor = "Constructor"
   private val mainUILayoutDependencies = "Dependencies"
   private val mainUILayoutEvaluating = "Evaluating"
   private val mainUILayoutReady = "Ready"
   private val mainUILayoutFailed = "Failed"
   private val mainUI = new JPanel(mainUILayout)
-  private val isAfterVariableInitialization = true
   private var isAlive = true
   private val displayUI = new JPanel(new BorderLayout(3, 3))
   private val nameLabel = new EditableLabel(initialName)
@@ -29,19 +29,15 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   private val displayOnPressListener = new MouseAdapter {
     override def mousePressed(e: MouseEvent): Unit = container.show(self)
   }
-  private val evaluatingLabel = DisplayedEntity.makeLargeLabel("Evaluating...")
-  private val dependenciesLabel = DisplayedEntity.makeLargeLabel("Waiting for dependencies...")
   private val exceptionTextArea = new JTextArea()
 
-  /* intentionally no init, is initialized before the constructor runs */
-  private var areDependenciesReadyInConstructor: Boolean = _
-
-  mainUI.add(evaluatingLabel, mainUILayoutEvaluating)
-  mainUI.add(dependenciesLabel, mainUILayoutDependencies)
+  mainUI.add(DisplayedEntity.makeLargeLabel("Constructor is executed..."), mainUILayoutConstructor)
+  mainUI.add(DisplayedEntity.makeLargeLabel("Evaluating..."), mainUILayoutEvaluating)
+  mainUI.add(DisplayedEntity.makeLargeLabel("Waiting for dependencies..."), mainUILayoutDependencies)
   mainUI.add(makeMainUI(), mainUILayoutReady)
   mainUI.add(exceptionTextArea, mainUILayoutFailed)
 
-  mainUILayout.show(mainUI, if (areDependenciesReadyInConstructor) mainUILayoutEvaluating else mainUILayoutDependencies)
+  mainUILayout.show(mainUI, mainUILayoutConstructor)
 
   displayUI.addMouseListener(displayOnPressListener)
   nameLabel.addMouseListener(displayOnPressListener)
@@ -61,22 +57,14 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
 
   override protected def notifyWaitingForDependencies(): Unit = {
     super.notifyWaitingForDependencies()
-    if (isAfterVariableInitialization) {
-      ensureIsAlive()
-      mainUILayout.show(mainUI, mainUILayoutDependencies)
-    } else {
-      areDependenciesReadyInConstructor = false
-    }
+    ensureIsAlive()
+    mainUILayout.show(mainUI, mainUILayoutDependencies)
   }
 
   override protected def notifyEvaluationStarting(): Unit = {
     super.notifyEvaluationStarting()
-    if (isAfterVariableInitialization) {
-      ensureIsAlive()
-      mainUILayout.show(mainUI, mainUILayoutEvaluating)
-    } else {
-      areDependenciesReadyInConstructor = true
-    }
+    ensureIsAlive()
+    mainUILayout.show(mainUI, mainUILayoutEvaluating)
   }
 
   override protected def notifyEvaluationFinished(): Unit = {
