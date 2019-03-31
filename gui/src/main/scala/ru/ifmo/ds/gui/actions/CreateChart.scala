@@ -3,14 +3,15 @@ package ru.ifmo.ds.gui.actions
 import java.awt.{BorderLayout, FlowLayout}
 
 import javax.swing._
-import ru.ifmo.ds.Database
+
+import scala.collection.mutable
+
 import ru.ifmo.ds.gui.EntityContainer
 import ru.ifmo.ds.gui.actions.CreateChart.ChartOptionsComponent
+import ru.ifmo.ds.gui.components.DatabaseSelector
 import ru.ifmo.ds.gui.parts.{ChartEntity, DatabaseEntity}
 import ru.ifmo.ds.gui.util.{ImageLoadingFacilities, VerticalFlowLayout}
 import ru.ifmo.ds.util.Axis
-
-import scala.collection.mutable
 
 class CreateChart(container: EntityContainer) extends EntityAction("Create chart", CreateChart.createChart) {
   override protected def performImpl(): Unit = {
@@ -71,9 +72,8 @@ object CreateChart extends ImageLoadingFacilities {
 
   private class ChartOptionsComponent(entities: Seq[DatabaseEntity], alignmentSet: EntityContainer.DialogAlignmentInfo)
     extends JDialog(alignmentSet.frame, "Create a chart", true) {
-    private var database = Database()
+    private val selector = new DatabaseSelector(entities)
     private var keySet: Set[CountedOption] = Set.empty
-    private val entitySelectors = entities.map(e => new JCheckBox(e.getName))
     private val xAxisSelector, seriesKeySelector = createAndConfigureComboBox(false)
     private val yAxisSelector = createAndConfigureComboBox(true)
     private val allSelectors = new mutable.ArrayBuffer[Selector]()
@@ -106,8 +106,6 @@ object CreateChart extends ImageLoadingFacilities {
 
     allSelectors ++= Seq(xAxisSelector, yAxisSelector, seriesKeySelector)
 
-    midPane.add(new JLabel("Choose databases"))
-    entitySelectors.foreach(midPane.add)
     midPane.add(new JLabel("Choose a key for the X axis"))
     midPane.add(xAxisSelector.combo)
     midPane.add(new JLabel("Choose a key for the Y axis"))
@@ -140,22 +138,22 @@ object CreateChart extends ImageLoadingFacilities {
       updateWithUpToDateDatabase()
     })
 
-    entitySelectors.foreach(_.addActionListener(_ => if (!comboUpdateIsHappening) updateWithDatabaseChange()))
-
     okButton.setEnabled(false)
 
     okCancelPane.add(okButton)
     okCancelPane.add(cancelButton)
 
     setLayout(new BorderLayout())
+    add(selector, BorderLayout.PAGE_START)
     add(midPane, BorderLayout.CENTER)
     add(okCancelPane, BorderLayout.PAGE_END)
 
+    selector.addSelectionListener(() => updateWithDatabaseChange())
     pack()
     setLocation(alignmentSet.centerX - getWidth / 2, alignmentSet.centerY - getHeight / 2)
 
     def isOK: Boolean = isOkay
-    def getSelectedEntities: Seq[DatabaseEntity] = entities.indices.filter(i => entitySelectors(i).isSelected).map(entities)
+    def getSelectedEntities: Seq[DatabaseEntity] = selector.getSelectedEntities
     def getXAxisKey: String = xAxisSelector.getSelected.id
     def getYAxisKey: String = yAxisSelector.getSelected.id
     def getSeriesKey: String = seriesKeySelector.getSelected.id
@@ -165,7 +163,7 @@ object CreateChart extends ImageLoadingFacilities {
     })
 
     private def updateWithDatabaseChange(): Unit = {
-      database = Database.merge(entities.indices.filter(i => entitySelectors(i).isSelected).map(i => entities(i).getDatabase) :_*)
+      val database = selector.getDatabase
       val keys = database.possibleKeys
       keySet = keys.map(k => CountedOption(k, database.valuesUnderKey(k).size))
       val width = if (keySet.isEmpty) 0 else keySet.view.map(_.toString.length).max
@@ -195,7 +193,7 @@ object CreateChart extends ImageLoadingFacilities {
         }
       }
 
-      okButton.setEnabled(database.hasEntries &&
+      okButton.setEnabled(selector.getDatabase.hasEntries &&
                             xAxisSelector.combo.getSelectedIndex >= 0 &&
                             yAxisSelector.combo.getSelectedIndex >= 0 &&
                             seriesKeySelector.combo.getSelectedIndex >= 0)
