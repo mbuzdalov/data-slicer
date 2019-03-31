@@ -6,7 +6,7 @@ import javax.swing._
 
 import scala.collection.mutable
 
-import ru.ifmo.ds.gui.actions.{CreateChart, EntityAction, OpenDatabaseFiles}
+import ru.ifmo.ds.gui.actions.{CreateChart, EntityAction, MapDatabase, OpenDatabaseFiles}
 import ru.ifmo.ds.gui.util.VerticalFlowLayout
 
 class EntityContainer {
@@ -28,9 +28,11 @@ class EntityContainer {
 
   val openDatabaseFilesAction: EntityAction = new OpenDatabaseFiles(this)
   val createChartAction: EntityAction = new CreateChart(this)
+  val mapDatabaseAction: EntityAction = new MapDatabase(this)
 
   actionPane.add(openDatabaseFilesAction.makeButton())
   actionPane.add(createChartAction.makeButton())
+  actionPane.add(mapDatabaseAction.makeButton())
 
   leftPane.add(displayPane)
   leftPane.add(actionPane)
