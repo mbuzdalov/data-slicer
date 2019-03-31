@@ -5,7 +5,9 @@ import java.awt.event._
 import java.io.{PrintWriter, StringWriter}
 
 import javax.swing._
-import ru.ifmo.ds.gui.util.{EditableLabel, ImageLoadingFacilities}
+
+import ru.ifmo.ds.gui.components.EditableLabel
+import ru.ifmo.ds.gui.util.ImageLoadingFacilities
 
 abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
                                container: EntityContainer,

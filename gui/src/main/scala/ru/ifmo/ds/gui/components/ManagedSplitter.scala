@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.util
+package ru.ifmo.ds.gui.components
 
 import java.awt.{BorderLayout, Insets}
 

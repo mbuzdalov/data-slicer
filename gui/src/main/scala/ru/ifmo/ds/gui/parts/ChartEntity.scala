@@ -5,16 +5,19 @@ import java.util.{Arrays, Comparator}
 import javax.swing._
 import javax.swing.event.TableModelListener
 import javax.swing.table.{TableModel, TableRowSorter}
+
+import scala.collection.{mutable => mu}
+
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
+
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
 import ru.ifmo.ds.gui.util._
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
+import ru.ifmo.ds.gui.components.ManagedSplitter
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
-
-import scala.collection.{mutable => mu}
 
 class ChartEntity(inputs: Seq[DatabaseEntity], container: EntityContainer,
                   categoryKeys: Seq[String], seriesKey: String, xAxis: Axis, yAxis: Axis)
