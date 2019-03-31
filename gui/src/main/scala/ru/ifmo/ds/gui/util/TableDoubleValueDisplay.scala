@@ -7,9 +7,9 @@ import javax.swing.{JLabel, JTable}
 import javax.swing.table.TableCellRenderer
 
 class TableDoubleValueDisplay(val median: Double,
-                                      val min: Double,
-                                      val max: Double,
-                                      alwaysSci: Boolean) extends Comparable[TableDoubleValueDisplay] {
+                              val min: Double,
+                              val max: Double,
+                              alwaysSci: Boolean) extends Comparable[TableDoubleValueDisplay] {
   private[this] def makeSci(value: Double): String = {
     val str = "%.03e".formatLocal(Locale.US, value)
     val eIdx = str.indexOf('e')
