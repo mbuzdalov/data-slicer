@@ -143,6 +143,15 @@ object PictureGenerator {
     makeArrow(arrow)
   }
 
+  private def makeMapDatabase(g: Graphics2D): Unit = {
+    val left = g.create(0, 0, 32, 32).asInstanceOf[Graphics2D]
+    makeDatabase(left)
+    val right = g.create(40, 0, 32, 32).asInstanceOf[Graphics2D]
+    makeDatabase(right)
+    val arrow = g.create(30, 0, 10, 32).asInstanceOf[Graphics2D]
+    makeArrow(arrow)
+  }
+
   private def write(dir: File, name: String, width: Int, height: Int)(fun: Graphics2D => Any): Unit = {
     val image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
     val graphics = image.createGraphics()
@@ -174,5 +183,6 @@ object PictureGenerator {
 
     write(root, "actions/open-database-files.png", 72, 32)(makeOpenDatabaseFiles)
     write(root, "actions/create-chart.png", 72, 32)(makeCreateChart)
+    write(root, "actions/map-database.png", 72, 32)(makeMapDatabase)
   }
 }
