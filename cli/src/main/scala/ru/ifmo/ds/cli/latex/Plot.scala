@@ -40,11 +40,11 @@ object Plot extends CLI.Module {
           } width=\\picturewidth, height=\\pictureheight, legend pos=outer north east, cycle list name=\\picturecycle]")
 
           for ((series, seriesData) <- plotData) {
-            println("\\addplot table {")
-            println("    x y")
+            println("\\addplot table[row sep=crcr] {")
+            println("    x y \\\\")
             for ((x, ys) <- seriesData.toIndexedSeq.sortBy(_._1)) {
               val avg = ys.sum / ys.size
-              println(s"  $x $avg")
+              println(s"  $x $avg \\\\")
             }
             println("};")
             println(s"\\addlegendentry{$series};")
