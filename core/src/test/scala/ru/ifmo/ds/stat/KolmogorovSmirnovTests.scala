@@ -5,7 +5,7 @@ import java.util.Random
 import org.scalatest.{FlatSpec, Matchers}
 
 class KolmogorovSmirnovTests extends FlatSpec with Matchers {
-  private[this] case class RefResult(p: Double, d: Double)
+  private case class RefResult(p: Double, d: Double)
 
   private object R {
     // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
@@ -28,17 +28,22 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     }
   }
 
-  private[this] def check(a: Seq[Int], b: Seq[Int], strict: Boolean, expected: RefResult): Unit = {
-    val result = if (strict) KolmogorovSmirnov(a, b) else KolmogorovSmirnovApprox(a, b)
-    result.statistic.toDouble shouldBe (expected.d +- 1e-4)
-    result.p shouldBe (expected.p +- 1e-4)
+  private def checkRelativeMatch(expected: Double, found: Double, precision: Double): Unit = {
+    found should be <= expected * (1 + precision)
+    found should be >= expected * (1 - precision)
   }
 
-  private[this] def checkStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
+  private def check(a: Seq[Int], b: Seq[Int], strict: Boolean, expected: RefResult): Unit = {
+    val result = if (strict) KolmogorovSmirnov(a, b) else KolmogorovSmirnovApprox(a, b)
+    checkRelativeMatch(expected.d, result.statistic.toDouble, 1e-4)
+    checkRelativeMatch(expected.p, result.p, 2e-4)
+  }
+
+  private def checkStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
     check(a, b, strict = true, expected)
   }
 
-  private[this] def checkNonStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
+  private def checkNonStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
     check(a, b, strict = false, expected)
   }
 
