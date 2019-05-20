@@ -12,6 +12,7 @@ bin/
 
 /target/
 /project/target
+/project/build.properties
 
 /cli/target/
 /cli/project/
