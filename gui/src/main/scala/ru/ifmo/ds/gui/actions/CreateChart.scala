@@ -35,16 +35,17 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
 }
 
 object CreateChart extends ImageLoadingFacilities {
+  private type CountedOption = DatabaseSelector.KeyDescription
   private val createChart = imageFromResource("create-chart.png")
 
   private case class Selector(combo: JComboBox[CountedOption], wantsMassiveEntries: Boolean) {
     def sortOptions(options: Seq[CountedOption]): Seq[CountedOption] = {
       if (options.isEmpty) options else {
-        val (singletons, others) = options.sortBy(_.id).partition(_.count == 1)
+        val (singletons, others) = options.sortBy(_.key).partition(_.countDifferentValues == 1)
         if (wantsMassiveEntries) {
-          val threshold = options.sortBy(_.count).takeRight(3).head.count
-          val (coolest, average) = others.partition(_.count >= threshold)
-          coolest.sortBy(-_.count) ++ average ++ singletons
+          val threshold = options.sortBy(_.countDifferentValues).takeRight(3).head.countDifferentValues
+          val (coolest, average) = others.partition(_.countDifferentValues >= threshold)
+          coolest.sortBy(-_.countDifferentValues) ++ average ++ singletons
         } else {
           others ++ singletons
         }
@@ -54,20 +55,12 @@ object CreateChart extends ImageLoadingFacilities {
     def selectSimilar(previous: Option[CountedOption]): Unit = {
       combo.setSelectedIndex(previous flatMap { v =>
         val model = combo.getModel
-        (0 until model.getSize).find(i => model.getElementAt(i).id == v.id)
+        (0 until model.getSize).find(i => model.getElementAt(i).key == v.key)
       } getOrElse -1)
     }
 
     def get(index: Int): CountedOption = combo.getModel.getElementAt(index)
     def getSelected: CountedOption = get(combo.getSelectedIndex)
-  }
-
-  private case class CountedOption(id: String, count: Int) {
-    override def toString: String = if (count % 10 == 1 && count % 100 != 11) {
-      s"$id ($count value)"
-    } else {
-      s"$id ($count values)"
-    }
   }
 
   private class ChartOptionsComponent(entities: Seq[DatabaseEntity], alignmentSet: EntityContainer.DialogAlignmentInfo)
@@ -154,18 +147,16 @@ object CreateChart extends ImageLoadingFacilities {
 
     def isOK: Boolean = isOkay
     def getSelectedEntities: Seq[DatabaseEntity] = selector.getSelectedEntities
-    def getXAxisKey: String = xAxisSelector.getSelected.id
-    def getYAxisKey: String = yAxisSelector.getSelected.id
-    def getSeriesKey: String = seriesKeySelector.getSelected.id
+    def getXAxisKey: String = xAxisSelector.getSelected.key
+    def getYAxisKey: String = yAxisSelector.getSelected.key
+    def getSeriesKey: String = seriesKeySelector.getSelected.key
     def getCategoryKeys: Seq[String] = allSelectors.drop(3).flatMap(s => {
       val i = s.combo.getSelectedIndex
-      if (i >= 0) Some(s.combo.getModel.getElementAt(i).id) else None
+      if (i >= 0) Some(s.combo.getModel.getElementAt(i).key) else None
     })
 
     private def updateWithDatabaseChange(): Unit = {
-      val database = selector.getDatabase
-      val keys = database.possibleKeys
-      keySet = keys.map(k => CountedOption(k, database.valuesUnderKey(k).size))
+      keySet = selector.getKeyDescriptions.toSet
       val width = if (keySet.isEmpty) 0 else keySet.view.map(_.toString.length).max
       updateWithUpToDateDatabase()
       if (width != previousWidth) {
@@ -193,7 +184,7 @@ object CreateChart extends ImageLoadingFacilities {
         }
       }
 
-      okButton.setEnabled(selector.getDatabase.hasEntries &&
+      okButton.setEnabled(selector.hasEntries &&
                             xAxisSelector.combo.getSelectedIndex >= 0 &&
                             yAxisSelector.combo.getSelectedIndex >= 0 &&
                             seriesKeySelector.combo.getSelectedIndex >= 0)

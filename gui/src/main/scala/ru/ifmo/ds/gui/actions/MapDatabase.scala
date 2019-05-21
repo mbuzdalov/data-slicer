@@ -151,7 +151,7 @@ object MapDatabase extends ImageLoadingFacilities {
     }
 
     private def updateWithDatabaseChange(): Unit = {
-      okButton.setEnabled(selector.getDatabase.hasEntries)
+      okButton.setEnabled(selector.hasEntries)
     }
 
     def isOK: Boolean = isOkay
