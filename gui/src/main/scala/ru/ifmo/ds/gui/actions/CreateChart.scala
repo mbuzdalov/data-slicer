@@ -38,12 +38,15 @@ object CreateChart extends ImageLoadingFacilities {
   private type CountedOption = DatabaseSelector.KeyDescription
   private val createChart = imageFromResource("create-chart.png")
 
-  private case class Selector(combo: JComboBox[CountedOption], wantsMassiveEntries: Boolean) {
+  private case class Selector(combo: JComboBox[CountedOption],
+                              wantsMassiveEntries: Boolean,
+                              wantsDoubleEntries: Boolean) {
     def sortOptions(options: Seq[CountedOption]): Seq[CountedOption] = {
       if (options.isEmpty) options else {
-        val (singletons, others) = options.sortBy(_.key).partition(_.countDifferentValues == 1)
+        val filtered = if (wantsDoubleEntries) options.filter(_.allValuesAreDouble) else options
+        val (singletons, others) = filtered.sortBy(_.key).partition(_.countDifferentValues == 1)
         if (wantsMassiveEntries) {
-          val threshold = options.sortBy(_.countDifferentValues).takeRight(3).head.countDifferentValues
+          val threshold = filtered.sortBy(_.countDifferentValues).takeRight(3).head.countDifferentValues
           val (coolest, average) = others.partition(_.countDifferentValues >= threshold)
           coolest.sortBy(-_.countDifferentValues) ++ average ++ singletons
         } else {
@@ -67,8 +70,9 @@ object CreateChart extends ImageLoadingFacilities {
     extends JDialog(alignmentSet.frame, "Create a chart", true) {
     private val selector = new DatabaseSelector(entities)
     private var keySet: Set[CountedOption] = Set.empty
-    private val xAxisSelector, seriesKeySelector = createAndConfigureComboBox(false)
-    private val yAxisSelector = createAndConfigureComboBox(true)
+    private val xAxisSelector = createAndConfigureComboBox(wantsMassiveEntries = false, wantsDoubleEntries = true)
+    private val yAxisSelector = createAndConfigureComboBox(wantsMassiveEntries = true, wantsDoubleEntries = true)
+    private val seriesKeySelector = createAndConfigureComboBox(wantsMassiveEntries = false, wantsDoubleEntries = false)
     private val allSelectors = new mutable.ArrayBuffer[Selector]()
     private val addNewSelectorButtonPanel = new JPanel(new BorderLayout())
     private val addNewSelectorButton = new JButton("+")
@@ -90,11 +94,11 @@ object CreateChart extends ImageLoadingFacilities {
       setVisible(false)
     })
 
-    private def createAndConfigureComboBox(wantMassiveEntries: Boolean): Selector = {
+    private def createAndConfigureComboBox(wantsMassiveEntries: Boolean, wantsDoubleEntries: Boolean): Selector = {
       val rv = new JComboBox[CountedOption]()
       rv.setSelectedIndex(-1)
       rv.addActionListener(_ => if (!comboUpdateIsHappening) updateWithUpToDateDatabase())
-      Selector(rv, wantMassiveEntries)
+      Selector(rv, wantsMassiveEntries, wantsDoubleEntries)
     }
 
     allSelectors ++= Seq(xAxisSelector, yAxisSelector, seriesKeySelector)
@@ -111,7 +115,7 @@ object CreateChart extends ImageLoadingFacilities {
     midPane.add(addNewSelectorButtonPanel)
 
     addNewSelectorButton.addActionListener(_ => {
-      val newSelector = createAndConfigureComboBox(false)
+      val newSelector = createAndConfigureComboBox(wantsMassiveEntries = false, wantsDoubleEntries = false)
       allSelectors += newSelector
       val button = new JButton("<html>&minus;</html>")
       val panel = new JPanel(new BorderLayout())
