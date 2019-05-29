@@ -27,7 +27,7 @@ object CSV extends TextInputOutput {
 
     val entries = IndexedSeq.newBuilder[Database.Entry]
     readEntryAndContinue(lines, keys, entries += _)
-    Database(entries.result() :_*)
+    Database(entries.result() :_*).withMoreKeys(moreKeys)
   }
 
   override def writeToWriter(db: Database, writer: Writer): Unit = {
