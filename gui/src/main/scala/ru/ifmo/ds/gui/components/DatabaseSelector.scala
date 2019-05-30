@@ -106,8 +106,8 @@ object DatabaseSelector {
               valueCount.put(v, 1)
               nDifferentValues += 1
               val tp = typify(v)
-              if ((tp & 1) == 1) nDifferentDoubleValues += 1
-              if ((tp & 2) == 1) nDifferentPositiveValues += 1
+              if ((tp & 1) != 0) nDifferentDoubleValues += 1
+              if ((tp & 2) != 0) nDifferentPositiveValues += 1
             case Some(oldCount) =>
               valueCount.put(v, oldCount + 1)
           }
@@ -129,8 +129,8 @@ object DatabaseSelector {
             valueCount -= v
             nDifferentValues -= 1
             val tp = typify(v)
-            if ((tp & 1) == 1) nDifferentDoubleValues -= 1
-            if ((tp & 2) == 1) nDifferentPositiveValues -= 1
+            if ((tp & 1) != 0) nDifferentDoubleValues -= 1
+            if ((tp & 2) != 0) nDifferentPositiveValues -= 1
             assert(nDifferentValues >= 0)
             assert(nDifferentDoubleValues >= 0)
             assert(nDifferentPositiveValues >= 0)

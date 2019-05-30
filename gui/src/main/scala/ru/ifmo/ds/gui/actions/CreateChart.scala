@@ -27,8 +27,8 @@ class CreateChart(container: EntityContainer) extends EntityAction("Create chart
         new ChartEntity(options.getSelectedEntities, container,
                         options.getCategoryKeys,
                         options.getSeriesKey,
-                        Axis(options.getXAxisKey, options.getXAxisKey, isLogarithmic = true),
-                        Axis(options.getYAxisKey, options.getYAxisKey, isLogarithmic = true))
+                        Axis(options.getXAxisKey, options.getXAxisKey, options.isXLogarithmic),
+                        Axis(options.getYAxisKey, options.getYAxisKey, options.isYLogarithmic))
       }
     }
   }
@@ -71,7 +71,9 @@ object CreateChart extends ImageLoadingFacilities {
     private val selector = new DatabaseSelector(entities)
     private var keySet: Set[CountedOption] = Set.empty
     private val xAxisSelector = createAndConfigureComboBox(wantsMassiveEntries = false, wantsDoubleEntries = true)
+    private val xAxisIsLog = new JCheckBox("X axis is logarithmic")
     private val yAxisSelector = createAndConfigureComboBox(wantsMassiveEntries = true, wantsDoubleEntries = true)
+    private val yAxisIsLog = new JCheckBox("Y axis is logarithmic")
     private val seriesKeySelector = createAndConfigureComboBox(wantsMassiveEntries = false, wantsDoubleEntries = false)
     private val allSelectors = new mutable.ArrayBuffer[Selector]()
     private val addNewSelectorButtonPanel = new JPanel(new BorderLayout())
@@ -105,11 +107,28 @@ object CreateChart extends ImageLoadingFacilities {
 
     midPane.add(new JLabel("Choose a key for the X axis"))
     midPane.add(xAxisSelector.combo)
+    midPane.add(xAxisIsLog)
     midPane.add(new JLabel("Choose a key for the Y axis"))
     midPane.add(yAxisSelector.combo)
+    midPane.add(yAxisIsLog)
     midPane.add(new JLabel("Choose a series key"))
     midPane.add(seriesKeySelector.combo)
     midPane.add(new JLabel("Choose category keys"))
+
+    private val xKeyNotSelected = "Disabled: The key for X axis is not selected"
+    private val yKeyNotSelected = "Disabled: The key for Y axis is not selected"
+    private val xKeyNegative = "Disabled: some of the X values are non-positive"
+    private val yKeyNegative = "Disabled: some of the Y values are non-positive"
+    private val xKeyCanBeLog = "Check to make the X axis logarithmic"
+    private val yKeyCanBeLog = "Check to make the Y axis logarithmic"
+
+    xAxisIsLog.setEnabled(false)
+    xAxisIsLog.setSelected(false)
+    xAxisIsLog.setToolTipText(xKeyNotSelected)
+    yAxisIsLog.setEnabled(false)
+    yAxisIsLog.setSelected(false)
+    yAxisIsLog.setToolTipText(yKeyNotSelected)
+
 
     addNewSelectorButtonPanel.add(addNewSelectorButton, BorderLayout.LINE_START)
     midPane.add(addNewSelectorButtonPanel)
@@ -159,6 +178,9 @@ object CreateChart extends ImageLoadingFacilities {
       if (i >= 0) Some(s.combo.getModel.getElementAt(i).key) else None
     })
 
+    def isXLogarithmic: Boolean = xAxisIsLog.isEnabled && xAxisIsLog.isSelected
+    def isYLogarithmic: Boolean = yAxisIsLog.isEnabled && yAxisIsLog.isSelected
+
     private def updateWithDatabaseChange(): Unit = {
       keySet = selector.getKeyDescriptions.toSet
       val width = if (keySet.isEmpty) 0 else keySet.view.map(_.toString.length).max
@@ -188,9 +210,42 @@ object CreateChart extends ImageLoadingFacilities {
         }
       }
 
+      val xAxisIndex = xAxisSelector.combo.getSelectedIndex
+      if (xAxisIndex >= 0) {
+        val xEntity = xAxisSelector.getSelected
+        if (xEntity.allValuesArePositive) {
+          xAxisIsLog.setEnabled(true)
+          xAxisIsLog.setToolTipText(xKeyCanBeLog)
+        } else {
+          xAxisIsLog.setSelected(false)
+          xAxisIsLog.setEnabled(false)
+          xAxisIsLog.setToolTipText(xKeyNegative)
+        }
+      } else {
+        xAxisIsLog.setSelected(false)
+        xAxisIsLog.setEnabled(false)
+        xAxisIsLog.setToolTipText(xKeyNotSelected)
+      }
+
+      val yAxisIndex = yAxisSelector.combo.getSelectedIndex
+      if (yAxisIndex >= 0) {
+        val yEntity = yAxisSelector.getSelected
+        if (yEntity.allValuesArePositive) {
+          yAxisIsLog.setEnabled(true)
+          yAxisIsLog.setToolTipText(yKeyCanBeLog)
+        } else {
+          yAxisIsLog.setSelected(false)
+          yAxisIsLog.setEnabled(false)
+          yAxisIsLog.setToolTipText(yKeyNegative)
+        }
+      } else {
+        yAxisIsLog.setSelected(false)
+        yAxisIsLog.setEnabled(false)
+        yAxisIsLog.setToolTipText(yKeyNotSelected)
+      }
+
       okButton.setEnabled(selector.hasEntries &&
-                            xAxisSelector.combo.getSelectedIndex >= 0 &&
-                            yAxisSelector.combo.getSelectedIndex >= 0 &&
+                            xAxisIndex >= 0 && yAxisIndex >= 0 &&
                             seriesKeySelector.combo.getSelectedIndex >= 0)
       assert(comboUpdateIsHappening)
       comboUpdateIsHappening = false
