@@ -113,6 +113,7 @@ object MapDatabase extends ImageLoadingFacilities {
     })
 
     addNewActionButtonPanel.add(addNewActionButton, BorderLayout.LINE_START)
+    midPane.add(new JLabel("Add database mappings"))
     midPane.add(addNewActionButtonPanel)
     addNewActionButton.addActionListener(_ => {
       val newSelector = new ActionConfigurationPane(() => updateGUI())

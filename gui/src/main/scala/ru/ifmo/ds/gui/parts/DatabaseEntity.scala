@@ -34,6 +34,7 @@ class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityConta
   override protected def runEvaluation(): Unit = {
     def toDisplayable(value: Option[String]) = value match {
       case None => "<none>"
+      case Some(null) => "<null>"
       case Some(s) => if (s.length > 100) s.take(100) + "..." else s
     }
 
