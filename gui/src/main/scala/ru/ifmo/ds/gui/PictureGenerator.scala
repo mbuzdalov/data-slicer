@@ -7,6 +7,10 @@ import java.io.File
 import javax.imageio.ImageIO
 
 object PictureGenerator {
+  private implicit class GraphicsEx(val g: Graphics2D) {
+    def create2D(x: Int, y: Int, width: Int, height: Int): Graphics2D = g.create(x, y, width, height).asInstanceOf[Graphics2D]
+  }
+
   private def makeRedCross(g: Graphics2D): Unit = {
     g.setColor(Color.RED)
     g.drawLine(2, 2, 27, 27)
@@ -126,29 +130,38 @@ object PictureGenerator {
   }
 
   private def makeOpenDatabaseFiles(g: Graphics2D): Unit = {
-    val left = g.create(0, 0, 32, 32).asInstanceOf[Graphics2D]
+    val left = g.create2D(0, 0, 32, 32)
     makeFileInFolder(left)
-    val right = g.create(40, 0, 32, 32).asInstanceOf[Graphics2D]
+    val right = g.create2D(40, 0, 32, 32)
     makeDatabase(right)
-    val arrow = g.create(32, 0, 10, 32).asInstanceOf[Graphics2D]
+    val arrow = g.create2D(32, 0, 10, 32)
+    makeArrow(arrow)
+  }
+
+  private def makeSaveDatabaseFiles(g: Graphics2D): Unit = {
+    val left = g.create2D(0, 0, 32, 32)
+    makeDatabase(left)
+    val right = g.create2D(39, 0, 32, 32)
+    makeFileInFolder(right)
+    val arrow = g.create2D(30, 0, 10, 32)
     makeArrow(arrow)
   }
 
   private def makeCreateChart(g: Graphics2D): Unit = {
-    val left = g.create(0, 0, 32, 32).asInstanceOf[Graphics2D]
+    val left = g.create2D(0, 0, 32, 32)
     makeDatabase(left)
-    val right = g.create(40, 0, 32, 32).asInstanceOf[Graphics2D]
+    val right = g.create2D(40, 0, 32, 32)
     makeChart(right)
-    val arrow = g.create(30, 0, 10, 32).asInstanceOf[Graphics2D]
+    val arrow = g.create2D(30, 0, 10, 32)
     makeArrow(arrow)
   }
 
   private def makeMapDatabase(g: Graphics2D): Unit = {
-    val left = g.create(0, 0, 32, 32).asInstanceOf[Graphics2D]
+    val left = g.create2D(0, 0, 32, 32)
     makeDatabase(left)
-    val right = g.create(40, 0, 32, 32).asInstanceOf[Graphics2D]
+    val right = g.create2D(40, 0, 32, 32)
     makeDatabase(right)
-    val arrow = g.create(30, 0, 10, 32).asInstanceOf[Graphics2D]
+    val arrow = g.create2D(30, 0, 10, 32)
     makeArrow(arrow)
   }
 
@@ -182,6 +195,7 @@ object PictureGenerator {
     write(root, "parts/database.png", 32, 32)(makeDatabase)
 
     write(root, "actions/open-database-files.png", 72, 32)(makeOpenDatabaseFiles)
+    write(root, "actions/save-database-files.png", 72, 32)(makeSaveDatabaseFiles)
     write(root, "actions/create-chart.png", 72, 32)(makeCreateChart)
     write(root, "actions/map-database.png", 72, 32)(makeMapDatabase)
   }
