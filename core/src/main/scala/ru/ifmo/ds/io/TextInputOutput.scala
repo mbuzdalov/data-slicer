@@ -116,6 +116,18 @@ object TextInputOutput {
     }
   }
 
+  case class SaveOption(name: String, description: String, io: TextInputOutput)
+
+  val availableSaveOptions: Seq[SaveOption] = Seq(
+    SaveOption("CSV",
+               "The simple comma-separated values format. Gzipped if ends with *.gz.",
+               CSV),
+    SaveOption("Hierarchical JSON",
+               "A rather compact JSON-based format where key-value pairs common " +
+                 "for a group of entries can be stored just once. Gzipped if ends with *.gz.",
+               Json)
+  )
+
   def fromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
     Try(Json.fromFile(file, moreKeys))
       .tryMore(CSV.fromFile(file, moreKeys))
