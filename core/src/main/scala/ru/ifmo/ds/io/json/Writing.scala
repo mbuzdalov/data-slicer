@@ -103,7 +103,7 @@ object Writing {
               // we are inside the object, so we can safely write an array directly
               val theKey = nonSingularKeys.head
               json.name(theKey).beginArray()
-              for (e <- entries) {
+              for (e <- entries.filter(_.contains(theKey))) {
                 json.value(e(theKey))
               }
               json.endArray()
