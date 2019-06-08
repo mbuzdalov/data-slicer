@@ -1,12 +1,14 @@
 package ru.ifmo.ds.gui.actions
 
 import java.awt.{BorderLayout, FlowLayout}
+import java.util.regex.Pattern
 
 import javax.swing._
 
 import scala.collection.mutable.ArrayBuffer
 
 import ru.ifmo.ds.Database
+import ru.ifmo.ds.Database.Entry
 import ru.ifmo.ds.gui.EntityContainer
 import ru.ifmo.ds.gui.components.DatabaseSelector
 import ru.ifmo.ds.gui.parts.DatabaseEntity
@@ -58,7 +60,39 @@ object MapDatabase extends ImageLoadingFacilities {
     override def makeFunction(args: Array[String]): Database => Database = _.withRenamedValue(args(0), args(1), args(2))
   }
 
-  private val allActions = Seq(Empty, RenameKey, RenameValue).sortBy(_.name)
+  private object AddKeyValue extends DatabaseActionFactory {
+    override def name: String = "Add New Key/Value Singleton"
+    override def arity: Int = 2
+    override def makeFunction(args: Array[String]): Database => Database = _.withMoreKeys(Map(args(0) -> args(1)))
+  }
+
+  private object RemoveAllKeysMatching extends DatabaseActionFactory {
+    override def name: String = "Remove All Keys Matching..."
+    override def arity: Int = 1
+    override def makeFunction(args: Array[String]): Database => Database = {
+      val pattern = Pattern.compile(args(0))
+      def entryMapper(e: Entry): Option[Entry] = {
+        val builder = Map.newBuilder[String, String]
+        e.foreach(p => if (!pattern.matcher(p._1).matches()) builder += p)
+        val result = builder.result()
+        if (result.isEmpty) None else Some(Database.entry(result))
+      }
+      db => Database(db.entries.flatMap(entryMapper) :_*)
+    }
+  }
+
+  private object RemoveAllValuesMatching extends DatabaseActionFactory {
+    override def name: String = "Remove Entries with Values Matching..."
+    override def arity: Int = 2
+    override def makeFunction(args: Array[String]): Database => Database = {
+      val key = args(0)
+      val pattern = Pattern.compile(args(1))
+      _.filter(e => !e.contains(key) || !pattern.matcher(e(key)).matches())
+    }
+  }
+
+  private val allActions = Seq(Empty, RenameKey, RenameValue, AddKeyValue,
+                               RemoveAllKeysMatching, RemoveAllValuesMatching).sortBy(_.name)
 
   private class ActionConfigurationPane(updateGUIFunction: () => Unit) extends JPanel {
     private val argumentPane = new JPanel(new FlowLayout())
