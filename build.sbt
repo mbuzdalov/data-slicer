@@ -10,11 +10,13 @@ lazy val commonSettings = Seq(
 )
 
 lazy val scalaCompiler = "org.scala-lang" % "scala-compiler" % theScalaVersion
-lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.0.5" % Test
+
 lazy val gson       = "com.google.code.gson" % "gson" % "2.8.5"
 lazy val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
 lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.0"
-lazy val spire      = "org.typelevel" %% "spire" % "0.14.1"
+
+lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.0.5" % Test
+lazy val spire      = "org.typelevel" %% "spire" % "0.16.2"
 
 lazy val root = project
   .in(file("."))
