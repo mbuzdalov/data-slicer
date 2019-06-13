@@ -17,7 +17,7 @@ object MainGUI {
       frame.setLayout(new GridLayout(1, 1))
       frame.add(context.root)
       frame.setExtendedState(Frame.MAXIMIZED_BOTH)
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+      frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
       frame.setVisible(true)
     })
   }
