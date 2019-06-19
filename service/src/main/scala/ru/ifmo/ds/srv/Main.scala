@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import scala.io.Source
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.IMain
+import scala.tools.nsc.interpreter.shell.ReplReporterImpl
 
 object Main {
   class Variables {
@@ -38,7 +39,7 @@ object Main {
 
       val vars = new Variables
 
-      val loop = new IMain(settings)
+      val loop = new IMain(settings, new ReplReporterImpl(settings))
       loop.interpret("import ru.ifmo.ds.srv._")
       loop.bind("vars", vars)
       val source = Source.fromFile(cfgFile.toFile)
