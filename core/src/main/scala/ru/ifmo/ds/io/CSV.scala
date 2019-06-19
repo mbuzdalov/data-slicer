@@ -16,7 +16,7 @@ object CSV extends TextInputOutput {
       if (line != null) {
         val tokens = splitByComma(line)
         if (tokens.length == keys.length) {
-          target(Database.entry((keys, tokens).zipped.toMap))
+          target(Database.entry(keys.lazyZip(tokens).toMap))
         }
         readEntryAndContinue(reader, keys, target)
       }

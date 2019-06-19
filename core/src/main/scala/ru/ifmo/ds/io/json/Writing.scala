@@ -13,7 +13,7 @@ object Writing {
 
   private[this] def findNeutral(keys: Set[String]): String = {
     if (keys.contains("_")) {
-      Stream.from(0).map("_" + _).filterNot(keys.contains).head
+      LazyList.from(0).map("_" + _).filterNot(keys.contains).head
     } else "_"
   }
 

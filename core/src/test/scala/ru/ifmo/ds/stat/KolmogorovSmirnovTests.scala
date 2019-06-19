@@ -2,6 +2,8 @@ package ru.ifmo.ds.stat
 
 import java.util.Random
 
+import scala.Ordering.Double.IeeeOrdering
+
 import org.scalatest.{FlatSpec, Matchers}
 
 class KolmogorovSmirnovTests extends FlatSpec with Matchers {

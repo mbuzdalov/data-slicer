@@ -2,6 +2,8 @@ package ru.ifmo.ds.gui.util
 
 import java.awt.{Color, Font, Paint}
 
+import scala.Ordering.Double.IeeeOrdering
+
 import org.jfree.chart.axis.{LogarithmicAxis, NumberAxis, ValueAxis}
 import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel}
 import org.jfree.chart.entity.LegendItemEntity

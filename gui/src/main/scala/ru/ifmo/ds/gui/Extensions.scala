@@ -4,6 +4,8 @@ import java.awt._
 
 import javax.swing._
 
+import scala.Ordering.Double.IeeeOrdering
+
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
 import org.jfree.chart.{ChartPanel, JFreeChart}
@@ -86,11 +88,11 @@ object Extensions {
         _.get(seriesKey), _.get(compareByKey).map(_.toDouble))
 
       def findSmallestByMedian(arg: Map[String, Seq[Double]]): String = {
-        val medians = arg.mapValues(b => b.sorted.apply(b.size / 2))
+        val medians = arg.view.mapValues(b => b.sorted.apply(b.size / 2))
         medians.minBy(_._2)._1
       }
 
-      val medians = contents.mapValues(findSmallestByMedian)
+      val medians = contents.view.mapValues(findSmallestByMedian)
       val allValues = medians.values.toIndexedSeq.distinct.sorted(OrderingForStringWithNumbers.SpecialDotTreatment)
       val mediansSeq = medians.toIndexedSeq
 

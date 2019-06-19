@@ -74,8 +74,8 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
         val im = Rational(i, m)
         val jMinRaw = (im - stat) * n
         val jMaxRaw = (im + stat) * n
-        val jMin = math.max(0, if (jMinRaw.isWhole()) jMinRaw.toInt + 1 else jMinRaw.ceil.toInt)
-        val jMax = math.min(n, if (jMaxRaw.isWhole()) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
+        val jMin = math.max(0, if (jMinRaw.isWhole) jMinRaw.toInt + 1 else jMinRaw.ceil.toInt)
+        val jMax = math.min(n, if (jMaxRaw.isWhole) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
 
         if (m > i) {
           val mi = (m - i).toDouble

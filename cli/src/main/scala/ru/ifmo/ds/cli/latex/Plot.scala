@@ -2,10 +2,14 @@ package ru.ifmo.ds.cli.latex
 
 import java.io.{File, PrintStream}
 
+import scala.Ordering.Double.IeeeOrdering
+
 import ru.ifmo.ds.cli.CommandLineOption
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 import ru.ifmo.ds.{CLI, Database}
+
+import scala.collection.immutable.ArraySeq
 
 object Plot extends CLI.Module {
   override def name: String = "latex-plot"
@@ -17,7 +21,8 @@ object Plot extends CLI.Module {
     val seriesKeyOpt = new CommandLineOption("--series-key", 1, 1)
     val categoryKeysOpt = new CommandLineOption("--category-keys")
 
-    CommandLineOption.submit(Seq(filesOpt, xAxisOpt, yAxisOpt, seriesKeyOpt, categoryKeysOpt), args :_*)
+    CommandLineOption.submit(Seq(filesOpt, xAxisOpt, yAxisOpt, seriesKeyOpt, categoryKeysOpt),
+      ArraySeq.unsafeWrapArray(args) :_*)
 
     def parseAxis(args: IndexedSeq[String]): Axis = Axis("??", args(0), args(1) == "log")
 

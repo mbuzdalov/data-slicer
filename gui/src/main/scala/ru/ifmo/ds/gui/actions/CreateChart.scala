@@ -173,7 +173,7 @@ object CreateChart extends ImageLoadingFacilities {
     def getXAxisKey: String = xAxisSelector.getSelected.key
     def getYAxisKey: String = yAxisSelector.getSelected.key
     def getSeriesKey: String = seriesKeySelector.getSelected.key
-    def getCategoryKeys: Seq[String] = allSelectors.drop(3).flatMap(s => {
+    def getCategoryKeys: Seq[String] = allSelectors.toIndexedSeq.drop(3).flatMap(s => {
       val i = s.combo.getSelectedIndex
       if (i >= 0) Some(s.combo.getModel.getElementAt(i).key) else None
     })

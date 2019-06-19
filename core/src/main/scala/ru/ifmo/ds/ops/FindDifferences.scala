@@ -1,5 +1,7 @@
 package ru.ifmo.ds.ops
 
+import scala.Ordering.Double.IeeeOrdering
+
 import spire.math.Rational
 
 import ru.ifmo.ds.Database

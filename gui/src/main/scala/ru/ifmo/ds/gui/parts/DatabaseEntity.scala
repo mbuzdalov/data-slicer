@@ -100,7 +100,7 @@ object DatabaseEntity extends ImageLoadingFacilities {
     def setData(data: Seq[(String, Seq[String])]): Unit = synchronized {
       this.data = data.map(p => (p._1, p._2, generateDisplayableString(p._2)))
 
-      val listCopy = listeners.synchronized(IndexedSeq(listeners :_*))
+      val listCopy = listeners.synchronized(listeners.toIndexedSeq)
       val ev = new TableModelEvent(this, 0, data.size)
       SwingUtilities.invokeLater(() => {
         listCopy.foreach(_.tableChanged(ev))

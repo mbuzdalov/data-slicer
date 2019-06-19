@@ -2,13 +2,15 @@ package ru.ifmo.ds.cli
 
 import java.io.{File, PrintStream}
 
+import scala.Ordering.Double.IeeeOrdering
 import spire.math.Rational
-
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.ops.FindDifferences
 import ru.ifmo.ds.ops.FindDifferences.DifferenceListener
 import ru.ifmo.ds.stat.{RankSumResultJoiner, TestResult}
 import ru.ifmo.ds.{CLI, Database}
+
+import scala.collection.immutable.ArraySeq
 
 object Diff extends CLI.Module {
   override def name: String = "diff"
@@ -33,7 +35,7 @@ object Diff extends CLI.Module {
 
     CommandLineOption.submit(Seq(
       opposeOpt, filesOpt, catsOpt, pValueOpt, filenameOpt, reportSingleOpt, reportCatsOpt
-    ), args.tail :_*)
+    ), ArraySeq.unsafeWrapArray(args.tail) :_*)
 
     val pValue = pValueOpt.resultOrElse(IndexedSeq("0.05")).head.toDouble
     val nakedFileNames = filenameOpt.resultOrElse(IndexedSeq.empty)

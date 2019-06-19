@@ -6,6 +6,7 @@ import javax.swing._
 import javax.swing.event.TableModelListener
 import javax.swing.table.{TableModel, TableRowSorter}
 
+import scala.Ordering.Double.IeeeOrdering
 import scala.collection.{mutable => mu}
 
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}

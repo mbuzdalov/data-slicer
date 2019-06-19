@@ -7,7 +7,7 @@ trait DatabaseOps { self: Database =>
                           extractY: Database.Entry => Option[Y],
                           extractZ: Database.Entry => Option[Z]): Map[X, Map[Y, Seq[Z]]] = {
     import Extensions._
-    entries.groupByOption(extractX).mapValues(_.groupByOption(extractY).mapValues(_.flatMap(e => extractZ(e))))
+    entries.groupByOption(extractX).view.mapValues(_.groupByOption(extractY).view.mapValues(_.flatMap(e => extractZ(e))).toMap).toMap
   }
 
   def partitionByKeys[LeafData](keys: Seq[String],

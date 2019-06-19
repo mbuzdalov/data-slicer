@@ -1,5 +1,7 @@
 package ru.ifmo.ds.stat
 
+import scala.Ordering.Double.IeeeOrdering
+
 object RankSumResultJoiner {
   private def joinImpl[T](results: Iterator[TestResult[T]], prevArray: Array[Double], rankSum: Int)
                          (implicit ordering: Ordering[T]): Double = {
