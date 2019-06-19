@@ -1,7 +1,5 @@
 package ru.ifmo.ds.gui.components
 
-import java.lang.{Double => JDouble}
-
 import javax.swing.{JCheckBox, JLabel, JPanel, SwingUtilities}
 
 import scala.collection.mutable.{ArrayBuffer, HashMap => MuHashMap}
@@ -90,11 +88,11 @@ object DatabaseSelector {
     private val valueCount = new MuHashMap[String, Int]()
 
     private def typify(v: String): Int = {
-      try {
-        val doubleValue = JDouble.parseDouble(v)
-        if (doubleValue > 0) 3 else 1
-      } catch {
-        case _: NumberFormatException | _: NullPointerException => 0
+      if (v == null) 0 else {
+        v.toDoubleOption match {
+          case Some(d) => if (d > 0) 3 else 1
+          case None => 0
+        }
       }
     }
 
