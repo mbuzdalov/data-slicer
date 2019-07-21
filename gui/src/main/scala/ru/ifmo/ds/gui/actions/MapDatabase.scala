@@ -191,7 +191,7 @@ object MapDatabase extends ImageLoadingFacilities {
 
     def isOK: Boolean = isOkay
     def getSelectedEntities: Seq[DatabaseEntity] = selector.getSelectedEntities
-    def getMappingFunction: Database => Database = {
+    def getMappingFunction: Database => Database = if (configurators.isEmpty) identity else {
       val functions = configurators.map(_.getFunction)
       functions.reduce(_ andThen _)
     }
