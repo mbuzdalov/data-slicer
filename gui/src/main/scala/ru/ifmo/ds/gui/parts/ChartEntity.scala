@@ -109,7 +109,7 @@ object ChartEntity extends ImageLoadingFacilities {
     val sortedContents = contents.toIndexedSeq.sortBy(_._1)(OrderingForStringWithNumbers.SpecialDotTreatment)
     val data = sortedContents.map { case (plot, map) =>
       val series = new YIntervalSeries(plot)
-      for ((x, y) <- map.toIndexedSeq.sortBy(_._1.toInt)) {
+      for ((x, y) <- map.toIndexedSeq.sortBy(_._1.toInt) if y.nonEmpty) {
         val ySorted = y.toIndexedSeq.sorted
         series.add(x, ySorted(ySorted.size / 2), ySorted.head, ySorted.last)
       }
