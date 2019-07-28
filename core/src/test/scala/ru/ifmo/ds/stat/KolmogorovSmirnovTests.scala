@@ -3,6 +3,7 @@ package ru.ifmo.ds.stat
 import java.util.Random
 
 import scala.Ordering.Double.IeeeOrdering
+import scala.annotation.tailrec
 
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -11,6 +12,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
 
   private object R {
     // adapted from sources of R 3.4.1: src/library/stats/src/ks.c
+    @tailrec
     final def pSmirnov2x(stat: Double, m: Int, n: Int): Double = {
       if (m > n) pSmirnov2x(stat, n, m) else {
         val r = Array.tabulate(n + 1)(j => j.toDouble / n)

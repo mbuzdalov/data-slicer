@@ -1,6 +1,10 @@
 package ru.ifmo.ds.stat
 
+import scala.annotation.tailrec
+
 import spire.math.Rational
+
+import ru.ifmo.ds.stat.util.KSUtils
 
 /**
   * The approximate version of the Kolmogorov-Smirnov test to be used while detecting differences
@@ -8,6 +12,7 @@ import spire.math.Rational
 object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
   private def approx(stat: Double): Double = {
     val atZero = math.exp(-2 * stat * stat)
+    @tailrec
     def impl(soFar: Double, k: Double): Double = {
       val addend = 2 * math.pow(atZero, k * k) * (2 * (k % 2) - 1)
       if (addend == 0) soFar else impl(soFar + addend, k + 1)
@@ -15,38 +20,19 @@ object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
     impl(0, 1)
   }
 
-  override def apply[T : Ordering](a: Iterable[T], b: Iterable[T]): TestResult[Rational] = {
-    val as = a.toIndexedSeq.sorted
-    val bs = b.toIndexedSeq.sorted
-    val asSize = as.size
-    val bsSize = bs.size
-
-    val ord = implicitly[Ordering[T]]
-
-    def nextGreaterOrSize(a: IndexedSeq[T], v: T, from: Int): Int = {
-      val idx = a.indexWhere(i => ord.compare(v, i) < 0, from)
-      if (idx == -1) a.size else idx
-    }
-
-    def go(ai: Int, bi: Int, diff: Rational): Rational = {
-      val maxDiff = (Rational(ai, asSize) - Rational(bi, bsSize)).abs.max(diff)
-
-      if (asSize == ai || bsSize == bi) maxDiff else {
-        val av = as(ai)
-        val bv = bs(bi)
-        val cmp = ord.compare(av, bv)
-        if (cmp < 0) {
-          go(nextGreaterOrSize(as, av, ai), bi, maxDiff)
-        } else if (cmp > 0) {
-          go(ai, nextGreaterOrSize(bs, bv, bi), maxDiff)
-        } else {
-          go(nextGreaterOrSize(as, av, ai), nextGreaterOrSize(bs, bv, bi), maxDiff)
-        }
-      }
-    }
-
-    val statistic = go(0, 0, 0)
-    val p = approx(statistic.toDouble * math.sqrt(asSize * bsSize / (0.0 + asSize + bsSize)))
+  /**
+    * Applies the two-sided approximate Kolmogorov-Smirnov test to the given measurements.
+    * @param first the first set of measurements.
+    * @param second the second set of measurements.
+    * @tparam T the type of the elements in the sets.
+    * @return the test result.
+    */
+  override def apply[T : Ordering](first: Iterable[T], second: Iterable[T]): TestResult[Rational] = {
+    val asSize = first.size
+    val bsSize = second.size
+    val (minDiff, maxDiff) = KSUtils.computeStatistics(first, second)
+    val statistic = maxDiff.max(-minDiff)
+    val p = approx(statistic.toDouble * math.sqrt(asSize.toDouble * bsSize / (asSize + bsSize)))
     TestResult(statistic = statistic,
                p = math.min(1, p),
                test = this,
@@ -72,14 +58,6 @@ object KolmogorovSmirnovApprox extends StatisticalTest[Rational] {
     */
   override def statisticValuesWithProbabilities(firstSampleSize: Int,
                                                 secondSampleSize: Int): Iterable[(Rational, Double)] = {
-    val firstR = (0 to firstSampleSize).map(x => Rational(x, firstSampleSize))
-    val secondR = (0 to secondSampleSize).map(x => Rational(x, secondSampleSize))
-    val stats = (for (f <- firstR; s <- secondR) yield (f - s).abs).distinct.sorted
-    val pvals = stats.map(s => approx(s.toDouble))
-    val size = stats.size
-
-    def diff(i: Int): Double = if (i + 1 == size) pvals(i) else pvals(i) - pvals(i + 1)
-
-    stats.indices.map(i => stats(i) -> diff(i))
+    KSUtils.collectStatisticsWithProbabilities(firstSampleSize, secondSampleSize, (s, _, _) => approx(s.toDouble))
   }
 }
