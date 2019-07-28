@@ -50,6 +50,19 @@ object KSUtils {
     go(0, 0, 0, 0)
   }
 
+  sealed trait NullHypothesis {
+    def negate: NullHypothesis
+  }
+  object TwoSided extends NullHypothesis {
+    override def negate: NullHypothesis = this
+  }
+  object FirstDoesNotDominate extends NullHypothesis {
+    override def negate: NullHypothesis = SecondDoesNotDominate
+  }
+  object SecondDoesNotDominate extends NullHypothesis {
+    override def negate: NullHypothesis = FirstDoesNotDominate
+  }
+
   /**
     * Compute the exact one-minus-p-value for the two-sided Kolmogorov-Smirnov test.
     *
@@ -82,9 +95,10 @@ object KSUtils {
     *         assuming both left-hand-side and right-hand-side random variables have identical distributions.
     */
   @tailrec
-  final def pSmirnovDoesNotExceedTwoSided(stat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnovDoesNotExceedTwoSided(stat, n, m) else {
+  final def pSmirnovDoesNotExceedTwoSided(nh: NullHypothesis)(stat: Rational, m: Int, n: Int): Double = {
+    if (m > n) pSmirnovDoesNotExceedTwoSided(nh.negate)(stat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
+      assert(nh == TwoSided)
 
       u(0) = 1.0
       for (i <- 0 to m) {
