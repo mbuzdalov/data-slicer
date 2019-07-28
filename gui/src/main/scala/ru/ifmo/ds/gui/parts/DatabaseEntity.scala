@@ -5,12 +5,14 @@ import java.io.File
 import javax.swing._
 import javax.swing.event.{TableModelEvent, TableModelListener}
 import javax.swing.table.TableModel
+
+import scala.annotation.tailrec
+
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.{ImageLoadingFacilities, TableUtils}
 import ru.ifmo.ds.gui.{DisplayedEntity, EntityContainer}
 import ru.ifmo.ds.io.TextInputOutput
 import ru.ifmo.ds.util.OrderingForStringWithNumbers
-
 import scala.collection.mutable.ArrayBuffer
 
 class DatabaseEntity(parentEntities: Seq[DatabaseEntity], container: EntityContainer,
@@ -85,8 +87,9 @@ object DatabaseEntity extends ImageLoadingFacilities {
       }
     }
 
-    def load() = Database.merge(files.map(f => TextInputOutput.fromFile(f, moreKeys + (filenameKey -> f.getName))) :_*)
-    new DatabaseEntity(Seq.empty, container, commonName, _ => load())
+    new DatabaseEntity(Seq.empty, container, commonName, _ => {
+      Database.merge(files.map(f => TextInputOutput.fromFile(f, moreKeys + (filenameKey -> f.getName))): _*)
+    })
   }
   def merge(container: EntityContainer, sources: Seq[DatabaseEntity], name: String): DatabaseEntity = {
     new DatabaseEntity(sources, container, name, Database.merge)
@@ -108,32 +111,31 @@ object DatabaseEntity extends ImageLoadingFacilities {
       })
     }
 
-    private def generateDisplayableString(data: Seq[String]): String = {
-      val builder = new StringBuilder
-      def work(index: Int): String = {
-        if (index == data.size) builder.result() else {
-          if (index > 0) {
-            builder.append(", ")
-          }
-          builder.append(data(index))
-          if (builder.length > 500) {
-            builder.setLength(500)
-            builder.append("...")
-            builder.result()
-          } else {
-            work(index + 1)
-          }
+    @tailrec
+    private def generateDisplayableStringImpl(builder: StringBuilder, index: Int): String = {
+      if (index == data.size) builder.result() else {
+        if (index > 0) {
+          builder.append(", ")
+        }
+        builder.append(data(index))
+        if (builder.length > 500) {
+          builder.setLength(500)
+          builder.append("...")
+          builder.result()
+        } else {
+          generateDisplayableStringImpl(builder, index + 1)
         }
       }
-      work(0)
     }
+
+    private def generateDisplayableString(data: Seq[String]) = generateDisplayableStringImpl(new StringBuilder, 0)
 
     override def getRowCount: Int = synchronized(data.size)
     override def getColumnCount: Int = 3
     override def getColumnName(columnIndex: Int): String = columnNames(columnIndex)
     override def getColumnClass(columnIndex: Int): Class[_] = classOf[String]
     override def isCellEditable(rowIndex: Int, columnIndex: Int): Boolean = false
-    override def getValueAt(rowIndex: Int, columnIndex: Int): AnyRef = synchronized{
+    override def getValueAt(rowIndex: Int, columnIndex: Int): AnyRef = synchronized {
       columnIndex match {
         case 0 => data(rowIndex)._1
         case 1 => data(rowIndex)._2.size.toString
