@@ -64,7 +64,7 @@ object EvolutionaryGroupTestingValidation {
     print(".")
     val diff = Array.tabulate(n)(s => Array.fill(times)(rlsInit(s + 1)))
     print(".")
-    val comparisons = base.lazyZip(diff).map((a, b) => KolmogorovSmirnov.apply(a, b))
+    val comparisons = base.lazyZip(diff).map((a, b) => KolmogorovSmirnov.TwoSided(a, b))
     println("] " + RankSumResultJoiner.join(comparisons))
   }
 
@@ -74,7 +74,7 @@ object EvolutionaryGroupTestingValidation {
     print(".")
     val diff = Array.tabulate(n)(s => Array.fill(times)(rls(s + 1)))
     print(".")
-    val comparisons = base.lazyZip(diff).map((a, b) => KolmogorovSmirnov.apply(a, b))
+    val comparisons = base.lazyZip(diff).map((a, b) => KolmogorovSmirnov.TwoSided(a, b))
     println("] " + RankSumResultJoiner.join(comparisons))
   }
 

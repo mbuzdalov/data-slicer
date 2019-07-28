@@ -43,7 +43,7 @@ object FindDifferences {
       try {
         val leftValues = rawLeft.map(_.toDouble)
         val rightValues = rawRight.map(_.toDouble)
-        val ks = KolmogorovSmirnov(leftValues, rightValues)
+        val ks = KolmogorovSmirnov.TwoSided(leftValues, rightValues)
         listener.kolmogorovSmirnovResult(slice, valueKey, leftValues, rightValues, ks)
         IndexedSeq(ks)
       } catch {

@@ -40,7 +40,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   }
 
   private def check(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
-    val result = KolmogorovSmirnov(a, b)
+    val result = KolmogorovSmirnov.TwoSided(a, b)
     checkRelativeMatch(expected.d, result.statistic.toDouble, 1e-4)
     checkRelativeMatch(expected.p, result.p, 2e-4)
   }
