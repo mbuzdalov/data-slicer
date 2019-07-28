@@ -83,8 +83,8 @@ object KSUtils {
     *         assuming both left-hand-side and right-hand-side random variables have identical distributions.
     */
   @tailrec
-  final def pSmirnovDoesNotExceed(minStat: Rational, maxStat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnovDoesNotExceed(minStat, maxStat, n, m) else {
+  final def pIdenticalDistributionIsInBounds(minStat: Rational, maxStat: Rational, m: Int, n: Int): Double = {
+    if (m > n) pIdenticalDistributionIsInBounds(minStat, maxStat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
 
       u(0) = 1.0

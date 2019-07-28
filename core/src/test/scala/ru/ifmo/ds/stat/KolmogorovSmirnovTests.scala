@@ -65,7 +65,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
       val n, m = 1 + rng.nextInt(bound)
       val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
       val v2x = R.pSmirnov2x(p, n, m)
-      val v2y = KSUtils.pSmirnovDoesNotExceed(-p, p, n, m)
+      val v2y = KSUtils.pIdenticalDistributionIsInBounds(-p, p, n, m)
       v2y shouldBe (v2x +- 2e-15)
     }
 

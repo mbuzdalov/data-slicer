@@ -26,7 +26,7 @@ object KolmogorovSmirnov {
     }
 
     private def oneMinusP(statistic: Rational, firstSampleSize: Int, secondSampleSize: Int): Double = {
-      KSUtils.pSmirnovDoesNotExceed(-statistic, statistic, firstSampleSize, secondSampleSize)
+      KSUtils.pIdenticalDistributionIsInBounds(-statistic, statistic, firstSampleSize, secondSampleSize)
     }
   }
 }
