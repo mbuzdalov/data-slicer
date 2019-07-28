@@ -8,8 +8,6 @@ import scala.annotation.tailrec
 import org.scalatest.{FlatSpec, Matchers}
 import spire.math.Rational
 
-import ru.ifmo.ds.stat.util.KSUtils
-
 class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   private case class RefResult(p: Double, d: Double)
 
@@ -50,7 +48,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   }
 
   "The KS statistic" should "be computed correctly" in {
-    val (l, r) = KSUtils.computeStatistics(1 to 4, 5 to 8)
+    val (l, r) = KolmogorovSmirnov.computeStatistics(1 to 4, 5 to 8)
     l shouldBe Rational(0)
     r shouldBe Rational(1)
   }
@@ -138,7 +136,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
       val n, m = 1 + rng.nextInt(bound)
       val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
       val v2x = R.pSmirnov2x(p, n, m)
-      val v2y = KSUtils.pIdenticalDistributionIsInBounds(-p, p, n, m)
+      val v2y = KolmogorovSmirnov.pIdenticalDistributionIsInBounds(-p, p, n, m)
       v2y shouldBe (v2x +- 2e-15)
     }
 
