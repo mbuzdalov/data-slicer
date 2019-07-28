@@ -7,6 +7,8 @@ import scala.annotation.tailrec
 
 import org.scalatest.{FlatSpec, Matchers}
 
+import ru.ifmo.ds.stat.util.KSUtils
+
 class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   private case class RefResult(p: Double, d: Double)
 
@@ -60,7 +62,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
       val n, m = 1 + rng.nextInt(bound)
       val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
       val v2x = R.pSmirnov2x(p, n, m)
-      val v2y = KolmogorovSmirnov.pSmirnovDoesNotExceedTwoSided(p, n, m)
+      val v2y = KSUtils.pSmirnovDoesNotExceedTwoSided(p, n, m)
       v2y shouldBe (v2x +- 2e-15)
     }
 
