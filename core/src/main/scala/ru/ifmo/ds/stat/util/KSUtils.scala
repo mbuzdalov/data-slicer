@@ -95,8 +95,8 @@ object KSUtils {
     *         assuming both left-hand-side and right-hand-side random variables have identical distributions.
     */
   @tailrec
-  final def pSmirnovDoesNotExceedTwoSided(nh: NullHypothesis)(stat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnovDoesNotExceedTwoSided(nh.negate)(stat, n, m) else {
+  final def pSmirnovDoesNotExceed(nh: NullHypothesis)(stat: Rational, m: Int, n: Int): Double = {
+    if (m > n) pSmirnovDoesNotExceed(nh.negate)(stat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
       assert(nh == TwoSided)
 

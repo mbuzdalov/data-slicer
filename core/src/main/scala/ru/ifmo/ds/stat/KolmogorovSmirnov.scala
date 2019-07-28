@@ -47,6 +47,6 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
   }
 
   private def oneMinusP(statistic: Rational, firstSampleSize: Int, secondSampleSize: Int): Double = {
-    KSUtils.pSmirnovDoesNotExceedTwoSided(KSUtils.TwoSided)(statistic, firstSampleSize, secondSampleSize)
+    KSUtils.pSmirnovDoesNotExceed(KSUtils.TwoSided)(statistic, firstSampleSize, secondSampleSize)
   }
 }
