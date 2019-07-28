@@ -129,10 +129,11 @@ object KSUtils {
     */
   def collectStatisticsWithProbabilities(firstSampleSize: Int,
                                          secondSampleSize: Int,
+                                         statExtractor: Rational => Rational,
                                          pSmirnov: (Rational, Int, Int) => Double): Iterable[(Rational, Double)] = {
     val firstR = (0 to firstSampleSize).map(x => Rational(x, firstSampleSize))
     val secondR = (0 to secondSampleSize).map(x => Rational(x, secondSampleSize))
-    val stats = (for (f <- firstR; s <- secondR) yield (f - s).abs).distinct.sorted
+    val stats = (for (f <- firstR; s <- secondR) yield statExtractor(f - s)).distinct.sorted
     val pValues = stats.map(s => 1 - pSmirnov(s, firstSampleSize, secondSampleSize))
     val size = stats.size
 
