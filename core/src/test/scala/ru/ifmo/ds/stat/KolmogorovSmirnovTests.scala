@@ -61,25 +61,27 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   private def runKSL(nSmall: Int, nLarge: Int, delta: Double,
                      test: (Iterable[Double], Iterable[Double]) => TestResult[_],
                      q25: Double, q50: Double, q75: Double): Unit = {
-    val rng = new Random()
+    val rng = new Random(77172382144241L)
     def small(): Seq[Double] = IndexedSeq.fill(nSmall)(rng.nextDouble())
     def large(): Seq[Double] = IndexedSeq.fill(nLarge)(rng.nextDouble() + delta)
 
-    val ssResults = (0 to 100).map(_ => test(small(), small()).p).sorted
-    val lsResults = (0 to 100).map(_ => test(large(), small()).p).sorted
-    val slResults = (0 to 100).map(_ => test(small(), large()).p).sorted
+    for (_ <- 0 until 10) {
+      val ssResults = (0 to 100).map(_ => test(small(), small()).p).sorted
+      val lsResults = (0 to 100).map(_ => test(large(), small()).p).sorted
+      val slResults = (0 to 100).map(_ => test(small(), large()).p).sorted
 
-    ssResults(25) should (be >= 0.1)
-    ssResults(50) should (be >= 0.3)
-    ssResults(75) should (be >= 0.5)
+      ssResults(25) should (be >= 0.1)
+      ssResults(50) should (be >= 0.3)
+      ssResults(75) should (be >= 0.5)
 
-    slResults(25) should (be >= 0.8)
-    slResults(50) should (be >= 0.9)
-    slResults(75) should (be >= 0.99)
+      slResults(25) should (be >= 0.8)
+      slResults(50) should (be >= 0.9)
+      slResults(75) should (be >= 0.99)
 
-    lsResults(25) should (be <= q25)
-    lsResults(50) should (be <= q50)
-    lsResults(75) should (be <= q75)
+      lsResults(25) should (be <= q25)
+      lsResults(50) should (be <= q50)
+      lsResults(75) should (be <= q75)
+    }
   }
 
   "The left-dominates-right KS test" should "pass simple smoke tests" in {
@@ -106,6 +108,23 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   }
   it should "pass enhanced smoke tests" in {
     runKSL(101, 100, -0.2, KolmogorovSmirnov.RightDoesNotDominate.apply, 0.01, 0.01, 0.01)
+  }
+
+  "Both one-sided tests" should "not reject null for piecewise mutually dominating distributions" in {
+    val rng = new Random(7213894234552L)
+    def one(): Seq[Double] = IndexedSeq.fill(30)(rng.nextDouble() + (if (rng.nextBoolean()) -2 else 1))
+    def two(): Seq[Double] = IndexedSeq.fill(30)(rng.nextDouble() + (if (rng.nextBoolean()) -1 else 0))
+
+    for (_ <- 0 until 10) {
+      val lResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftDoesNotDominate(one(), two()).p).sorted
+      val rResults = (0 to 100).map(_ => KolmogorovSmirnov.RightDoesNotDominate(one(), two()).p).sorted
+
+      println(s"lResults: ${lResults(25)} .. ${lResults(50)} .. ${lResults(75)}")
+      println(s"rResults: ${rResults(25)} .. ${rResults(50)} .. ${rResults(75)}")
+
+      lResults(50) should (be >= 0.3)
+      rResults(50) should (be >= 0.3)
+    }
   }
 
   "Two implementations of the two-sided KS probability computation" should "agree on randomly generated tests" in {
