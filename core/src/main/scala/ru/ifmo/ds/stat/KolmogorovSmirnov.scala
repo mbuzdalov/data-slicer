@@ -8,7 +8,7 @@ import ru.ifmo.ds.stat.util.KSUtils
   * The Kolmogorov-Smirnov test to be used while detecting differences
   */
 object KolmogorovSmirnov {
-  private trait KSCommon extends StatisticalTest[Rational] {
+  private abstract class KSCommon extends StatisticalTest[Rational] {
     protected def diff2stat(diff: Rational): Rational
     protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational
     protected def stat2pair(stat: Rational): (Rational, Rational)
@@ -39,20 +39,20 @@ object KolmogorovSmirnov {
     override protected def diff2stat(diff: Rational): Rational = diff.abs
     override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = maxDiff.max(-minDiff)
     override protected def stat2pair(stat: Rational): (Rational, Rational) = (-stat, stat)
-    override def name: String = "Kolmogorov-Smirnov test, null: L identical to R"
+    override def name: String = "Kolmogorov-Smirnov test. Null: CDF(L) is identical to CDF(R)"
   }
 
-  val LeftNeverDominatesRight: StatisticalTest[Rational] = new KSCommon {
+  val LeftNeverAboveByCDF: StatisticalTest[Rational] = new KSCommon {
     override protected def diff2stat(diff: Rational): Rational = diff.max(0)
     override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = maxDiff
     override protected def stat2pair(stat: Rational): (Rational, Rational) = (-2, stat) // -2 ~ "anything less than -1"
-    override def name: String = "Kolmogorov-Smirnov test, null: L never dominates R"
+    override def name: String = "Kolmogorov-Smirnov test. Null: CDF(L) is never above CDF(R)"
   }
 
-  val RightNeverDominatesLeft: StatisticalTest[Rational] = new KSCommon {
+  val LeftNeverBelowByCDF: StatisticalTest[Rational] = new KSCommon {
     override protected def diff2stat(diff: Rational): Rational = -diff.max(0)
     override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = -minDiff
     override protected def stat2pair(stat: Rational): (Rational, Rational) = (-stat, 2) // 2 ~ "anything greater than 1"
-    override def name: String = "Kolmogorov-Smirnov test, null: R never dominates L"
+    override def name: String = "Kolmogorov-Smirnov test, Null: CDF(L) is never below CDF(R)"
   }
 }

@@ -92,29 +92,29 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   }
 
   "The left-dominates-right KS test" should "pass simple smoke tests" in {
-    runKSL(30, 30, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 30, 0.2, KolmogorovSmirnov.LeftNeverAboveByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #1" in {
-    runKSL(30, 61, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 61, 0.2, KolmogorovSmirnov.LeftNeverAboveByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #2" in {
-    runKSL(61, 30, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
+    runKSL(61, 30, 0.2, KolmogorovSmirnov.LeftNeverAboveByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass enhanced smoke tests" in {
-    runKSL(101, 100, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.01, 0.01, 0.01)
+    runKSL(101, 100, 0.2, KolmogorovSmirnov.LeftNeverAboveByCDF.apply, 0.01, 0.01, 0.01)
   }
 
   "The right-dominates-left KS test" should "pass simple smoke tests" in {
-    runKSL(30, 30, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 30, -0.2, KolmogorovSmirnov.LeftNeverBelowByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #1" in {
-    runKSL(30, 61, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 61, -0.2, KolmogorovSmirnov.LeftNeverBelowByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #2" in {
-    runKSL(61, 30, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
+    runKSL(61, 30, -0.2, KolmogorovSmirnov.LeftNeverBelowByCDF.apply, 0.02, 0.07, 0.2)
   }
   it should "pass enhanced smoke tests" in {
-    runKSL(101, 100, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.01, 0.01, 0.01)
+    runKSL(101, 100, -0.2, KolmogorovSmirnov.LeftNeverBelowByCDF.apply, 0.01, 0.01, 0.01)
   }
 
   "Both one-sided tests" should "reject null for piecewise mutually dominating distributions" in {
@@ -123,8 +123,8 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     def two(): Seq[Double] = IndexedSeq.fill(30)(rng.nextDouble() + (if (rng.nextBoolean()) -1 else 0))
 
     for (_ <- 0 until 10) {
-      val lResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftNeverDominatesRight(one(), two()).p).sorted
-      val rResults = (0 to 100).map(_ => KolmogorovSmirnov.RightNeverDominatesLeft(one(), two()).p).sorted
+      val lResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftNeverAboveByCDF(one(), two()).p).sorted
+      val rResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftNeverBelowByCDF(one(), two()).p).sorted
 
       lResults(50) should (be < 0.05)
       rResults(50) should (be < 0.05)
