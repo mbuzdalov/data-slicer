@@ -37,38 +37,20 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     found should be >= expected * (1 - precision)
   }
 
-  private def check(a: Seq[Int], b: Seq[Int], strict: Boolean, expected: RefResult): Unit = {
-    val result = if (strict) KolmogorovSmirnov(a, b) else KolmogorovSmirnovApprox(a, b)
+  private def check(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
+    val result = KolmogorovSmirnov(a, b)
     checkRelativeMatch(expected.d, result.statistic.toDouble, 1e-4)
     checkRelativeMatch(expected.p, result.p, 2e-4)
   }
 
-  private def checkStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
-    check(a, b, strict = true, expected)
-  }
-
-  private def checkNonStrict(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
-    check(a, b, strict = false, expected)
-  }
-
   "The strict KS test" should "produce results equal to ones from R on inputs without duplicates" in {
-    checkStrict(1 to 3, 4 to 6, RefResult(0.1, 1))
-    checkStrict(1 to 4, 11 to 13, RefResult(0.05714, 1))
-    checkStrict(1 to 5, 11 to 13, RefResult(0.03571, 1))
-    checkStrict(1 to 4, 11 to 14, RefResult(0.02857, 1))
-    checkStrict(1 to 10, 11 to 18, RefResult(4.571e-5, 1))
-    checkStrict(1 to 11 by 2, 2 to 10 by 2, RefResult(1, 0.16667))
-    checkStrict(1 to 11 by 2, 6 to 16 by 2, RefResult(0.474, 0.5))
-  }
-
-  "The non-strict KS test" should "produce results equal to ones from R on inputs without duplicates" in {
-    checkNonStrict(1 to 3, 4 to 6, RefResult(0.09956, 1))
-    checkNonStrict(1 to 4, 11 to 13, RefResult(0.06486, 1))
-    checkNonStrict(1 to 5, 11 to 13, RefResult(0.04703, 1))
-    checkNonStrict(1 to 4, 11 to 14, RefResult(0.03663, 1))
-    checkNonStrict(1 to 10, 11 to 18, RefResult(0.0002758, 1))
-    checkNonStrict(1 to 11 by 2, 2 to 10 by 2, RefResult(1, 0.16667))
-    checkNonStrict(1 to 11 by 2, 6 to 16 by 2, RefResult(0.4413, 0.5))
+    check(1 to 3, 4 to 6, RefResult(0.1, 1))
+    check(1 to 4, 11 to 13, RefResult(0.05714, 1))
+    check(1 to 5, 11 to 13, RefResult(0.03571, 1))
+    check(1 to 4, 11 to 14, RefResult(0.02857, 1))
+    check(1 to 10, 11 to 18, RefResult(4.571e-5, 1))
+    check(1 to 11 by 2, 2 to 10 by 2, RefResult(1, 0.16667))
+    check(1 to 11 by 2, 6 to 16 by 2, RefResult(0.474, 0.5))
   }
 
   "Two implementations of the two-sided KS probability computation" should "agree on randomly generated tests" in {

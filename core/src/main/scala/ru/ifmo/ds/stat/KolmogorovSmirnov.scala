@@ -49,7 +49,7 @@ object KolmogorovSmirnov extends StatisticalTest[Rational] {
     *
     * Once we have an upper limit on the statistic, we zero out the `u(i, j)` which exceed this statistic or equal to it,
     * that is, we compute only the values which have `|i / m - j / n| < stat`.
-    * Once we did that, `u(m, n)` will report the desired value.
+    * Once we do that, `u(m, n)` will report the desired value.
     *
     * To reduce the computational burden, we scan `u(i, j)` in the order of increasing `i`, which enables
     * to have all computations done in `O(n)` space. As the updates come left-to-right, we can also
