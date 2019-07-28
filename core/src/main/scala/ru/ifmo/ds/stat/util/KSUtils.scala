@@ -50,19 +50,6 @@ object KSUtils {
     go(0, 0, 0, 0)
   }
 
-  sealed trait NullHypothesis {
-    def negate: NullHypothesis
-  }
-  object TwoSided extends NullHypothesis {
-    override def negate: NullHypothesis = this
-  }
-  object FirstDoesNotDominate extends NullHypothesis {
-    override def negate: NullHypothesis = SecondDoesNotDominate
-  }
-  object SecondDoesNotDominate extends NullHypothesis {
-    override def negate: NullHypothesis = FirstDoesNotDominate
-  }
-
   /**
     * Compute the exact one-minus-p-value for the two-sided Kolmogorov-Smirnov test.
     *
@@ -81,30 +68,33 @@ object KSUtils {
     * and we update `u(i + 1, j)` and `u(i, j + 1)` accordingly.
     *
     * Once we have an upper limit on the statistic, we zero out the `u(i, j)` which exceed this statistic or equal to it,
-    * that is, we compute only the values which have `|i / m - j / n| < stat`.
+    * that is, we compute only the values which have `minStat < i / m - j / n < maxStat`.
     * Once we do that, `u(m, n)` will report the desired value.
     *
     * To reduce the computational burden, we scan `u(i, j)` in the order of increasing `i`, which enables
     * to have all computations done in `O(n)` space. As the updates come left-to-right, we can also
     * do everything not in two arrays, but in a single array.
     *
-    * @param stat the strict upper bound on a difference between the two measurements (the Kolmogorov-Smirnov statistic).
+    * @param minStat the strict lower bound on a difference between the ECDFs of the two measurements.
+    * @param maxStat the strict upper bound on a difference between the ECDFs of the two measurements.
     * @param m the sample size of the left-hand-side measurement.
     * @param n the sample size of the right-hand-side measurement.
     * @return the probability that the measurements do not exceed the statistic,
     *         assuming both left-hand-side and right-hand-side random variables have identical distributions.
     */
   @tailrec
-  final def pSmirnovDoesNotExceed(nh: NullHypothesis)(stat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pSmirnovDoesNotExceed(nh.negate)(stat, n, m) else {
+  final def pSmirnovDoesNotExceed(minStat: Rational, maxStat: Rational, m: Int, n: Int): Double = {
+    if (m > n) pSmirnovDoesNotExceed(minStat, maxStat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
-      assert(nh == TwoSided)
 
       u(0) = 1.0
       for (i <- 0 to m) {
+        // minStat < i / m - j / n < maxStat; this produces the following bounds:
+        //    j / n < i / m - minStat   =>   j < (i / m - minStat) * n
+        //    i / m - maxStat < j / n   =>   (i / m - maxStat) * n < j
         val im = Rational(i, m)
-        val jMinRaw = (im - stat) * n
-        val jMaxRaw = (im + stat) * n
+        val jMinRaw = (im - maxStat) * n
+        val jMaxRaw = (im - minStat) * n
         val jMin = math.max(0, if (jMinRaw.isWhole) jMinRaw.toInt + 1 else jMinRaw.ceil.toInt)
         val jMax = math.min(n, if (jMaxRaw.isWhole) jMaxRaw.toInt - 1 else jMaxRaw.floor.toInt)
 

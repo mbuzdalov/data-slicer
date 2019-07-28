@@ -40,9 +40,12 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
   }
 
   private def check(a: Seq[Int], b: Seq[Int], expected: RefResult): Unit = {
-    val result = KolmogorovSmirnov.TwoSided(a, b)
-    checkRelativeMatch(expected.d, result.statistic.toDouble, 1e-4)
-    checkRelativeMatch(expected.p, result.p, 2e-4)
+    val r1 = KolmogorovSmirnov.TwoSided(a, b)
+    val r2 = KolmogorovSmirnov.TwoSided(b, a)
+    checkRelativeMatch(expected.d, r1.statistic.toDouble, 1e-4)
+    checkRelativeMatch(expected.p, r1.p, 2e-4)
+    checkRelativeMatch(expected.d, r2.statistic.toDouble, 1e-4)
+    checkRelativeMatch(expected.p, r2.p, 2e-4)
   }
 
   "The strict KS test" should "produce results equal to ones from R on inputs without duplicates" in {
@@ -62,7 +65,7 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
       val n, m = 1 + rng.nextInt(bound)
       val p = if (rng.nextInt(10) == 0) 1 else rng.nextDouble()
       val v2x = R.pSmirnov2x(p, n, m)
-      val v2y = KSUtils.pSmirnovDoesNotExceed(KSUtils.TwoSided)(p, n, m)
+      val v2y = KSUtils.pSmirnovDoesNotExceed(-p, p, n, m)
       v2y shouldBe (v2x +- 2e-15)
     }
 
