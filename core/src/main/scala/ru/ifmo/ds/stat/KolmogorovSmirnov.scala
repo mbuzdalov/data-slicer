@@ -42,17 +42,17 @@ object KolmogorovSmirnov {
     override def name: String = "Kolmogorov-Smirnov test, null: L identical to R"
   }
 
-  val LeftDoesNotDominate: StatisticalTest[Rational] = new KSCommon {
-    override protected def diff2stat(diff: Rational): Rational = -diff.max(0)
-    override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = -minDiff
-    override protected def stat2pair(stat: Rational): (Rational, Rational) = (-stat, 2) // 2 is "anything greater than 1
-    override def name: String = "Kolmogorov-Smirnov test, null: L does not dominate R"
-  }
-
-  val RightDoesNotDominate: StatisticalTest[Rational] = new KSCommon {
+  val LeftNeverDominatesRight: StatisticalTest[Rational] = new KSCommon {
     override protected def diff2stat(diff: Rational): Rational = diff.max(0)
     override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = maxDiff
-    override protected def stat2pair(stat: Rational): (Rational, Rational) = (-2, stat) // -2 is "anything less than -1
-    override def name: String = "Kolmogorov-Smirnov test, null: R does not dominate L"
+    override protected def stat2pair(stat: Rational): (Rational, Rational) = (-2, stat) // -2 ~ "anything less than -1"
+    override def name: String = "Kolmogorov-Smirnov test, null: L never dominates R"
+  }
+
+  val RightNeverDominatesLeft: StatisticalTest[Rational] = new KSCommon {
+    override protected def diff2stat(diff: Rational): Rational = -diff.max(0)
+    override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = -minDiff
+    override protected def stat2pair(stat: Rational): (Rational, Rational) = (-stat, 2) // 2 ~ "anything greater than 1"
+    override def name: String = "Kolmogorov-Smirnov test, null: R never dominates L"
   }
 }

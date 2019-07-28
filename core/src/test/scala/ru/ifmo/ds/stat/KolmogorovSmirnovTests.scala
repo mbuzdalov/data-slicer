@@ -6,6 +6,7 @@ import scala.Ordering.Double.IeeeOrdering
 import scala.annotation.tailrec
 
 import org.scalatest.{FlatSpec, Matchers}
+import spire.math.Rational
 
 import ru.ifmo.ds.stat.util.KSUtils
 
@@ -48,6 +49,12 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
     checkRelativeMatch(expected.p, r2.p, 2e-4)
   }
 
+  "The KS statistic" should "be computed correctly" in {
+    val (l, r) = KSUtils.computeStatistics(1 to 4, 5 to 8)
+    l shouldBe Rational(0)
+    r shouldBe Rational(1)
+  }
+
   "The two-sided KS test" should "produce results equal to ones from R on inputs without duplicates" in {
     check2(1 to 3, 4 to 6, RefResult(0.1, 1))
     check2(1 to 4, 11 to 13, RefResult(0.05714, 1))
@@ -74,56 +81,53 @@ class KolmogorovSmirnovTests extends FlatSpec with Matchers {
       ssResults(50) should (be >= 0.3)
       ssResults(75) should (be >= 0.5)
 
-      slResults(25) should (be >= 0.8)
-      slResults(50) should (be >= 0.9)
-      slResults(75) should (be >= 0.99)
+      lsResults(25) should (be >= 0.8)
+      lsResults(50) should (be >= 0.9)
+      lsResults(75) should (be >= 0.99)
 
-      lsResults(25) should (be <= q25)
-      lsResults(50) should (be <= q50)
-      lsResults(75) should (be <= q75)
+      slResults(25) should (be <= q25)
+      slResults(50) should (be <= q50)
+      slResults(75) should (be <= q75)
     }
   }
 
   "The left-dominates-right KS test" should "pass simple smoke tests" in {
-    runKSL(30, 30, 0.2, KolmogorovSmirnov.LeftDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 30, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #1" in {
-    runKSL(30, 31, 0.2, KolmogorovSmirnov.LeftDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 61, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #2" in {
-    runKSL(31, 30, 0.2, KolmogorovSmirnov.LeftDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(61, 30, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.02, 0.07, 0.2)
   }
   it should "pass enhanced smoke tests" in {
-    runKSL(101, 100, 0.2, KolmogorovSmirnov.LeftDoesNotDominate.apply, 0.01, 0.01, 0.01)
+    runKSL(101, 100, 0.2, KolmogorovSmirnov.LeftNeverDominatesRight.apply, 0.01, 0.01, 0.01)
   }
 
   "The right-dominates-left KS test" should "pass simple smoke tests" in {
-    runKSL(30, 30, -0.2, KolmogorovSmirnov.RightDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 30, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #1" in {
-    runKSL(30, 31, -0.2, KolmogorovSmirnov.RightDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(30, 61, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
   }
   it should "pass asymmetric smoke tests #2" in {
-    runKSL(31, 30, -0.2, KolmogorovSmirnov.RightDoesNotDominate.apply, 0.02, 0.07, 0.2)
+    runKSL(61, 30, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.02, 0.07, 0.2)
   }
   it should "pass enhanced smoke tests" in {
-    runKSL(101, 100, -0.2, KolmogorovSmirnov.RightDoesNotDominate.apply, 0.01, 0.01, 0.01)
+    runKSL(101, 100, -0.2, KolmogorovSmirnov.RightNeverDominatesLeft.apply, 0.01, 0.01, 0.01)
   }
 
-  "Both one-sided tests" should "not reject null for piecewise mutually dominating distributions" in {
+  "Both one-sided tests" should "reject null for piecewise mutually dominating distributions" in {
     val rng = new Random(7213894234552L)
     def one(): Seq[Double] = IndexedSeq.fill(30)(rng.nextDouble() + (if (rng.nextBoolean()) -2 else 1))
     def two(): Seq[Double] = IndexedSeq.fill(30)(rng.nextDouble() + (if (rng.nextBoolean()) -1 else 0))
 
     for (_ <- 0 until 10) {
-      val lResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftDoesNotDominate(one(), two()).p).sorted
-      val rResults = (0 to 100).map(_ => KolmogorovSmirnov.RightDoesNotDominate(one(), two()).p).sorted
+      val lResults = (0 to 100).map(_ => KolmogorovSmirnov.LeftNeverDominatesRight(one(), two()).p).sorted
+      val rResults = (0 to 100).map(_ => KolmogorovSmirnov.RightNeverDominatesLeft(one(), two()).p).sorted
 
-      println(s"lResults: ${lResults(25)} .. ${lResults(50)} .. ${lResults(75)}")
-      println(s"rResults: ${rResults(25)} .. ${rResults(50)} .. ${rResults(75)}")
-
-      lResults(50) should (be >= 0.3)
-      rResults(50) should (be >= 0.3)
+      lResults(50) should (be < 0.05)
+      rResults(50) should (be < 0.05)
     }
   }
 

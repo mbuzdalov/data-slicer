@@ -84,7 +84,8 @@ object KSUtils {
     */
   @tailrec
   final def pIdenticalDistributionIsInBounds(minStat: Rational, maxStat: Rational, m: Int, n: Int): Double = {
-    if (m > n) pIdenticalDistributionIsInBounds(minStat, maxStat, n, m) else {
+    // I went an easy-to-get way, but actually, "minStat,  maxStat" is still OK here
+    if (m > n) pIdenticalDistributionIsInBounds(-maxStat, -minStat, n, m) else {
       val u = Array.ofDim[Double](n + 1)
 
       u(0) = 1.0
