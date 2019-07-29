@@ -26,7 +26,7 @@ object KolmogorovSmirnov {
     override protected def diff2stat(diff: Rational): Rational = -diff.max(0)
     override protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational = -minDiff
     override protected def stat2pair(stat: Rational): (Rational, Rational) = (-stat, 2) // 2 ~ "anything greater than 1"
-    override def name: String = "Kolmogorov-Smirnov test, Null: CDF(L) is never below CDF(R)"
+    override def name: String = "Kolmogorov-Smirnov test. Null: CDF(L) is never below CDF(R)"
   }
 
   private abstract class KSCommon extends StatisticalTest[Rational] {
@@ -34,10 +34,9 @@ object KolmogorovSmirnov {
     protected def pair2stat(minDiff: Rational, maxDiff: Rational): Rational
     protected def stat2pair(stat: Rational): (Rational, Rational)
 
-    override def statisticValuesWithProbabilities(firstSampleSize: Int,
-                                                  secondSampleSize: Int): Iterable[(Rational, Double)] = {
-      collectStatisticsWithProbabilities(firstSampleSize, secondSampleSize, diff2stat, oneMinusP)
-    }
+    override def statisticValuesWithProbabilities(firstSize: Int, secondSize: Int): Iterable[(Rational, Double)] =
+      collectStatisticsWithProbabilities(firstSize, secondSize, diff2stat, oneMinusP)
+
     override def apply[T : Ordering](first: Iterable[T], second: Iterable[T]): TestResult[Rational] = {
       val (minDiff, maxDiff) = computeStatistics(first, second)
       val statistic = pair2stat(minDiff, maxDiff)
