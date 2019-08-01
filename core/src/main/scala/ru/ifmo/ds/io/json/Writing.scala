@@ -29,7 +29,7 @@ object Writing {
       if (idx < 0) key else key.substring(0, idx)
     }
 
-    def longestDottedPrefix(keys: Iterable[String]): String = {
+    def longestDottedPrefix(keys: Iterable[String]): String = if (keys.isEmpty) "" else {
       val headKey = keys.head
       def go(prev: Int): Int = {
         val nextDot = headKey.indexOf('.', prev + 1)
