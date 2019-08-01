@@ -2,6 +2,8 @@ package ru.ifmo.ds.io.json
 
 import java.io.Writer
 
+import scala.annotation.tailrec
+
 import com.google.gson.stream.JsonWriter
 
 import ru.ifmo.ds.Database
@@ -31,7 +33,8 @@ object Writing {
 
     def longestDottedPrefix(keys: Iterable[String]): String = if (keys.isEmpty) "" else {
       val headKey = keys.head
-      def go(prev: Int): Int = {
+
+      @tailrec def go(prev: Int): Int = {
         val nextDot = headKey.indexOf('.', prev + 1)
         if (nextDot < 0) prev else {
           val newPrefix = headKey.substring(0, nextDot + 1) // including the dot
