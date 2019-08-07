@@ -112,7 +112,7 @@ object DatabaseEntity extends ImageLoadingFacilities {
     }
 
     @tailrec
-    private def generateDisplayableStringImpl(builder: StringBuilder, index: Int): String = {
+    private def generateDisplayableStringImpl(data: Seq[String], builder: StringBuilder, index: Int): String = {
       if (index == data.size) builder.result() else {
         if (index > 0) {
           builder.append(", ")
@@ -123,12 +123,12 @@ object DatabaseEntity extends ImageLoadingFacilities {
           builder.append("...")
           builder.result()
         } else {
-          generateDisplayableStringImpl(builder, index + 1)
+          generateDisplayableStringImpl(data, builder, index + 1)
         }
       }
     }
 
-    private def generateDisplayableString(data: Seq[String]) = generateDisplayableStringImpl(new StringBuilder, 0)
+    private def generateDisplayableString(data: Seq[String]) = generateDisplayableStringImpl(data, new StringBuilder, 0)
 
     override def getRowCount: Int = synchronized(data.size)
     override def getColumnCount: Int = 3
