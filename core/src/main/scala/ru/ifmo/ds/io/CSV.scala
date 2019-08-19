@@ -2,15 +2,18 @@ package ru.ifmo.ds.io
 import java.io.{BufferedReader, Reader, Writer}
 import java.util.StringTokenizer
 
+import scala.annotation.tailrec
+
 import ru.ifmo.ds.Database
 
 object CSV extends TextInputOutput {
   override def fromReader(reader: Reader, moreKeys: Map[String, String]): Database = {
     def splitByComma(str: String): Array[String] = {
       val tok = new StringTokenizer(str, ",")
-      Array.fill(tok.countTokens())(tok.nextToken())
+      Array.fill(tok.countTokens())(tok.nextToken().trim)
     }
 
+    @tailrec
     def readEntryAndContinue(reader: BufferedReader, keys: Array[String], target: Database.Entry => Unit): Unit = {
       val line = reader.readLine()
       if (line != null) {
