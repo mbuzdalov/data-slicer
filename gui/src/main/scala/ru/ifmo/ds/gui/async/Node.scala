@@ -15,7 +15,7 @@ trait Node {
     * @param listener the listener to add.
     */
   def addListener(listener: NodeListener): Unit = {
-    Node.requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     if (!listeners.contains(listener)) {
       listeners += listener
       listener.nodeJustAdded(this, getState)
@@ -27,7 +27,7 @@ trait Node {
     * @param listener the listener to remove.
     */
   def removeListener(listener: NodeListener): Unit = {
-    Node.requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     if (listeners.contains(listener)) {
       listener.nodeJustRemoved(this, getState)
       listeners -= listener
@@ -57,6 +57,4 @@ object Node {
   case object Restarting extends State("Restarting")
   case object Failed extends State("Failed")
   case object Done extends State("Done")
-
-  private[async] def requireInSwing(): Unit = require(SwingUtilities.isEventDispatchThread)
 }

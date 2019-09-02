@@ -15,7 +15,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   override protected def getState: State = state
 
   def addDependency(dependency: Node): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     if (!dependencies.contains(dependency)) {
       dependencies += dependency
       dependency.addListener(this)
@@ -23,7 +23,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   }
 
   def removeDependency(dependency: Node): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     if (dependencies.contains(dependency)) {
       dependency.removeListener(this)
       dependencies -= dependency
@@ -31,20 +31,20 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   }
 
   override def nodeJustAdded(node: Node, state: State): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     require(dependencies.contains(node))
     processDependencyChange(1, if (state == Done) 0 else 1)
   }
 
   override def stateChanged(node: Node, oldState: State, newState: State): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     require(dependencies.contains(node))
     require(oldState != newState)
     processDependencyChange(0, if (oldState == Done) 1 else if (newState == Done) -1 else 0)
   }
 
   override def nodeJustRemoved(node: Node, state: State): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     require(dependencies.contains(node))
     processDependencyChange(-1, if (state == Done) 0 else -1)
   }
@@ -72,7 +72,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   }
 
   private def notifyFunctionResult(result: Try[workload.MainOutput]): Unit = {
-    requireInSwing()
+    require(SwingUtilities.isEventDispatchThread)
     checkInvariants()
     val oldState = state
     state = state match {
