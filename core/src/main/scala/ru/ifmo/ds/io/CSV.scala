@@ -34,7 +34,7 @@ object CSV extends TextInputOutput {
   }
 
   override def writeToWriter(db: Database, writer: Writer): Unit = {
-    val keys = db.possibleKeys
+    val keys = db.possibleKeys.toIndexedSeq
     writer.append(keys.mkString("", ",", "\n"))
     for (e <- db.entries) {
       writer.append(keys.map(k => e.get(k).getOrElse("")).mkString("", ",", "\n"))
