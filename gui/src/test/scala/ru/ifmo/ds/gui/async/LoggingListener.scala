@@ -14,17 +14,21 @@ class LoggingListener extends NodeListener {
   private[this] def pollUntilTimeLimit(remaining: Int): LogRecord = {
     if (remaining == 0) null else {
       val element = records.poll()
-      if (element != null) element else pollUntilTimeLimit(remaining - 1)
+      if (element != null) element else {
+        Thread.sleep(1)
+        pollUntilTimeLimit(remaining - 1)
+      }
     }
   }
 
   def failIfSomethingHappens(): Unit = {
     var i = 0
-    while (i < 10000000) {
+    while (i < 100) {
       val next = records.poll()
       if (next != null) {
         throw new AssertionError("Expected nothing in the queue, found " + next)
       }
+      Thread.sleep(1)
       i += 1
     }
   }
@@ -34,7 +38,7 @@ class LoggingListener extends NodeListener {
     var idx = 0
     while (idx < seq.size) {
       val next = seq(idx)
-      val actual = pollUntilTimeLimit(10000000)
+      val actual = pollUntilTimeLimit(1000)
       if (actual == null) {
         throw new AssertionError("Expected " + next + ", nothing found at index " + idx)
       }

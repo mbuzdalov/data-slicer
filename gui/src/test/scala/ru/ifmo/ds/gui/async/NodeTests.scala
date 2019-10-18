@@ -55,7 +55,7 @@ class NodeTests extends FlatSpec with Matchers {
 
   "Two dependent nodes" should "initialize well when connecting, completing second, completing first" in {
     // We run the test many times to be more confident that spurious failures don't happen.
-    for (_ <- 0 to 10) {
+    for (_ <- 0 to 2) {
       val listener = inSwing(new LoggingListener)
       val w1 = inSwing(new LoggingWorkload(listener))
       val w2 = inSwing(new LoggingWorkload(listener))
