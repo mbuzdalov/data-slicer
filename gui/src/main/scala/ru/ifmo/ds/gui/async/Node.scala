@@ -52,6 +52,7 @@ trait Node {
 
 object Node {
   sealed abstract class State(val name: String)
+  case object Initializing extends State("Initializing")
   case object Waiting extends State("Waiting")
   case object Running extends State("Running")
   case object Restarting extends State("Restarting")

@@ -8,7 +8,7 @@ import scala.util.{Failure, Success, Try}
 import ru.ifmo.ds.gui.async.Node._
 
 final class MutableNode(workload: Workload) extends Node with NodeListener {
-  private[this] var state: State = Done
+  private[this] var state: State = Initializing
   private[this] var nDependenciesToWait = 0
   private[this] val dependencies = new mutable.HashSet[Node]()
 
@@ -30,12 +30,23 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
     }
   }
 
+  def completeInitialization(): Unit = {
+    require(SwingUtilities.isEventDispatchThread)
+    require(state == Initializing)
+    if (nDependenciesToWait == 0) {
+      state = scheduleFunction()
+    } else {
+      state = Waiting
+    }
+    notifyOfStateChange(Initializing)
+  }
+
   def restartEvaluation(): Unit = {
     require(SwingUtilities.isEventDispatchThread)
     checkInvariants()
     val oldState = state
     state = state match {
-      case Waiting | Restarting => state /* do nothing */
+      case Initializing | Waiting | Restarting => state /* do nothing */
       case Running => Restarting /* if running, ask to be restarted */
       case Done | Failed => scheduleFunction() /* actually restart */
     }
@@ -64,7 +75,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   private def checkInvariants(): Unit = {
     state match {
       case Waiting => assert(nDependenciesToWait > 0)
-      case Restarting => assert(nDependenciesToWait >= 0)
+      case Initializing | Restarting => assert(nDependenciesToWait >= 0)
       case Running | Done | Failed => assert(nDependenciesToWait == 0)
     }
   }
@@ -75,6 +86,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
       val oldState = state
       nDependenciesToWait += nDependenciesChange
       state = state match {
+        case Initializing => Initializing
         case Waiting | Failed | Done => if (nDependenciesToWait == 0) scheduleFunction() else Waiting
         case Running | Restarting    => Restarting
       }
@@ -88,7 +100,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
     checkInvariants()
     val oldState = state
     state = state match {
-      case Waiting | Failed | Done =>
+      case Initializing | Waiting | Failed | Done =>
         throw new AssertionError(s"State cannot be $state when function returns")
       case Running =>
         result match {
