@@ -30,6 +30,18 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
     }
   }
 
+  def restartEvaluation(): Unit = {
+    require(SwingUtilities.isEventDispatchThread)
+    checkInvariants()
+    val oldState = state
+    state = state match {
+      case Waiting | Restarting => state /* do nothing */
+      case Running => Restarting /* if running, ask to be restarted */
+      case Done | Failed => scheduleFunction() /* actually restart */
+    }
+    notifyOfStateChange(oldState)
+  }
+
   override def nodeJustAdded(node: Node, state: State): Unit = {
     require(SwingUtilities.isEventDispatchThread)
     require(dependencies.contains(node))
