@@ -84,7 +84,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
     checkInvariants()
     if (nDependenciesChange != 0 || nWaitingChange != 0) {
       val oldState = state
-      nDependenciesToWait += nDependenciesChange
+      nDependenciesToWait += nWaitingChange
       state = state match {
         case Initializing => Initializing
         case Waiting | Failed | Done => if (nDependenciesToWait == 0) scheduleFunction() else Waiting
