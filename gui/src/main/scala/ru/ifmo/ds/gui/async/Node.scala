@@ -8,7 +8,7 @@ import javax.swing.SwingUtilities
   * This is a public interface to the async node.
   */
 trait Node {
-  private[this] val listeners = new mutable.HashSet[NodeListener]()
+  private[this] val listeners = new mutable.LinkedHashSet[NodeListener]()
 
   /**
     * Adds the given listener to this node. If this listener is already added, nothing happens.
@@ -42,11 +42,19 @@ trait Node {
 
   /**
     * Notifies all the listeners that the state is changed.
+    *
+    * It is acceptable to call this method when the old state is the same as the current one,
+    * in which case the listeners will NOT be notified.
+    *
+    * The listeners will be notified of the change '''in the same order''' as they were added.
+    *
     * @param oldState the old state of the node.
     */
   protected def notifyOfStateChange(oldState: Node.State): Unit = {
     val state = getState
-    listeners.foreach(_.stateChanged(this, oldState, state))
+    if (oldState != state) {
+      listeners.foreach(_.stateChanged(this, oldState, state))
+    }
   }
 }
 
