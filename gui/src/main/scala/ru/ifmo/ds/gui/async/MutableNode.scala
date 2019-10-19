@@ -1,34 +1,14 @@
 package ru.ifmo.ds.gui.async
 
 import javax.swing.SwingUtilities
-
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
-
 import ru.ifmo.ds.gui.async.Node._
 
 final class MutableNode(workload: Workload) extends Node with NodeListener {
   private[this] var state: State = Initializing
   private[this] var nDependenciesToWait = 0
-  private[this] val dependencies = new mutable.HashSet[Node]()
 
   override protected def getState: State = state
-
-  def addDependency(dependency: Node): Unit = {
-    require(SwingUtilities.isEventDispatchThread)
-    if (!dependencies.contains(dependency)) {
-      dependencies += dependency
-      dependency.addListener(this)
-    }
-  }
-
-  def removeDependency(dependency: Node): Unit = {
-    require(SwingUtilities.isEventDispatchThread)
-    if (dependencies.contains(dependency)) {
-      dependency.removeListener(this)
-      dependencies -= dependency
-    }
-  }
 
   def completeInitialization(): Unit = {
     require(SwingUtilities.isEventDispatchThread)
@@ -55,20 +35,17 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
 
   override def nodeJustAdded(node: Node, state: State): Unit = {
     require(SwingUtilities.isEventDispatchThread)
-    require(dependencies.contains(node))
     processDependencyChange(1, if (state == Done) 0 else 1)
   }
 
   override def stateChanged(node: Node, oldState: State, newState: State): Unit = {
     require(SwingUtilities.isEventDispatchThread)
-    require(dependencies.contains(node))
     require(oldState != newState)
     processDependencyChange(0, if (oldState == Done) 1 else if (newState == Done) -1 else 0)
   }
 
   override def nodeJustRemoved(node: Node, state: State): Unit = {
     require(SwingUtilities.isEventDispatchThread)
-    require(dependencies.contains(node))
     processDependencyChange(-1, if (state == Done) 0 else -1)
   }
 

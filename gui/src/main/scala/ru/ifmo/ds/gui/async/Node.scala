@@ -8,6 +8,7 @@ import javax.swing.SwingUtilities
   * This is a public interface to the async node.
   */
 trait Node {
+  /* If we don't want to eliminate duplicate listeners and have add/remove operations in O(1), better make it a list. */
   private[this] val listeners = new mutable.LinkedHashSet[NodeListener]()
 
   /**

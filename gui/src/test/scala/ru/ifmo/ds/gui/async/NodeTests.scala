@@ -66,7 +66,7 @@ class NodeTests extends FlatSpec with Matchers {
         n2.addListener(listener)
       }
       listener.consumeOrFail(Add(n1, Initializing), Add(n2, Initializing))
-      inSwing(n2.addDependency(n1))
+      inSwing(n1.addListener(n2))
       listener.failIfSomethingHappens()
       inSwing(n2.completeInitialization())
       listener.consumeOrFail(Change(n2, Initializing, Waiting))
