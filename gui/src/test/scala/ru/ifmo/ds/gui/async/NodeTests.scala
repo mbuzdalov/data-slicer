@@ -85,6 +85,50 @@ class NodeTests extends FlatSpec with Matchers {
       )
     }
   }
+
+  they should "initialize well when connecting, completing first, completing second" in {
+    // We run the test many times to be more confident that spurious failures don't happen.
+    for (_ <- 0 to 2) {
+      val listener = inSwing(new LoggingListener)
+      val w1 = inSwing(new LoggingWorkload(listener))
+      val w2 = inSwing(new LoggingWorkload(listener))
+      val n1 = inSwing(new MutableNode(w1))
+      val n2 = inSwing(new MutableNode(w2))
+      inSwing {
+        n1.addListener(listener)
+        n2.addListener(listener)
+      }
+      listener.consumeOrFail(Add(n1, Initializing), Add(n2, Initializing))
+      inSwing(n1.addListener(n2))
+      listener.failIfSomethingHappens()
+      inSwing(n1.completeInitialization())
+      listener.consumeOrFail(happyWorkStory(n1, w1, Initializing) :_*)
+      inSwing(n2.completeInitialization())
+      listener.consumeOrFail(happyWorkStory(n2, w2, Initializing) :_*)
+    }
+  }
+
+  they should "initialize well when completing then connecting" in {
+    // We run the test many times to be more confident that spurious failures don't happen.
+    for (_ <- 0 to 2) {
+      val listener = inSwing(new LoggingListener)
+      val w1 = inSwing(new LoggingWorkload(listener))
+      val w2 = inSwing(new LoggingWorkload(listener))
+      val n1 = inSwing(new MutableNode(w1))
+      val n2 = inSwing(new MutableNode(w2))
+      inSwing {
+        n1.addListener(listener)
+        n2.addListener(listener)
+      }
+      listener.consumeOrFail(Add(n1, Initializing), Add(n2, Initializing))
+      inSwing(n1.completeInitialization())
+      listener.consumeOrFail(happyWorkStory(n1, w1, Initializing) :_*)
+      inSwing(n2.completeInitialization())
+      listener.consumeOrFail(happyWorkStory(n2, w2, Initializing) :_*)
+      inSwing(n1.addListener(n2))
+      listener.consumeOrFail(happyWorkStory(n2, w2, Done) :_*)
+    }
+  }
 }
 
 object NodeTests {
