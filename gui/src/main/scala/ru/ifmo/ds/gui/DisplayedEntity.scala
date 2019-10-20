@@ -5,6 +5,7 @@ import java.awt.event._
 import java.io.{PrintWriter, StringWriter}
 
 import javax.swing._
+import javax.swing.border.EmptyBorder
 
 import ru.ifmo.ds.gui.components.EditableLabel
 import ru.ifmo.ds.gui.util.ImageLoadingFacilities
@@ -48,9 +49,12 @@ abstract class DisplayedEntity(val inputEntities: Seq[DisplayedEntity],
   displayUI.addMouseListener(displayOnPressListener)
   nameLabel.addMouseListener(displayOnPressListener)
 
+  reloadRemovePane.setOpaque(false)
+  reloadRemovePane.setBorder(new EmptyBorder(3, 0, 2, 0))
   reloadRemovePane.add(DisplayedEntity.makeSmallButton(DisplayedEntity.reloadIcon, _ => initiateReloading()))
   reloadRemovePane.add(DisplayedEntity.makeSmallButton(DisplayedEntity.removeIcon, _ => tryDispose()))
 
+  displayUI.setOpaque(false)
   displayUI.add(new JLabel(icon), BorderLayout.LINE_START)
   displayUI.add(nameLabel, BorderLayout.CENTER)
   displayUI.add(reloadRemovePane, BorderLayout.LINE_END)

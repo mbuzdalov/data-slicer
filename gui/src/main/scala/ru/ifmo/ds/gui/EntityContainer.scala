@@ -7,21 +7,14 @@ import javax.swing._
 import scala.collection.mutable
 
 import ru.ifmo.ds.gui.actions.{CreateChart, EntityAction, MapDatabase, OpenDatabaseFiles, SaveDatabaseToFile}
-import ru.ifmo.ds.gui.util.VerticalFlowLayout
 
 class EntityContainer {
   require(SwingUtilities.isEventDispatchThread,
           s"The EntityContainer constructor shall be called on an AWT dispatch thread")
-
-  private val mainPaneLayout = new CardLayout()
-  private val mainPane = new JPanel(mainPaneLayout)
-  private val leftPane = new JPanel(new VerticalFlowLayout)
-  private val displayPane = new JPanel(new VerticalFlowLayout)
   private val actionPane = new JPanel(new FlowLayout)
-  private val rootComponent = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPane, mainPane)
+  private val rootComponent = new JTabbedPane(SwingConstants.LEFT, JTabbedPane.SCROLL_TAB_LAYOUT)
   private val entities = new mutable.ArrayBuffer[DisplayedEntity]()
 
-  private val nothingToShowString = "###"
   private val nothingToShow = new JLabel("Click on an entry on the left to see its contents")
   nothingToShow.setHorizontalAlignment(SwingConstants.CENTER)
   nothingToShow.setVerticalAlignment(SwingConstants.CENTER)
@@ -31,15 +24,15 @@ class EntityContainer {
   val mapDatabaseAction: EntityAction = new MapDatabase(this)
   val saveDatabaseToFileAction: EntityAction = new SaveDatabaseToFile(this)
 
+  actionPane.setOpaque(false)
   actionPane.add(openDatabaseFilesAction.makeButton())
   actionPane.add(createChartAction.makeButton())
   actionPane.add(mapDatabaseAction.makeButton())
   actionPane.add(saveDatabaseToFileAction.makeButton())
 
-  leftPane.add(displayPane)
-  leftPane.add(actionPane)
-
-  mainPane.add(nothingToShow, nothingToShowString)
+  rootComponent.add(nothingToShow)
+  rootComponent.setBackgroundAt(0, actionPane.getBackground)
+  rootComponent.setTabComponentAt(0, actionPane)
 
   def root: JComponent = {
     ensureInSwing()
@@ -49,6 +42,7 @@ class EntityContainer {
   def dialogAlignmentSet: EntityContainer.DialogAlignmentInfo = {
     ensureInSwing()
 
+    @scala.annotation.tailrec
     def process(current: Container, x: Int, y: Int): EntityContainer.DialogAlignmentInfo = {
       current.getParent match {
         case null =>
@@ -66,26 +60,21 @@ class EntityContainer {
 
   def add(entity: DisplayedEntity): Unit = {
     ensureInSwing()
-    val entityString = identifyingString(entity)
     entities += entity
-    mainPane.add(entity.getMainUI, entityString)
-    displayPane.add(entity.getDisplayUI)
+    val size = rootComponent.getTabCount
+    rootComponent.add(entity.getMainUI, size - 1)
+    rootComponent.setBackgroundAt(size - 1, actionPane.getBackground)
+    rootComponent.setTabComponentAt(size - 1, entity.getDisplayUI)
   }
 
   def show(entity: DisplayedEntity): Unit = {
-    ensureInSwing()
-    val entityString = identifyingString(entity)
-    mainPaneLayout.show(mainPane, entityString)
+    rootComponent.setSelectedComponent(entity.getMainUI)
   }
 
   def remove(entity: DisplayedEntity): Unit = {
     ensureInSwing()
     entities -= entity
-    mainPane.remove(entity.getMainUI)
-    mainPaneLayout.show(mainPane, nothingToShowString)
-    displayPane.remove(entity.getDisplayUI)
-    displayPane.revalidate()
-    displayPane.repaint()
+    rootComponent.remove(entity.getMainUI)
   }
 
   def findAllDescendants(entity: DisplayedEntity): Seq[DisplayedEntity] = {
@@ -111,7 +100,7 @@ class EntityContainer {
 
   def confirmRemoval(entity: DisplayedEntity): Boolean = {
     ensureInSwing()
-    val queryResult = JOptionPane.showConfirmDialog(mainPane,
+    val queryResult = JOptionPane.showConfirmDialog(rootComponent,
                                                     s"Do you wish to remove '${entity.getName}'?",
                                                     "Confirm removal",
                                                     JOptionPane.OK_CANCEL_OPTION)
@@ -132,10 +121,6 @@ class EntityContainer {
   private def ensureInSwing(): Unit = {
     require(SwingUtilities.isEventDispatchThread,
             "The EntityContainer methods shall be called on an AWT dispatch thread")
-  }
-
-  private def identifyingString(entity: DisplayedEntity): String = {
-    entity.getClass.getName + "@" + System.identityHashCode(entity)
   }
 }
 
