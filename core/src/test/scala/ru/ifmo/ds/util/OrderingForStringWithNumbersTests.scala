@@ -1,10 +1,11 @@
 package ru.ifmo.ds.util
 
-import org.scalatest.{FlatSpec, Matchers}
 
 import OrderingForStringWithNumbers._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class OrderingForStringWithNumbersTests extends FlatSpec with Matchers {
+class OrderingForStringWithNumbersTests extends AnyFlatSpec with Matchers {
   private def runRemainingChecks(ord: Ordering[String]): Unit = {
     it should "do well with nulls" in {
       ord.compare(null, null) shouldBe 0

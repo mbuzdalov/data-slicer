@@ -3,11 +3,12 @@ package ru.ifmo.ds.gui
 import java.util.concurrent.atomic.AtomicReference
 
 import javax.swing.SwingUtilities
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.annotation.tailrec
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class AsyncEvaluationDAGNodeTests extends FlatSpec with Matchers {
+class AsyncEvaluationDAGNodeTests extends AnyFlatSpec with Matchers {
   import AsyncEvaluationDAGNodeTests._
 
   "GUI node without dependencies that does not fail" should "behave as expected on creation" in {

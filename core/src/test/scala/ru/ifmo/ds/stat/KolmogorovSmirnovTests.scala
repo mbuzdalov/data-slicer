@@ -5,10 +5,11 @@ import java.util.Random
 import scala.Ordering.Double.IeeeOrdering
 import scala.annotation.tailrec
 
-import org.scalatest.{FlatSpec, Matchers}
 import spire.math.Rational
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class KolmogorovSmirnovTests extends FlatSpec with Matchers {
+class KolmogorovSmirnovTests extends AnyFlatSpec with Matchers {
   private case class RefResult(p: Double, d: Double)
 
   private object R {

@@ -1,8 +1,9 @@
 package ru.ifmo.ds.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class NumberFormattingTests extends FlatSpec with Matchers {
+class NumberFormattingTests extends AnyFlatSpec with Matchers {
   import NumberFormatting._
 
   "Scientific formatting" should "format integers as expected" in {

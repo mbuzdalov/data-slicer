@@ -1,9 +1,10 @@
 package ru.ifmo.ds.io
 
-import org.scalatest.{FlatSpec, Matchers}
 import ru.ifmo.ds.{Database, HierarchicDatabase}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class JsonTests extends FlatSpec with Matchers {
+class JsonTests extends AnyFlatSpec with Matchers {
   private[this] def load(contents: String, moreKeys: Map[String, String] = Map.empty): Database = {
     val db = Json.fromString(contents, moreKeys)
     val cdb = HierarchicDatabase.compact(db)
