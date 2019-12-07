@@ -1,14 +1,16 @@
 package ru.ifmo.ds.gui.async
 
 import java.util.concurrent.atomic.AtomicReference
+
 import javax.swing.SwingUtilities
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import ru.ifmo.ds.gui.async.LoggingListener._
 import ru.ifmo.ds.gui.async.Node._
 
-class NodeTests extends FlatSpec with Matchers {
+class NodeTests extends AnyFlatSpec with Matchers {
   import NodeTests._
 
   private def happyWorkStory(n: Node, w: Workload, initState: State): Seq[LogRecord] = {
