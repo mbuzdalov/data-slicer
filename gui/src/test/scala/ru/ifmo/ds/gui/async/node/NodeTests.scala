@@ -1,18 +1,14 @@
 package ru.ifmo.ds.gui.async.node
 
-import java.util.concurrent.atomic.AtomicReference
-
-import javax.swing.SwingUtilities
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import ru.ifmo.ds.gui.async.node.LoggingListener._
 import ru.ifmo.ds.gui.async.node.Node._
 
-class NodeTests extends AnyFlatSpec with Matchers {
-  import NodeTests._
+import ru.ifmo.ds.gui.async.Infrastructure._
 
+class NodeTests extends AnyFlatSpec with Matchers {
   private def happyWorkStory(n: Node, w: Workload, initState: State): Seq[LogRecord] = {
     IndexedSeq(                      // The story goes as follows:
       WorkBefore(w),                 // First the before-phase of the workload is executed.
@@ -130,20 +126,5 @@ class NodeTests extends AnyFlatSpec with Matchers {
       inSwing(n1.addListener(n2))
       listener.consumeOrFail(happyWorkStory(n2, w2, Done) :_*)
     }
-  }
-}
-
-object NodeTests {
-  private class Evaluation[T](fun: => T) extends Runnable {
-    val value = new AtomicReference[T]()
-    override def run(): Unit = {
-      value.set(fun)
-    }
-  }
-
-  private def inSwing[T](fun: => T): T = {
-    val callable = new Evaluation(fun)
-    SwingUtilities.invokeAndWait(callable)
-    callable.value.get()
   }
 }
