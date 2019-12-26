@@ -1,13 +1,12 @@
-package ru.ifmo.ds.gui.async.util
+package ru.ifmo.ds.gui.async
 
 import javax.swing.SwingUtilities
-import ru.ifmo.ds.gui.async.Node
 
 /**
   * This is the node, whose state can be programmatically controlled from the outside.
   * @param initialState the initial state of this node.
   */
-class NodeWithSwitchableState(initialState: Node.State) extends Node {
+class SwitchableNode(initialState: Node.State) extends Node {
   private[this] var state = initialState
 
   override def getState: Node.State = state
