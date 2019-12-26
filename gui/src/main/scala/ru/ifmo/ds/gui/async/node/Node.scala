@@ -67,4 +67,21 @@ object Node {
   case object Restarting extends State("Restarting")
   case object Failed extends State("Failed")
   case object Done extends State("Done")
+
+  /**
+    * This is a node which is always waiting.
+    *
+    * If one need to add many dependencies and avoid lengthy computations while doing that,
+    * one can add this node to the dependencies first, do all the dirty job, and remove this node from the dependencies.
+    */
+  object WaitingNode extends Node {
+    override protected def getState: State = Waiting
+  }
+
+  /**
+    * This is a node which is always done.
+    */
+  object DoneNode extends Node {
+    override protected def getState: State = Done
+  }
 }
