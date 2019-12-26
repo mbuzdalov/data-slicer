@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.async
+package ru.ifmo.ds.gui.async.node
 
 /**
  * This is a node which is always waiting.

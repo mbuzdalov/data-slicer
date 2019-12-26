@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.async
+package ru.ifmo.ds.gui.async.node
 
 trait Workload {
   type MainInput

@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.async
+package ru.ifmo.ds.gui.async.node
 
 import java.util.concurrent.ConcurrentLinkedQueue
 

@@ -1,6 +1,6 @@
-package ru.ifmo.ds.gui.async
+package ru.ifmo.ds.gui.async.node
 
-import ru.ifmo.ds.gui.async.Node.State
+import ru.ifmo.ds.gui.async.node.Node.State
 
 /**
   * This is an interface for async node listeners.
