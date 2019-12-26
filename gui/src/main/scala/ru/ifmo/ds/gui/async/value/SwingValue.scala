@@ -1,10 +1,6 @@
 package ru.ifmo.ds.gui.async.value
 
-import java.util.concurrent.CountDownLatch
-
-import javax.swing.SwingUtilities
-
-import ru.ifmo.ds.gui.async.node.{Node, NodeListener}
+import ru.ifmo.ds.gui.async.node.Node
 
 /**
  * This is an abstract class for every value which is associated with some Swing entity, maybe intermediate,
@@ -24,22 +20,7 @@ abstract class SwingValue[+T] extends AutoCloseable {
    * All the dependencies are actually managed by adding and removing listeners to this node,
    * but the user of the value cannot access this node directly.
    */
-  protected def node: Node
-
-  protected[value] def busyWaitUntilComplete(): Unit = {
-    require(!SwingUtilities.isEventDispatchThread)
-    val latch = new CountDownLatch(1)
-    val listener = new NodeListener {
-      override def nodeJustRemoved(node: Node, state: Node.State): Unit = {}
-      override def nodeJustAdded(node: Node, state: Node.State): Unit = if (state == Node.Done) latch.countDown()
-      override def stateChanged(node: Node, oldState: Node.State, newState: Node.State): Unit = {
-        if (newState == Node.Done) latch.countDown()
-      }
-    }
-    SwingUtilities.invokeAndWait(() => node.addListener(listener))
-    latch.await()
-    SwingUtilities.invokeAndWait(() => node.removeListener(listener))
-  }
+  protected[value] def node: Node
 }
 
 object SwingValue {

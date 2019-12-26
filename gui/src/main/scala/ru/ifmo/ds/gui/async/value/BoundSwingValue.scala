@@ -24,6 +24,6 @@ class BoundSwingValue[I, R](packer: => I, executor: I => R, dependencies: Node*)
   theNode.completeInitialization()
 
   override def value: R = theValue.get
-  override protected def node: Node = theNode
+  override protected[value] def node: Node = theNode
   override def close(): Unit = dependencies.foreach(_.removeListener(theNode))
 }
