@@ -3,7 +3,9 @@ package ru.ifmo.ds.cli
 import java.io.{File, PrintStream}
 
 import ru.ifmo.ds.io.Json
-import ru.ifmo.ds.{Database, CLI}
+import ru.ifmo.ds.{CLI, Database}
+
+import scala.annotation.tailrec
 
 object Info extends CLI.Module {
   override def name: String = "info"
@@ -42,6 +44,7 @@ object Info extends CLI.Module {
       val builder = new StringBuilder("  ").append(key).append(" => ")
       val iterator = values.toIndexedSeq.sorted.iterator
 
+      @tailrec
       def composeString(addedCount: Int): Unit = {
         if (iterator.hasNext) {
           val next = iterator.next().getOrElse("<none>")

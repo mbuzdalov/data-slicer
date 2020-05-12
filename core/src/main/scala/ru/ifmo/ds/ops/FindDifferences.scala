@@ -110,19 +110,4 @@ object FindDifferences {
     val rdb = db.filter(e => rightPredicate(e.get(differenceKey)) && e.contains(valueKey))
     traverseImpl(ldb, rdb, Map.empty, categoryKeys, valueKey, listener)
   }
-
-  def collect(left: Database, right: Database, categoryKeys: Seq[String],
-              valueKey: String, listener: DifferenceListener): Seq[Result] = {
-    val b = new Builder
-    traverse(left, right, categoryKeys, valueKey, b)
-    b.result()
-  }
-
-  def collect(db: Database, differenceKey: String,
-              leftPredicate: Option[String] => Boolean, rightPredicate: Option[String] => Boolean,
-              categoryKeys: Seq[String], valueKey: String, listener: DifferenceListener): Seq[Result] = {
-    val b = new Builder
-    traverse(db, differenceKey, leftPredicate, rightPredicate, categoryKeys, valueKey, b)
-    b.result()
-  }
 }

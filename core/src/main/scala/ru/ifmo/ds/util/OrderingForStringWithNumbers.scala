@@ -1,5 +1,7 @@
 package ru.ifmo.ds.util
 
+import scala.annotation.tailrec
+
 object OrderingForStringWithNumbers {
   /**
     * This ordering will compare strings by splitting them internally into sequences of either
@@ -25,6 +27,7 @@ object OrderingForStringWithNumbers {
 class OrderingForStringWithNumbers(specialSymbol: Char) extends Ordering[String] {
   private[this] def isNumeric(char: Char): Boolean = char >= '0' && char <= '9'
 
+  @tailrec
   private[this] def lex(x: String, y: String, ix: Int, iy: Int, endX: Int): Int = {
     if (ix == endX) 0 else {
       val currX = x.charAt(ix)
@@ -51,6 +54,7 @@ class OrderingForStringWithNumbers(specialSymbol: Char) extends Ordering[String]
     rv
   }
 
+  @tailrec
   private[this] def run(x: String, y: String, ix: Int, iy: Int, shouldNegateComparison: Boolean): Int = {
     if (x.length == ix) {
       if (y.length == iy) 0 else -1

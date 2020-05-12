@@ -8,7 +8,7 @@ import scala.collection.mutable
 abstract class AsyncEvaluationDAGNode private[gui] (inputs: Seq[AsyncEvaluationDAGNode],
                                                     private[gui] val name: String,
                                                     watcher: AsyncEvaluationDAGNode.Watcher) {
-  def this(inputs: Seq[AsyncEvaluationDAGNode], name: String) {
+  def this(inputs: Seq[AsyncEvaluationDAGNode], name: String) = {
     this(inputs, name, AsyncEvaluationDAGNode.defaultWatcher)
   }
 

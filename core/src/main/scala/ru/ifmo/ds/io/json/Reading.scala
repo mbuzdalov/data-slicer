@@ -107,7 +107,7 @@ object Reading {
       this
     }
 
-    def result() = RawEntry(
+    def result(): RawEntry = RawEntry(
       hasDeclaredArrays,
       myArrayChildren.toIndexedSeq,
       myDirectChildren.toIndexedSeq,
@@ -130,8 +130,7 @@ object Reading {
     def setHasDeclaredArrays(): CompressedEntryBuilder = { hasDeclaredArrays = true; this }
     def addArrayElement(entry: CompressedEntry): CompressedEntryBuilder = { myArrayChildren += entry; this }
     def addPair(key: String, value: String): CompressedEntryBuilder = { myKeyValuePairs.updateUnique(key, value); this }
-
-    def result() = CompressedEntry(hasDeclaredArrays, myArrayChildren.toIndexedSeq, myKeyValuePairs.toMap)
+    def result(): CompressedEntry = CompressedEntry(hasDeclaredArrays, myArrayChildren.toIndexedSeq, myKeyValuePairs.toMap)
   }
 
   private case class CompressedEntry(

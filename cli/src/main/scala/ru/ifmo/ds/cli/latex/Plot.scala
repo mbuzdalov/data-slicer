@@ -3,12 +3,12 @@ package ru.ifmo.ds.cli.latex
 import java.io.{File, PrintStream}
 
 import scala.Ordering.Double.IeeeOrdering
-
 import ru.ifmo.ds.cli.CommandLineOption
 import ru.ifmo.ds.io.Json
 import ru.ifmo.ds.util.{Axis, OrderingForStringWithNumbers}
 import ru.ifmo.ds.{CLI, Database}
 
+import scala.annotation.tailrec
 import scala.collection.immutable.ArraySeq
 
 object Plot extends CLI.Module {
@@ -33,6 +33,7 @@ object Plot extends CLI.Module {
     val files = filesOpt.result()
 
     def run(db: Database, categoryKeys: IndexedSeq[String], prefix: String): Unit = {
+      @tailrec
       def processCats(categoryKeys: IndexedSeq[String]): Unit = {
         if (!db.hasEntries || categoryKeys.isEmpty) {
           val plotData = db.groupMap2D(_.get(seriesKey), _.get(xAxis.key).map(_.toDouble), _.get(yAxis.key).map(_.toDouble))

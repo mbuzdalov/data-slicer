@@ -3,8 +3,11 @@ package ru.ifmo.ds.srv
 import java.nio.file.{Files, Path}
 import java.util.Properties
 
+import scala.annotation.tailrec
+
 object PhaseExecutor {
   def run(phases: Seq[Phase], projectRoot: Path, phaseRoot: Path, stateFileName: String, singleStep: Boolean): Unit = {
+    @tailrec
     def processPhase(index: Int, props: Properties, propsChanged: Boolean, curr: Path, prev: Option[Path], statePath: Path): Unit = {
       if (index >= phases.size) (propsChanged, None) else {
         val phase = phases(index)
@@ -36,6 +39,8 @@ object PhaseExecutor {
       .toArray[Path](Array.ofDim[Path])
       .sorted
     val liftedWorkingSet = workingSet.lift
+
+    @tailrec
     def processIndex(index: Int): Unit = if (index < workingSet.length) {
       val curr = workingSet(index)
       val prev = liftedWorkingSet(index - 1)
