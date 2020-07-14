@@ -8,7 +8,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   private[this] var state: State = Initializing
   private[this] var nDependenciesToWait = 0
 
-  override protected def getState: State = state
+  override def getState: State = state
 
   def completeInitialization(): Unit = {
     require(SwingUtilities.isEventDispatchThread)

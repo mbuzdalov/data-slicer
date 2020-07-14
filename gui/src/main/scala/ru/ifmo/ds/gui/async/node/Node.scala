@@ -39,7 +39,7 @@ trait Node {
     * Returns the current state of the node.
     * @return the state.
     */
-  protected def getState: Node.State
+  def getState: Node.State
 
   /**
     * Notifies all the listeners that the state is changed.
@@ -75,13 +75,13 @@ object Node {
     * one can add this node to the dependencies first, do all the dirty job, and remove this node from the dependencies.
     */
   object WaitingNode extends Node {
-    override protected def getState: State = Waiting
+    override def getState: State = Waiting
   }
 
   /**
     * This is a node which is always done.
     */
   object DoneNode extends Node {
-    override protected def getState: State = Done
+    override def getState: State = Done
   }
 }

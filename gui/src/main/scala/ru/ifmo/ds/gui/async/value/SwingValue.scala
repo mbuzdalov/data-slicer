@@ -11,9 +11,17 @@ import ru.ifmo.ds.gui.async.node.Node
 abstract class SwingValue[+T] extends AutoCloseable {
   /**
    * Returns the current value.
+   * Can be called only when `isReady` returns `true`, otherwise exceptions are thrown.
+   *
    * @return the current value.
    */
   def value: T
+
+  /**
+   * Returns whether the value is ready.
+   * @return `true` if the value is ready, `false` otherwise.
+   */
+  def isReady: Boolean = node.getState == Node.Done
 
   /**
    * This is the `Node` for asynchronous computations, which is associated with the current value.
