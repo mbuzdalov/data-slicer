@@ -1,5 +1,6 @@
 package ru.ifmo.ds.gui.parts
 
+import java.awt.Color
 import java.util.{Arrays, Comparator}
 
 import javax.swing._
@@ -8,11 +9,9 @@ import javax.swing.table.{TableModel, TableRowSorter}
 
 import scala.Ordering.Double.IeeeOrdering
 import scala.collection.{mutable => mu}
-
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
-
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
 import ru.ifmo.ds.gui.util._
@@ -46,6 +45,10 @@ object ChartEntity extends ImageLoadingFacilities {
   private val tableIcon = imageFromResource("table.png")
   private val chartTableVIcon = imageFromResource("chart-table-v.png")
   private val chartTableHIcon = imageFromResource("chart-table-h.png")
+
+  private val minimumMedianColor = Color.GREEN
+  private val fivePercentMedianColor = Color.CYAN
+  private val tenPercentMedianColor = new Color(0xff, 0xff, 0x88)
 
   private case class LeafDescription(plot: XYPlot,
                                      tableModel: TableModel,
@@ -85,6 +88,7 @@ object ChartEntity extends ImageLoadingFacilities {
     }
     val xValues = xSet.toArray
     val tableContents = data.map(s => makeTableRow(s, xValues)).toArray
+    markupColumnMinima(tableContents)
     val columnNames = "" +: xValues.map(v => new TableDoubleValueDisplay(v, Double.NaN, Double.NaN, false).toString)
     val tableModel = new TableModel {
       override def getRowCount: Int = tableContents.length
@@ -102,6 +106,32 @@ object ChartEntity extends ImageLoadingFacilities {
       tableSorter.setComparator(i, Comparator.naturalOrder[TableDoubleValueDisplay]())
     }
     (tableModel, tableSorter)
+  }
+
+  private def markupColumnMinima(table: Array[Array[AnyRef]]): Unit = {
+    for (colIndex <- table(0).indices) {
+      var bestMedian: Double = Double.NaN
+      for (row <- table) {
+        row(colIndex) match {
+          case d: TableDoubleValueDisplay if !d.median.isNaN =>
+            bestMedian = if (bestMedian.isNaN) d.median else math.min(d.median, bestMedian)
+          case _ =>
+        }
+      }
+      for (row <- table) {
+        row(colIndex) match {
+          case d: TableDoubleValueDisplay if !d.median.isNaN =>
+            if (d.median <= bestMedian * 1.0001) {
+              row(colIndex) = d.withColor(minimumMedianColor)
+            } else if (d.median <= bestMedian * 1.05) {
+              row(colIndex) = d.withColor(fivePercentMedianColor)
+            } else if (d.median <= bestMedian * 1.1) {
+              row(colIndex) = d.withColor(tenPercentMedianColor)
+            }
+          case _ =>
+        }
+      }
+    }
   }
 
   private def makeLeafFromDatabase(seriesKey: String, xAxis: Axis, yAxis: Axis)(db: Database): LeafDescription = {

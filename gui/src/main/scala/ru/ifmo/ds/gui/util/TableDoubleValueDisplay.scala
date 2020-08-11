@@ -1,6 +1,6 @@
 package ru.ifmo.ds.gui.util
 
-import java.awt.Component
+import java.awt.{Color, Component}
 import java.util.Locale
 
 import javax.swing.{JLabel, JTable}
@@ -9,7 +9,8 @@ import javax.swing.table.TableCellRenderer
 class TableDoubleValueDisplay(val median: Double,
                               val min: Double,
                               val max: Double,
-                              alwaysSci: Boolean) extends Comparable[TableDoubleValueDisplay] {
+                              alwaysSci: Boolean,
+                              color: Color = null) extends Comparable[TableDoubleValueDisplay] {
   private[this] def makeSci(value: Double): String = {
     val str = "%.03e".formatLocal(Locale.US, value)
     val eIdx = str.indexOf('e')
@@ -30,11 +31,20 @@ class TableDoubleValueDisplay(val median: Double,
     }
   }
 
+  def withColor(newColor: Color): TableDoubleValueDisplay =
+    new TableDoubleValueDisplay(median, min, max, alwaysSci, newColor)
+
   def minText: String = constructValue(min)
   def maxText: String = constructValue(max)
   def medText: String = constructValue(median)
 
-  override val toString: String = if (median.isNaN) "---" else "<html>" + constructValue(median) + "</html>"
+  override val toString: String =
+    if (median.isNaN)
+      "---"
+    else if (color != null)
+      s"<html><p style='background-color:#${(color.getRGB & 0xffffff).toHexString}'>" + constructValue(median) + "</p></html>"
+    else
+      "<html>" + constructValue(median) + "</html>"
 
   override def compareTo(o: TableDoubleValueDisplay): Int = {
     if (median.isNaN) {
