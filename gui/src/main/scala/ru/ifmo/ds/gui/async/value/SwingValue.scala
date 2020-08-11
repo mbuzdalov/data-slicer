@@ -24,9 +24,18 @@ abstract class SwingValue[+T] extends AutoCloseable {
   def isReady: Boolean = node.getState == Node.Done
 
   /**
+   * Returns a new [[SwingValue]] which is derived from this by applying the given `function`.
+   * @param function the function to apply.
+   * @tparam R the type of the result.
+   * @return the [[SwingValue]] which is connected to this through `function`.
+   */
+  def map[R](function: T => R): SwingValue[R] = new BoundSwingValue(this.value, function, this.node)
+
+  /**
    * This is the [[Node]] for asynchronous computations, which is associated with the current value.
    * All the dependencies are actually managed by adding and removing listeners to this node,
    * but the user of the value cannot access this node directly.
+   * @return the underlying [[Node]].
    */
   protected[value] def node: Node
 }
@@ -34,7 +43,7 @@ abstract class SwingValue[+T] extends AutoCloseable {
 object SwingValue {
   /**
     * Creates a [[SwingValue]] which holds the given constant value and does not depend on anything.
-    * @param value the value for the [[SwingValue]]to always have.
+    * @param value the value for the [[SwingValue]] to always have.
     * @tparam T the type of the value.
     * @return the [[SwingValue]] which holds `value` and never changes.
     */

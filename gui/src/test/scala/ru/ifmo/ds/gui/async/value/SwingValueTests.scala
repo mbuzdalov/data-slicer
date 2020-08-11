@@ -43,6 +43,14 @@ class SwingValueTests extends AnyFlatSpec with Matchers {
     }
   }
 
+  "The map method of SwingValue" should "return the correct value" in {
+    for (_ <- 0 until 10) {
+      val five = inSwing(SwingValue.constant(5))
+      val fiveStr = inSwing(five.map(String.valueOf))
+      check("5", fiveStr)
+    }
+  }
+
   "The two-arg binding of SwingValue" should "compute the function correctly" in {
     for (_ <- 0 until 10) {
       val a, b = inSwing(SwingValue.constant(5))
