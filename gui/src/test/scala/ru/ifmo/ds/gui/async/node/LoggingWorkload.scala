@@ -1,6 +1,7 @@
 package ru.ifmo.ds.gui.async.node
 
 import javax.swing.SwingUtilities
+import ru.ifmo.ds.gui.async.LoggingListener
 
 class LoggingWorkload(listener: LoggingListener) extends Workload {
   override type MainInput = Unit

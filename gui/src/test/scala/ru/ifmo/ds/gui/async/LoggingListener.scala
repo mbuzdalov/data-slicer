@@ -1,8 +1,9 @@
-package ru.ifmo.ds.gui.async.node
+package ru.ifmo.ds.gui.async
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import javax.swing.SwingUtilities
+import ru.ifmo.ds.gui.async.node.{Node, NodeListener, Workload}
 
 class LoggingListener extends NodeListener {
   require(SwingUtilities.isEventDispatchThread)
