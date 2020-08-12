@@ -67,18 +67,8 @@ class NodeTests extends AnyFlatSpec with Matchers {
       inSwing(n2.completeInitialization())
       listener.consumeOrFail(Change(n2, Initializing, Waiting))
       inSwing(n1.completeInitialization())
-      listener.consumeOrFail(
-        WorkBefore(w1),                    // First, the workload of `n1` is started.
-        Change(n1, Initializing, Running), // Next, the state change of `n1` becomes visible.
-        WorkMain(w1),                      // The workload of `n1` continues...
-        WorkAfter(w1),                     // ... then finishes...
-        Change(n1, Running, Done),         // ... then the change becomes visible.
-        WorkBefore(w2),                    // `n2` sees it and initiates its own workload.
-        Change(n2, Waiting, Running),      // After work-before the change becomes visible.
-        WorkMain(w2),                      // The workload of `n2` continues...
-        WorkAfter(w2),                     // ... then finishes...
-        Change(n2, Running, Done)          // ... then the change becomes visible.
-      )
+      listener.consumeOrFail(happyWorkStory(n1, w1, Initializing) :_*)
+      listener.consumeOrFail(happyWorkStory(n2, w2, Waiting) :_*)
     }
   }
 
