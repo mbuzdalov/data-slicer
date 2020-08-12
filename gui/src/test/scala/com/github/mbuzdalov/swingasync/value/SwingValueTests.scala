@@ -1,6 +1,6 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
-import ru.ifmo.ds.gui.async.Infrastructure._
+import com.github.mbuzdalov.swingasync.Infrastructure._
 
 class SwingValueTests extends ExtendedSpec {
   "The constant SwingValue" should "return its constant" in {

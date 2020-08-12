@@ -1,7 +1,7 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
 import javax.swing.SwingUtilities
-import ru.ifmo.ds.gui.async.node.Node
+import com.github.mbuzdalov.swingasync.node.Node
 
 /**
  * This is an abstract class for every value which is associated with some Swing entity, maybe intermediate,

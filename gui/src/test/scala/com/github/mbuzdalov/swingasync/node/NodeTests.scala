@@ -1,11 +1,11 @@
-package ru.ifmo.ds.gui.async.node
+package com.github.mbuzdalov.swingasync.node
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import ru.ifmo.ds.gui.async.node.Node._
-import ru.ifmo.ds.gui.async.Infrastructure._
-import ru.ifmo.ds.gui.async.LoggingListener
-import ru.ifmo.ds.gui.async.LoggingListener._
+import com.github.mbuzdalov.swingasync.node.Node._
+import com.github.mbuzdalov.swingasync.Infrastructure._
+import com.github.mbuzdalov.swingasync.LoggingListener
+import com.github.mbuzdalov.swingasync.LoggingListener._
 
 class NodeTests extends AnyFlatSpec with Matchers {
   private def happyWorkStory(n: Node, w: Workload, initState: State): Seq[LogRecord] = {

@@ -1,12 +1,12 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
 import java.util.concurrent.CountDownLatch
 
 import javax.swing.SwingUtilities
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import ru.ifmo.ds.gui.async.Infrastructure.inSwing
-import ru.ifmo.ds.gui.async.node.{Node, NodeListener}
+import com.github.mbuzdalov.swingasync.Infrastructure.inSwing
+import com.github.mbuzdalov.swingasync.node.{Node, NodeListener}
 
 trait ExtendedSpec extends AnyFlatSpec with Matchers {
   def check[T](expected: T, actual: SwingValue[T]): Unit = {

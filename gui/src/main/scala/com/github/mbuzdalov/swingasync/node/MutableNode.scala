@@ -1,8 +1,8 @@
-package ru.ifmo.ds.gui.async.node
+package com.github.mbuzdalov.swingasync.node
 
 import javax.swing.SwingUtilities
 import scala.util.{Failure, Success, Try}
-import ru.ifmo.ds.gui.async.node.Node._
+import com.github.mbuzdalov.swingasync.node.Node._
 
 final class MutableNode(workload: Workload) extends Node with NodeListener {
   private[this] var state: State = Initializing

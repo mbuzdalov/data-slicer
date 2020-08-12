@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.async.node
+package com.github.mbuzdalov.swingasync.node
 
 import scala.collection.mutable
 

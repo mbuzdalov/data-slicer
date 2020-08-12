@@ -1,6 +1,6 @@
-package ru.ifmo.ds.gui.async.node
+package com.github.mbuzdalov.swingasync.node
 
-import ru.ifmo.ds.gui.async.node.Node.State
+import com.github.mbuzdalov.swingasync.node.Node.State
 
 /**
   * This is an interface for async node listeners.

@@ -1,9 +1,9 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
-import ru.ifmo.ds.gui.async.Infrastructure.inSwing
-import ru.ifmo.ds.gui.async.LoggingListener
-import ru.ifmo.ds.gui.async.node.Node
-import ru.ifmo.ds.gui.async.value.components.CheckBoxAsBoolean
+import com.github.mbuzdalov.swingasync.Infrastructure.inSwing
+import com.github.mbuzdalov.swingasync.LoggingListener
+import com.github.mbuzdalov.swingasync.node.Node
+import com.github.mbuzdalov.swingasync.value.components.CheckBoxAsBoolean
 
 class CheckBoxAsBooleanTests extends ExtendedSpec {
   "The initial value" should "be false" in {

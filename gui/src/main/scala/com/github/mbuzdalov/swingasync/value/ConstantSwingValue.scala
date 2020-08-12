@@ -1,6 +1,6 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
-import ru.ifmo.ds.gui.async.node.Node
+import com.github.mbuzdalov.swingasync.node.Node
 
 class ConstantSwingValue[+T](val value: T) extends SwingValue[T] {
   override protected[value] def node: Node = Node.DoneNode

@@ -1,8 +1,8 @@
-package ru.ifmo.ds.gui.async.value.components
+package com.github.mbuzdalov.swingasync.value.components
 
 import javax.swing.JCheckBox
-import ru.ifmo.ds.gui.async.node.{Node, SwitchableNode}
-import ru.ifmo.ds.gui.async.value.SwingValue
+import com.github.mbuzdalov.swingasync.node.{Node, SwitchableNode}
+import com.github.mbuzdalov.swingasync.value.SwingValue
 
 /**
  * This is a [[SwingValue]] holding a [[Boolean]] that is controlled by a [[JCheckBox]].

@@ -1,6 +1,6 @@
-package ru.ifmo.ds.gui.async.value
+package com.github.mbuzdalov.swingasync.value
 
-import ru.ifmo.ds.gui.async.node.{MutableNode, Node, Workload}
+import com.github.mbuzdalov.swingasync.node.{MutableNode, Node, Workload}
 
 class BoundSwingValue[I, +R](packer: => I, executor: I => R, dependencies: Node*) extends SwingValue[R] {
   private[this] val workload = new BoundSwingValue.PackerExecutorWorkload(packer, executor)

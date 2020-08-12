@@ -1,4 +1,4 @@
-package ru.ifmo.ds.gui.async
+package com.github.mbuzdalov.swingasync
 
 import java.util.concurrent.atomic.AtomicReference
 
