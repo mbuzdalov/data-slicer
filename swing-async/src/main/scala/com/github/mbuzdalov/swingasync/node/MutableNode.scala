@@ -102,13 +102,20 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   }
 
   private def scheduleFunction(): State = {
+    import Workload._
+
     try {
-      val before = workload.beforeMain()
-      new Thread(() => {
-        val bTry = Try(workload.main(before))
-        SwingUtilities.invokeLater(() => notifyFunctionResult(bTry))
-      }).start()
-      Running
+      workload.beforeMain() match {
+        case HeavyResult(before) =>
+          new Thread(() => {
+            val bTry = Try(workload.main(before))
+            SwingUtilities.invokeLater(() => notifyFunctionResult(bTry))
+          }).start()
+          Running
+        case LightResult(value) =>
+          workload.afterMain(value)
+          Done
+      }
     } catch {
       case th: Throwable =>
         workload.onError(th)

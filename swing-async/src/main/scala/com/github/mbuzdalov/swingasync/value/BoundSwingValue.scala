@@ -24,9 +24,9 @@ object BoundSwingValue {
     override def onError(th: Throwable): Unit = theValue = None
     override def main(input: I): R = executor(input)
     override def afterMain(input: R): Unit = theValue = Some(input)
-    override def beforeMain(): I = {
+    override def beforeMain(): Workload.HeavyResult[I] = {
       theValue = None
-      packer
+      Workload.HeavyResult(packer)
     }
   }
 }

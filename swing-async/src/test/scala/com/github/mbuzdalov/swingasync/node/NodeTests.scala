@@ -22,7 +22,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
     // We run the test many times to be more confident that spurious failures don't happen.
     for (_ <- 0 to 10) {
       val listener = inSwing(new LoggingListener)
-      val w = inSwing(new LoggingWorkload(listener))
+      val w = inSwing(new HeavyLoggingWorkload(listener))
       val n = inSwing(new MutableNode(w))
       inSwing(n.addListener(listener))
       listener.consumeOrFail(Add(n, Initializing))
@@ -37,7 +37,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
     // We run the test many times to be more confident that spurious failures don't happen.
     for (_ <- 0 to 10) {
       val listener = inSwing(new LoggingListener)
-      val w = inSwing(new LoggingWorkload(listener))
+      val w = inSwing(new HeavyLoggingWorkload(listener))
       val n = inSwing(new MutableNode(w))
       inSwing(n.addListener(listener))
       listener.consumeOrFail(Add(n, Initializing))
@@ -54,8 +54,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
     // We run the test many times to be more confident that spurious failures don't happen.
     for (_ <- 0 to 2) {
       val listener = inSwing(new LoggingListener)
-      val w1 = inSwing(new LoggingWorkload(listener))
-      val w2 = inSwing(new LoggingWorkload(listener))
+      val w1, w2 = inSwing(new HeavyLoggingWorkload(listener))
       val n1 = inSwing(new MutableNode(w1))
       val n2 = inSwing(new MutableNode(w2))
       inSwing {
@@ -87,8 +86,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
     // We run the test many times to be more confident that spurious failures don't happen.
     for (_ <- 0 to 2) {
       val listener = inSwing(new LoggingListener)
-      val w1 = inSwing(new LoggingWorkload(listener))
-      val w2 = inSwing(new LoggingWorkload(listener))
+      val w1, w2 = inSwing(new HeavyLoggingWorkload(listener))
       val n1 = inSwing(new MutableNode(w1))
       val n2 = inSwing(new MutableNode(w2))
       inSwing {
@@ -109,8 +107,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
     // We run the test many times to be more confident that spurious failures don't happen.
     for (_ <- 0 to 2) {
       val listener = inSwing(new LoggingListener)
-      val w1 = inSwing(new LoggingWorkload(listener))
-      val w2 = inSwing(new LoggingWorkload(listener))
+      val w1, w2 = inSwing(new HeavyLoggingWorkload(listener))
       val n1 = inSwing(new MutableNode(w1))
       val n2 = inSwing(new MutableNode(w2))
       inSwing {
