@@ -23,3 +23,5 @@ bin/
 /gui/project/
 /service/target/
 /service/project/
+/swing-async/target/
+/swing-async/project/
