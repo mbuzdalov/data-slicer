@@ -1,5 +1,6 @@
 package ru.ifmo.ds.gui.async.value
 
+import javax.swing.SwingUtilities
 import ru.ifmo.ds.gui.async.node.Node
 
 /**
@@ -9,6 +10,8 @@ import ru.ifmo.ds.gui.async.node.Node
  * @tparam T the type of the value.
  */
 abstract class SwingValue[+T] extends AutoCloseable {
+  require(SwingUtilities.isEventDispatchThread)
+
   /**
    * Returns the current value.
    * Can be called only when [[isReady]] returns `true`, otherwise exceptions are thrown.

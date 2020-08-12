@@ -1,11 +1,8 @@
 package ru.ifmo.ds.gui.async.value
-import javax.swing.SwingUtilities
 
 import ru.ifmo.ds.gui.async.node.{MutableNode, Node, Workload}
 
 class BoundSwingValue[I, +R](packer: => I, executor: I => R, dependencies: Node*) extends SwingValue[R] {
-  require(SwingUtilities.isEventDispatchThread)
-
   private[this] val workload = new BoundSwingValue.PackerExecutorWorkload(packer, executor)
   private[this] val theNode = new MutableNode(workload)
 
