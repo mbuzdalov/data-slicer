@@ -13,24 +13,17 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   def completeInitialization(): Unit = {
     require(SwingUtilities.isEventDispatchThread)
     require(state == Initializing)
-    if (nDependenciesToWait == 0) {
-      state = scheduleFunction()
-    } else {
-      state = Waiting
-    }
-    notifyOfStateChange(Initializing)
+    setState(if (nDependenciesToWait == 0) scheduleFunction() else Waiting)
   }
 
   def restartEvaluation(): Unit = {
     require(SwingUtilities.isEventDispatchThread)
     checkInvariants()
-    val oldState = state
-    state = state match {
+    setState(state match {
       case Initializing | Waiting | Restarting => state /* do nothing */
       case Running => Restarting /* if running, ask to be restarted */
       case Done | Failed => scheduleFunction() /* actually restart */
-    }
-    notifyOfStateChange(oldState)
+    })
   }
 
   override def nodeJustAdded(node: Node, state: State): Unit = {
@@ -60,23 +53,19 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
   private def processDependencyChange(nDependenciesChange: Int, nWaitingChange: Int): Unit = {
     checkInvariants()
     if (nDependenciesChange != 0 || nWaitingChange != 0) {
-      val oldState = state
       nDependenciesToWait += nWaitingChange
-      state = state match {
+      setState(state match {
         case Initializing => Initializing
         case Waiting | Failed | Done => if (nDependenciesToWait == 0) scheduleFunction() else Waiting
         case Running | Restarting    => Restarting
-      }
-      notifyOfStateChange(oldState)
-      checkInvariants()
+      })
     }
   }
 
   private def notifyFunctionResult(result: Try[workload.MainOutput]): Unit = {
     require(SwingUtilities.isEventDispatchThread)
     checkInvariants()
-    val oldState = state
-    state = state match {
+    setState(state match {
       case Initializing | Waiting | Failed | Done =>
         throw new AssertionError(s"State cannot be $state when function returns")
       case Running =>
@@ -96,9 +85,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
         }
       case Restarting =>
         if (nDependenciesToWait == 0) scheduleFunction() else Waiting
-    }
-    notifyOfStateChange(oldState)
-    checkInvariants()
+    })
   }
 
   private def scheduleFunction(): State = {
@@ -113,6 +100,7 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
           }).start()
           Running
         case LightResult(value) =>
+          setState(Running)
           workload.afterMain(value)
           Done
       }
@@ -121,5 +109,12 @@ final class MutableNode(workload: Workload) extends Node with NodeListener {
         workload.onError(th)
         Failed
     }
+  }
+
+  private def setState(newState: State): Unit = {
+    val oldState = state
+    state = newState
+    notifyOfStateChange(oldState)
+    checkInvariants()
   }
 }
