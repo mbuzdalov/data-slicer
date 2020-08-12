@@ -63,7 +63,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
       }
       listener.consumeOrFail(Add(n1, Initializing), Add(n2, Initializing))
       inSwing(n1.addListener(n2))
-      listener.failIfSomethingHappens()
+      listener.failIfSomethingHappens(100)
       inSwing(n2.completeInitialization())
       listener.consumeOrFail(Change(n2, Initializing, Waiting))
       inSwing(n1.completeInitialization())
@@ -95,7 +95,7 @@ class NodeTests extends AnyFlatSpec with Matchers {
       }
       listener.consumeOrFail(Add(n1, Initializing), Add(n2, Initializing))
       inSwing(n1.addListener(n2))
-      listener.failIfSomethingHappens()
+      listener.failIfSomethingHappens(100)
       inSwing(n1.completeInitialization())
       listener.consumeOrFail(happyWorkStory(n1, w1, Initializing) :_*)
       inSwing(n2.completeInitialization())

@@ -22,15 +22,11 @@ class LoggingListener extends NodeListener {
     }
   }
 
-  def failIfSomethingHappens(): Unit = {
-    var i = 0
-    while (i < 100) {
-      val next = records.poll()
-      if (next != null) {
-        throw new AssertionError("Expected nothing in the queue, found " + next)
-      }
-      Thread.sleep(1)
-      i += 1
+  def failIfSomethingHappens(timeoutMilliseconds: Int): Unit = {
+    Thread.sleep(timeoutMilliseconds)
+    val next = records.poll()
+    if (next != null) {
+      throw new AssertionError("Expected nothing in the queue, found " + next)
     }
   }
 

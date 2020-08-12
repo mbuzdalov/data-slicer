@@ -14,15 +14,15 @@ class CheckBoxAsBooleanTests extends ExtendedSpec {
   }
 
   "Running doClick on the checkbox" should "toggle the SwingValue" in {
-    for (_ <- 0 until 10) {
+    for (_ <- 0 until 5) {
       val cv = inSwing(new CheckBoxAsBoolean)
-      inSwing(cv.component.doClick())
+      inSwing(cv.component.doClick(10))
       check(true, cv)
-      inSwing(cv.component.doClick())
+      inSwing(cv.component.doClick(10))
       check(false, cv)
-      inSwing(cv.component.doClick())
+      inSwing(cv.component.doClick(10))
       check(true, cv)
-      inSwing(cv.component.doClick())
+      inSwing(cv.component.doClick(10))
       check(false, cv)
     }
   }
@@ -42,7 +42,7 @@ class CheckBoxAsBooleanTests extends ExtendedSpec {
   }
 
   it should "not notify the listeners if the same value is set" in {
-    for (_ <- 0 until 10) {
+    for (_ <- 0 until 5) {
       import LoggingListener._
       import Node._
 
@@ -55,13 +55,13 @@ class CheckBoxAsBooleanTests extends ExtendedSpec {
       listener.consumeOrFail(Change(cvNode, Done, Waiting), Change(cvNode, Waiting, Done))
       check(true, cv)
       inSwing(cv.component.setSelected(true))
-      listener.failIfSomethingHappens()
+      listener.failIfSomethingHappens(20)
       check(true, cv)
       inSwing(cv.component.setSelected(false))
       listener.consumeOrFail(Change(cvNode, Done, Waiting), Change(cvNode, Waiting, Done))
       check(false, cv)
       inSwing(cv.component.setSelected(false))
-      listener.failIfSomethingHappens()
+      listener.failIfSomethingHappens(20)
       check(false, cv)
       inSwing(cv.component.setSelected(true))
       listener.consumeOrFail(Change(cvNode, Done, Waiting), Change(cvNode, Waiting, Done))
