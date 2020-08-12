@@ -22,8 +22,13 @@ lazy val root = project
   .in(file("."))
   .settings(commonSettings :_*)
   .settings(name := "data-slicer")
-  .dependsOn(core, cli, gui)
-  .aggregate(core, cli, gui)
+  .dependsOn(core, cli, gui, swingAsync)
+  .aggregate(core, cli, gui, swingAsync)
+
+lazy val swingAsync = project
+  .in(file("swing-async"))
+  .settings(commonSettings :_*)
+  .settings(name  := "swing-async")
 
 lazy val core = project
   .in(file("core"))
@@ -40,7 +45,7 @@ lazy val cli = project
 
 lazy val gui = project
   .in(file("gui"))
-  .dependsOn(core)
+  .dependsOn(core, swingAsync)
   .settings(commonSettings :_*)
   .settings(
     name    := "data-slicer-gui",
