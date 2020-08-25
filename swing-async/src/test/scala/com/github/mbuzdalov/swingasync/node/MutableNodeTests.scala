@@ -7,7 +7,7 @@ import com.github.mbuzdalov.swingasync.Infrastructure._
 import com.github.mbuzdalov.swingasync.LoggingListener
 import com.github.mbuzdalov.swingasync.LoggingListener._
 
-class NodeTests extends AnyFlatSpec with Matchers {
+class MutableNodeTests extends AnyFlatSpec with Matchers {
   private def happyHeavyWorkStory(n: Node, w: Workload, initState: State): Seq[LogRecord] = {
     IndexedSeq(                      // The story goes as follows:
       WorkBefore(w),                 // First the before-phase of the workload is executed.
