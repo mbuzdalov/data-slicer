@@ -17,6 +17,7 @@ lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.0"
 
 lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.1.0" % Test
 lazy val spire      = "org.typelevel" %% "spire" % "0.17.0-M1"
+lazy val shapeless  = "com.chuusai" %% "shapeless" % "2.3.3"
 
 lazy val root = project
   .in(file("."))
@@ -28,7 +29,9 @@ lazy val root = project
 lazy val swingAsync = project
   .in(file("swing-async"))
   .settings(commonSettings :_*)
-  .settings(name  := "swing-async")
+  .settings(
+    name  := "swing-async",
+    libraryDependencies ++= Seq(shapeless))
 
 lazy val core = project
   .in(file("core"))
