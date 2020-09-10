@@ -3,7 +3,7 @@ package com.github.mbuzdalov.swingasync.ng
 import shapeless._
 
 object ShapelessHelpers {
-  object DoneOrNoneFolder extends Poly2 {
+  object DoneOrNoneFold extends Poly2 {
     // This is for the case when the type of the tail call is not known at compile-time.
     implicit def foldOption[H, T <: HList]: Case.Aux[UpdatableValue[H], Option[T], Option[H :: T]] =
       at((h, t) => t match {
