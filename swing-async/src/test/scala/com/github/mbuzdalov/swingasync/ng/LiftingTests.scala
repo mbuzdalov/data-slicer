@@ -1,16 +1,8 @@
 package com.github.mbuzdalov.swingasync.ng
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-
 import com.github.mbuzdalov.swingasync.ng.UpdatableValue._
 
-class LiftingTests extends AnyFlatSpec with Matchers {
-  private class ConstantUpdatableValue[+A](override val state: State[A]) extends UpdatableValue[A]
-  private def done[A](value: A): UpdatableValue[A] = new ConstantUpdatableValue[A](Done(value))
-  private def waiting[A]: UpdatableValue[A] = new ConstantUpdatableValue[A](Waiting)
-  private def failed[A](th: Throwable): UpdatableValue[A] = new ConstantUpdatableValue[A](Failed(th))
-
+class LiftingTests extends CommonTesting {
   private def checkSame[A](expected: UpdatableValue[A], found: UpdatableValue[A]): Unit = {
     found.state shouldEqual expected.state
   }

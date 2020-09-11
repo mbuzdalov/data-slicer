@@ -1,16 +1,10 @@
 package com.github.mbuzdalov.swingasync.ng
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import shapeless._
 
-class ShapelessHelpersTests extends AnyFlatSpec with Matchers {
-  import UpdatableValue._
-  import ShapelessHelpers._
+import com.github.mbuzdalov.swingasync.ng.ShapelessHelpers._
 
-  private class ConstantUpdatableValue[+A](override val state: State[A]) extends UpdatableValue[A]
-  private def done[A](value: A): UpdatableValue[A] = new ConstantUpdatableValue[A](Done(value))
-  private def waiting[A]: UpdatableValue[A] = new ConstantUpdatableValue[A](Waiting)
+class ShapelessHelpersTests extends CommonTesting {
 
   "DoneOrNoneFolder" should "map Option(HNil) to itself" in {
     val input: HNil = HNil
