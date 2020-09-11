@@ -6,7 +6,7 @@ import shapeless._
 
 class ShapelessHelpersTests extends AnyFlatSpec with Matchers {
   import UpdatableValue._
-  import com.github.mbuzdalov.swingasync.ng.ShapelessHelpers._
+  import ShapelessHelpers._
 
   private class ConstantUpdatableValue[+A](override val state: State[A]) extends UpdatableValue[A]
   private def done[A](value: A): UpdatableValue[A] = new ConstantUpdatableValue[A](Done(value))
