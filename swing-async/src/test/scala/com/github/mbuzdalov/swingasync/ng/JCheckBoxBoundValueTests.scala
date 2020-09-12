@@ -14,6 +14,15 @@ class JCheckBoxBoundValueTests extends CommonTesting {
     }
   }
 
+  it should "be true if the source box has been selected" in {
+    for (_ <- 0 until 10) {
+      val cb = inSwing(new JCheckBox())
+      inSwing(cb.setSelected(true))
+      val cv = inSwing(Binding.fromJCheckBox(cb))
+      check(true, cv)
+    }
+  }
+
   "Running doClick on the checkbox" should "toggle the SwingValue" in {
     for (_ <- 0 until 5) {
       val cb = inSwing(new JCheckBox())
