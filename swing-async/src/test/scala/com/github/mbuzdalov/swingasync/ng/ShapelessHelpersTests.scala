@@ -3,6 +3,7 @@ package com.github.mbuzdalov.swingasync.ng
 import shapeless._
 
 import com.github.mbuzdalov.swingasync.ng.ShapelessHelpers._
+import com.github.mbuzdalov.swingasync.ng.testutil.CommonTesting
 
 class ShapelessHelpersTests extends CommonTesting {
 

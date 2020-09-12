@@ -1,6 +1,7 @@
 package com.github.mbuzdalov.swingasync.ng
 
 import com.github.mbuzdalov.swingasync.ng.UpdatableValue._
+import com.github.mbuzdalov.swingasync.ng.testutil.CommonTesting
 
 class LiftingTests extends CommonTesting {
   private def checkSame[A](expected: UpdatableValue[A], found: UpdatableValue[A]): Unit = {
