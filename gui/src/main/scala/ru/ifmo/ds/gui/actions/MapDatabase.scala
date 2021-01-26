@@ -38,37 +38,37 @@ object MapDatabase extends ImageLoadingFacilities {
   private sealed trait DatabaseActionFactory {
     def name: String
     override def toString: String = name
-    def arity: Int
+    def captions: Seq[String]
     def makeFunction(args: Array[String]): Database => Database
   }
 
   private object Empty extends DatabaseActionFactory {
     override def name: String = "---"
-    override def arity: Int = 0
+    override def captions: Seq[String] = Seq.empty
     override def makeFunction(args: Array[String]): Database => Database = identity
   }
 
   private object RenameKey extends DatabaseActionFactory {
     override def name: String = "Rename Key"
-    override def arity: Int = 2
+    override val captions: Seq[String] = IndexedSeq("Old key", "New key")
     override def makeFunction(args: Array[String]): Database => Database = _.withRenamedKey(args(0), args(1))
   }
 
   private object RenameValue extends DatabaseActionFactory {
     override def name: String = "Rename Value"
-    override def arity: Int = 3
+    override val captions: Seq[String] = IndexedSeq("Key", "Old value", "New value")
     override def makeFunction(args: Array[String]): Database => Database = _.withRenamedValue(args(0), args(1), args(2))
   }
 
   private object AddKeyValue extends DatabaseActionFactory {
     override def name: String = "Add New Key/Value Singleton"
-    override def arity: Int = 2
+    override val captions: Seq[String] = IndexedSeq("Key", "Value")
     override def makeFunction(args: Array[String]): Database => Database = _.withMoreKeys(Map(args(0) -> args(1)))
   }
 
   private object RemoveAllKeysMatching extends DatabaseActionFactory {
     override def name: String = "Remove All Keys Matching..."
-    override def arity: Int = 1
+    override val captions: Seq[String] = IndexedSeq("Key regex")
     override def makeFunction(args: Array[String]): Database => Database = {
       val pattern = Pattern.compile(args(0))
       def entryMapper(e: Entry): Option[Entry] = {
@@ -83,7 +83,7 @@ object MapDatabase extends ImageLoadingFacilities {
 
   private object RemoveAllValuesMatching extends DatabaseActionFactory {
     override def name: String = "Remove Entries with Values Matching..."
-    override def arity: Int = 2
+    override val captions: Seq[String] = IndexedSeq("Key", "Value regex")
     override def makeFunction(args: Array[String]): Database => Database = {
       val key = args(0)
       val pattern = Pattern.compile(args(1))
@@ -91,8 +91,32 @@ object MapDatabase extends ImageLoadingFacilities {
     }
   }
 
+  private object AddNormalizedValues extends DatabaseActionFactory {
+    override def name: String = "Normalize One Key By Another"
+    override val captions: Seq[String] = IndexedSeq("New Key", "Numerator Key", "Denominator Key")
+    override def makeFunction(args: Array[String]): Database => Database = {
+      val newKey = args(0)
+      val numKey = args(1)
+      val denKey = args(2)
+      def entryMapper(e: Entry): Entry = {
+        if (e.contains(numKey) && e.contains(denKey)) {
+          val num = e(numKey).toDoubleOption
+          val den = e(denKey).toDoubleOption
+          if (num.nonEmpty && den.nonEmpty) {
+            val builder = Map.newBuilder[String, String]
+            e.foreach(p => builder += p)
+            builder += newKey -> (num.get / den.get).toString
+            Database.entry(builder.result())
+          } else e
+        } else e
+      }
+      db => Database(db.entries.map(entryMapper) :_*)
+    }
+  }
+
   private val allActions = Seq(Empty, RenameKey, RenameValue, AddKeyValue,
-                               RemoveAllKeysMatching, RemoveAllValuesMatching).sortBy(_.name)
+                               RemoveAllKeysMatching, RemoveAllValuesMatching,
+                               AddNormalizedValues).sortBy(_.name)
 
   private class ActionConfigurationPane(updateGUIFunction: () => Unit) extends JPanel {
     private val argumentPane = new JPanel(new FlowLayout())
@@ -101,9 +125,10 @@ object MapDatabase extends ImageLoadingFacilities {
     setLayout(new BorderLayout())
     comboBox.addActionListener(_ => {
       val factory = getSelectedFactory
-      val arity = factory.arity
+      val captions = factory.captions
       argumentPane.removeAll()
-      for (_ <- 0 until arity) {
+      for (caption <- captions) {
+        argumentPane.add(new JLabel(caption))
         argumentPane.add(new JTextField(10))
       }
       updateGUIFunction()
@@ -114,9 +139,12 @@ object MapDatabase extends ImageLoadingFacilities {
     private def getSelectedFactory: DatabaseActionFactory = comboBox.getModel.getElementAt(comboBox.getSelectedIndex)
 
     def getFunction: Database => Database = {
-      val args = argumentPane.getComponents.map(_.asInstanceOf[JTextField].getText)
+      val args = argumentPane.getComponents.flatMap {
+        case tf: JTextField => Some(tf.getText)
+        case _ => None
+      }
       val factory = getSelectedFactory
-      if (factory.arity == args.length && args.forall(_.nonEmpty)) {
+      if (factory.captions.size == args.length && args.forall(_.nonEmpty)) {
         factory.makeFunction(args)
       } else {
         identity
