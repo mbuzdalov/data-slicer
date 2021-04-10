@@ -9,9 +9,11 @@ import javax.swing.table.{TableModel, TableRowSorter}
 
 import scala.Ordering.Double.IeeeOrdering
 import scala.collection.{mutable => mu}
+
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.chart.{ChartPanel, JFreeChart}
 import org.jfree.data.xy.{YIntervalSeries, YIntervalSeriesCollection}
+
 import ru.ifmo.ds.Database
 import ru.ifmo.ds.gui.util.JFreeUtils._
 import ru.ifmo.ds.gui.util._
