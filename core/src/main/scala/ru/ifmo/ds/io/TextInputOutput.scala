@@ -130,6 +130,7 @@ object TextInputOutput {
 
   def fromFile(file: File, moreKeys: Map[String, String] = Map.empty): Database = {
     Try(Json.fromFile(file, moreKeys))
+      .tryMore(OpenFoamPostProcessing.fromFile(file, moreKeys))
       .tryMore(CSV.fromFile(file, moreKeys))
       .get
   }
