@@ -20,4 +20,8 @@ object StatePrinter {
   val toStringOrShortText: StatePrinter[Any] =
     new ToStringOrText(onInitializing = "<init>", onWaiting = "<wait>", onRunning = "<run>",
       onRestarting = "<restart>", onFailed = _ => "<fail>")
+
+  val toStringWithExceptionMessageOrShortText: StatePrinter[Any] =
+    new ToStringOrText(onInitializing = "<init>", onWaiting = "<wait>", onRunning = "<run>",
+      onRestarting = "<restart>", onFailed = _.getMessage)
 }
