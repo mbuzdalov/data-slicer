@@ -16,7 +16,7 @@ object Lifting {
     gen2fun(internalLift)
   }
 
-  def liftNoneToFail[A, B](function: A => Option[B], noneMessage: String): UpdatableValue[A] => UpdatableValue[B] = {
+  def liftNoneToFail[A, B](function: A => Option[B], noneMessage: A => String): UpdatableValue[A] => UpdatableValue[B] = {
     a => new UpdatableValue[B] {
       private[this] var myState: UpdatableValue.State[B] = UpdatableValue.Waiting
       private def setNewState(newState: UpdatableValue.State[B]): Unit = {
@@ -28,7 +28,7 @@ object Lifting {
         private def digestOtherState(state: UpdatableValue.State[A]): Unit = setNewState(state match {
           case UpdatableValue.Done(v) => function(v) match {
             case Some(w) => UpdatableValue.Done(w)
-            case None => UpdatableValue.Failed(new NoneToFailException(noneMessage))
+            case None => UpdatableValue.Failed(new NoneToFailException(noneMessage(v)))
           }
           case s@UpdatableValue.Failed(_) => s
           case UpdatableValue.Initializing => UpdatableValue.Initializing
@@ -39,7 +39,7 @@ object Lifting {
 
         override def addedToValue(value: UpdatableValue[A]): Unit = digestOtherState(value.state)
         override def valueChanged(value: UpdatableValue[A], oldState: UpdatableValue.State[A]): Unit = digestOtherState(value.state)
-        override def removedFromValue(value: UpdatableValue[A]): Unit = setNewState(UpdatableValue.Failed(new NoneToFailException(noneMessage)))
+        override def removedFromValue(value: UpdatableValue[A]): Unit = setNewState(UpdatableValue.Waiting)
       }
       a.addListener(myListener)
 

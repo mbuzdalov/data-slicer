@@ -14,7 +14,7 @@ object Calculator {
     System.setProperty("swing.aatext", "true")
 
     SwingUtilities.invokeLater(() => {
-      val firstComboBox, secondComboBox, thirdComboBox = new JComboBox[String](Array("0", "1", "2", "3", "4", "5", "What?"))
+      val firstComboBox, secondComboBox, thirdComboBox = new JComboBox[String](Array("0", "1", "2", "3", "4", "5", "What?", "Magic!"))
       val timesLabel = new JLabel("*")
       val plusLabel = new JLabel("+")
       val equalsLabel = new JLabel("=")
@@ -40,7 +40,7 @@ object Calculator {
       val secondValue = Binding.fromJComboBox(secondComboBox)
       val thirdValue = Binding.fromJComboBox(thirdComboBox)
 
-      val parsingFunctor = Lifting.liftNoneToFail((a: String) => a.toIntOption, "Not int!")
+      val parsingFunctor = Lifting.liftNoneToFail((a: String) => a.toIntOption, (a: String) => s"'$a' is not an int!")
       val firstParsedValue = parsingFunctor(firstValue)
       val secondParsedValue = parsingFunctor(secondValue)
       val thirdParsedValue = parsingFunctor(thirdValue)
