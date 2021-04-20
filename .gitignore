@@ -3,6 +3,7 @@
 
 /.idea/
 /out/
+/.bsp/
 
 .project
 .classpath
