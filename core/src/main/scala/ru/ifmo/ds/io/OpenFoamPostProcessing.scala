@@ -34,7 +34,7 @@ object OpenFoamPostProcessing extends TextInputOutput {
       line = bufferedReader.readLine()
     }
 
-    Database(rows.result() map { row => Database.entry(lastSharpTokens.lazyZip(row).toMap) } :_*)
+    Database(rows.result() map { row => Database.entry(lastSharpTokens.lazyZip(row).toMap) } :_*).withMoreKeys(moreKeys)
   }
 
   override def writeToWriter(db: Database, writer: Writer): Unit =
