@@ -15,7 +15,7 @@ lazy val gson       = "com.google.code.gson" % "gson" % "2.9.1"
 lazy val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
 lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.3"
 
-lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.2.12" % Test
+lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.2.13" % Test
 lazy val spire      = "org.typelevel" %% "spire" % "0.18.0"
 
 lazy val root = project
