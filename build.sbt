@@ -13,7 +13,7 @@ lazy val scalaCompiler = "org.scala-lang" % "scala-compiler" % theScalaVersion
 
 lazy val gson       = "com.google.code.gson" % "gson" % "2.10.1"
 lazy val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
-lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.3"
+lazy val jFreeChart = "org.jfree" % "jfreechart" % "1.5.4"
 
 lazy val scalaTest  = "org.scalatest" %% "scalatest" % "3.2.14" % Test
 lazy val spire      = "org.typelevel" %% "spire" % "0.18.0"
