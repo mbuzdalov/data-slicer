@@ -110,7 +110,7 @@ object ChartEntity extends ImageLoadingFacilities {
     (tableModel, tableSorter)
   }
 
-  private def markupColumnMinima(table: Array[Array[AnyRef]]): Unit = {
+  private def markupColumnMinima(table: Array[Array[AnyRef]]): Unit = if (table.length > 0) {
     for (colIndex <- table(0).indices) {
       var bestMedian: Double = Double.NaN
       for (row <- table) {
