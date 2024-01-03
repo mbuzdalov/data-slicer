@@ -58,14 +58,28 @@ object ChartEntity extends ImageLoadingFacilities {
     def makeUI(): JComponent = {
       val chartPanel = new ChartPanel(new JFreeChart(plot))
       JFreeUtils.augmentWithTogglingPlotsByClickingOnLegend(chartPanel)
-      val table = new JTable(tableModel)
-      table.setRowSorter(tableRowSorter)
-      table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
-      TableUtils.alignTable(table)
-      val tableScroll = new JScrollPane(table)
-      new ManagedSplitter(chartPanel, chartIcon, "Show the chart only",
-                          tableScroll, tableIcon, "Show the table only",
-                          chartTableVIcon, chartTableHIcon)
+      val xCount = {
+        val xValues = for {
+          dsIndex <- 0 until plot.getDatasetCount
+          ds = plot.getDataset(dsIndex)
+          serIndex <- 0 until ds.getSeriesCount
+          itemIndex <- 0 until ds.getItemCount(serIndex)
+        } yield ds.getXValue(serIndex, itemIndex)
+        xValues.distinct.size
+      }
+
+      if (xCount < 20) {
+        val table = new JTable(tableModel)
+        table.setRowSorter(tableRowSorter)
+        table.setDefaultRenderer(classOf[TableDoubleValueDisplay], TableDoubleValueDisplay.CellRenderer)
+        TableUtils.alignTable(table)
+        val tableScroll = new JScrollPane(table)
+        new ManagedSplitter(chartPanel, chartIcon, "Show the chart only",
+          tableScroll, tableIcon, "Show the table only",
+          chartTableVIcon, chartTableHIcon)
+      } else {
+        chartPanel
+      }
     }
   }
 
