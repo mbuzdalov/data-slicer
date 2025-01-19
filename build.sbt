@@ -1,4 +1,4 @@
-val theScalaVersion = "2.13.15"
+val theScalaVersion = "2.13.16"
 
 lazy val commonSettings = Seq(
   organization := "ru.ifmo",
