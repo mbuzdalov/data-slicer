@@ -20,14 +20,14 @@ lazy val spire      = "org.typelevel" %% "spire" % "0.18.0"
 
 lazy val root = project
   .in(file("."))
-  .settings(commonSettings :_*)
+  .settings(commonSettings*)
   .settings(name := "data-slicer")
   .dependsOn(core, cli, gui)
   .aggregate(core, cli, gui)
 
 lazy val core = project
   .in(file("core"))
-  .settings(commonSettings :_*)
+  .settings(commonSettings*)
   .settings(
     name    := "data-slicer-core",
     libraryDependencies ++= Seq(gson, apacheMath, spire))
@@ -35,13 +35,13 @@ lazy val core = project
 lazy val cli = project
   .in(file("cli"))
   .dependsOn(core)
-  .settings(commonSettings :_*)
+  .settings(commonSettings*)
   .settings(name := "data-slicer-cli")
 
 lazy val gui = project
   .in(file("gui"))
   .dependsOn(core)
-  .settings(commonSettings :_*)
+  .settings(commonSettings*)
   .settings(
     name    := "data-slicer-gui",
     libraryDependencies ++= Seq(jFreeChart))
@@ -49,7 +49,7 @@ lazy val gui = project
 lazy val service = project
   .in(file("service"))
   .dependsOn(core)
-  .settings(commonSettings :_*)
+  .settings(commonSettings*)
   .settings(
     name := "data-slicer-service",
     libraryDependencies ++= Seq(scalaCompiler))
